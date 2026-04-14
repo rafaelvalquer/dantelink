@@ -119,11 +119,15 @@ export default function AdminLinksPage() {
     }
   }
 
-  function updateLocalLink(id, field, value) {
+  function updateLocalLink(id, fieldOrPatch, value) {
     setPage((current) => ({
       ...current,
       links: (current?.links || []).map((link) =>
-        link.id === id ? { ...link, [field]: value } : link,
+        link.id !== id
+          ? link
+          : fieldOrPatch && typeof fieldOrPatch === "object"
+            ? { ...link, ...fieldOrPatch }
+            : { ...link, [fieldOrPatch]: value },
       ),
     }));
   }
@@ -433,3 +437,4 @@ export default function AdminLinksPage() {
     </EditorShell>
   );
 }
+

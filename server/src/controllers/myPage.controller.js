@@ -10,9 +10,33 @@ function hasThemePayload(body = {}) {
     return true;
   }
 
-  return ["backgroundColor", "cardColor", "textColor", "buttonStyle"].some(
-    (key) => Object.hasOwn(body, key),
-  );
+  return [
+    "backgroundColor",
+    "cardColor",
+    "textColor",
+    "themePreset",
+    "brandLayout",
+    "backgroundStyle",
+    "backgroundGradientDirection",
+    "backgroundPatternVariant",
+    "surfaceStyle",
+    "surfacePatternVariant",
+    "surfaceColor",
+    "buttonColor",
+    "buttonTextColor",
+    "pageTextColor",
+    "titleTextColor",
+    "fontPreset",
+    "buttonStyle",
+    "buttonShadow",
+    "buttonRadius",
+    "primaryButtonsLayout",
+    "secondaryLinksStyle",
+    "secondaryLinksIconLayout",
+    "secondaryLinksSize",
+    "secondaryLinksAlign",
+    "animationPreset",
+  ].some((key) => Object.hasOwn(body, key));
 }
 
 export async function getMyPageHandler(_req, res, next) {

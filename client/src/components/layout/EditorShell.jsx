@@ -15,14 +15,17 @@ export default function EditorShell({
 
       <main className="editor-shell__main">
         <header className="editor-shell__header">
-          <div>
-            <span className="editor-shell__eyebrow">Administração</span>
+          <div className="editor-shell__heading">
             <h1>{title}</h1>
-            <p>{description}</p>
+            {description ? <p>{description}</p> : null}
           </div>
 
-          {notice ? <div className="editor-shell__notice">{notice}</div> : null}
-          {error ? <div className="editor-shell__error">{error}</div> : null}
+          {notice || error ? (
+            <div className="editor-shell__status">
+              {notice ? <div className="editor-shell__notice">{notice}</div> : null}
+              {error ? <div className="editor-shell__error">{error}</div> : null}
+            </div>
+          ) : null}
         </header>
 
         <div className="editor-shell__content">{children}</div>
@@ -31,7 +34,7 @@ export default function EditorShell({
       <aside className="editor-shell__preview">
         <div className="editor-shell__preview-header">
           <span>Preview ao vivo</span>
-          <strong>Experiência pública no celular</strong>
+          <strong>Página pública</strong>
         </div>
         <PhonePreview page={page} />
       </aside>

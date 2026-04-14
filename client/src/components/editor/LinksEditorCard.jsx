@@ -1,6 +1,6 @@
 import Button from "../ui/Button.jsx";
 import SectionCard from "./SectionCard.jsx";
-import LinkItemRow from "./LinkItemRow.jsx";
+import LinkItemRow from "./LinkItemRowV2.jsx";
 
 export default function LinksEditorCard({
   links,

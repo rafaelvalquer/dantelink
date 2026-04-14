@@ -18,12 +18,12 @@ const seedData = {
     {
       id: createLinkId(),
       title: "Instagram",
-      url: "https://instagram.com/use.mutant",
+      url: "https://www.instagram.com/use.mutant/",
       isActive: true,
       order: 0,
       type: "social",
-      icon: "",
-      thumbnail: "",
+      platform: "instagram",
+      handle: "use.mutant",
     },
   ],
   collections: [

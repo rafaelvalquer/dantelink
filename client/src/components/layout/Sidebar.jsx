@@ -1,21 +1,20 @@
+import { Link2, Palette, Store } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 const items = [
-  { to: "/admin/links", label: "Links", description: "Perfil, links e coleções" },
-  { to: "/admin/shop", label: "Loja", description: "Bloco de loja" },
-  { to: "/admin/design", label: "Design", description: "Cores e estilo dos botões" },
+  { to: "/admin/links", label: "Links", icon: Link2 },
+  { to: "/admin/shop", label: "Loja", icon: Store },
+  { to: "/admin/design", label: "Design", icon: Palette },
 ];
 
 export default function Sidebar() {
   return (
     <aside className="sidebar">
-      <div className="sidebar__brand">
-        <span className="sidebar__eyebrow">MINHA PÁGINA</span>
-        <strong className="sidebar__title">Estúdio da Página</strong>
-        <p className="sidebar__text">Edite e acompanhe sua página pública em tempo real.</p>
+      <div className="sidebar__top">
+        <span className="sidebar__brand-mark" aria-hidden="true" />
       </div>
 
-      <nav className="sidebar__nav">
+      <nav className="sidebar__nav" aria-label="Navegação do editor">
         {items.map((item) => (
           <NavLink
             key={item.to}
@@ -24,8 +23,10 @@ export default function Sidebar() {
               `sidebar__link ${isActive ? "is-active" : ""}`
             }
           >
-            <span className="sidebar__link-title">{item.label}</span>
-            <span className="sidebar__link-text">{item.description}</span>
+            <span className="sidebar__link-icon" aria-hidden="true">
+              <item.icon size={17} strokeWidth={2.1} />
+            </span>
+            <span className="sidebar__link-label">{item.label}</span>
           </NavLink>
         ))}
       </nav>

@@ -11,27 +11,58 @@ import {
 } from "../utils/order.js";
 import { normalizeSlug } from "../utils/slug.js";
 
+const THEME_DEFAULTS = {
+  themePreset: "clean_light",
+  brandLayout: "classic",
+  backgroundStyle: "fill",
+  backgroundGradientDirection: "linear_up",
+  backgroundPatternVariant: "grid",
+  surfaceStyle: "soft",
+  surfacePatternVariant: "grid",
+  surfaceColor: "#ffffff",
+  buttonColor: "#0f172a",
+  buttonTextColor: "#ffffff",
+  pageTextColor: "#64748b",
+  titleTextColor: "#0f172a",
+  fontPreset: "inter",
+  buttonStyle: "solid",
+  buttonShadow: "soft",
+  buttonRadius: "round",
+  primaryButtonsLayout: "stack",
+  secondaryLinksStyle: "icon_text",
+  secondaryLinksIconLayout: "brand_badge",
+  secondaryLinksSize: "medium",
+  secondaryLinksAlign: "center",
+  animationPreset: "subtle",
+  backgroundColor: "#e2e8f0",
+  cardColor: "#ffffff",
+  textColor: "#64748b",
+};
+
+const LEGACY_BUTTON_STYLE_TO_RADIUS = {
+  "rounded-soft": "round",
+  "rounded-full": "pill",
+  "square-soft": "square",
+};
+
+const SOCIAL_PLATFORMS = new Set(["instagram", "facebook", "youtube", "tiktok"]);
+
 const DEFAULT_PAGE = {
   title: "Mutantwear",
   slug: "mutantwear",
   bio: "Viva a Mutação.",
   avatarUrl: "https://placehold.co/160x160/png?text=MW",
-  theme: {
-    backgroundColor: "#c4b5fd",
-    cardColor: "#f8fafc",
-    textColor: "#111827",
-    buttonStyle: "rounded-soft",
-  },
+  theme: { ...THEME_DEFAULTS },
   links: [
     {
       id: createLinkId(),
       title: "Instagram",
-      url: "https://instagram.com/use.mutant",
+      url: "https://www.instagram.com/use.mutant/",
       isActive: true,
       order: 0,
       type: "social",
-      icon: "",
-      thumbnail: "",
+      platform: "instagram",
+      handle: "use.mutant",
     },
   ],
   collections: [
@@ -71,6 +102,116 @@ function toPlainObject(value) {
   return typeof value.toObject === "function" ? value.toObject() : { ...value };
 }
 
+function isSocialPlatform(value) {
+  return SOCIAL_PLATFORMS.has(String(value || "").trim().toLowerCase());
+}
+
+function inferSocialPlatform(link = {}) {
+  if (isSocialPlatform(link.platform)) {
+    return String(link.platform).trim().toLowerCase();
+  }
+
+  const sample = `${link.title || ""} ${link.url || ""}`.toLowerCase();
+  if (sample.includes("instagram")) return "instagram";
+  if (sample.includes("facebook")) return "facebook";
+  if (sample.includes("tiktok")) return "tiktok";
+  if (sample.includes("youtube") || sample.includes("youtu.be")) return "youtube";
+  return "";
+}
+
+function extractHandleFromUrl(url = "", platform = "") {
+  const sample = String(url || "").trim();
+  if (!sample) return "";
+
+  const clean = sample.replace(/[?#].*$/, "").replace(/\/+$/, "");
+
+  if (platform === "instagram") {
+    const match = clean.match(/instagram\.com\/([^/?#]+)/i);
+    return match ? match[1] : clean.split("/").pop() || "";
+  }
+
+  if (platform === "tiktok") {
+    const match = clean.match(/tiktok\.com\/@([^/?#]+)/i);
+    return match ? match[1] : clean.split("/@").pop()?.split("/")[0] || "";
+  }
+
+  if (platform === "youtube") {
+    const match = clean.match(/youtube\.com\/@([^/?#]+)/i);
+    return match ? match[1] : clean.split("/@").pop()?.split("/")[0] || "";
+  }
+
+  return "";
+}
+
+function normalizeSocialHandle(value = "", platform = "") {
+  const sample = String(value || "").trim();
+  if (!sample || platform === "facebook") return "";
+
+  const extracted = sample.includes("http")
+    ? extractHandleFromUrl(sample, platform)
+    : sample;
+
+  return extracted.replace(/^@+/, "").replace(/\s+/g, "").replace(/\/+$/, "");
+}
+
+function buildSocialUrl(platform = "", handle = "", fallbackUrl = "") {
+  const safeHandle = normalizeSocialHandle(handle, platform);
+
+  if (platform === "instagram") {
+    return safeHandle ? `https://www.instagram.com/${safeHandle}/` : "";
+  }
+
+  if (platform === "tiktok") {
+    return safeHandle ? `https://www.tiktok.com/@${safeHandle}` : "";
+  }
+
+  if (platform === "youtube") {
+    return safeHandle ? `https://www.youtube.com/@${safeHandle}` : "";
+  }
+
+  if (platform === "facebook") {
+    return String(fallbackUrl || "").trim();
+  }
+
+  return String(fallbackUrl || "").trim();
+}
+
+function normalizeLink(link = {}, orderFallback = 0) {
+  const source = toPlainObject(link) || {};
+  const type = typeof source.type === "string" && source.type.trim()
+    ? source.type.trim()
+    : "link";
+  const title = typeof source.title === "string" && source.title.trim()
+    ? source.title.trim()
+    : "Novo link";
+  const platform = type === "social" ? inferSocialPlatform(source) : "";
+  const handle =
+    type === "social" && platform && platform !== "facebook"
+      ? normalizeSocialHandle(source.handle || source.url || "", platform)
+      : "";
+  const url =
+    type === "social"
+      ? buildSocialUrl(platform, handle, source.url)
+      : typeof source.url === "string"
+        ? source.url.trim()
+        : "";
+
+  return {
+    id: source.id,
+    title,
+    url,
+    isActive: source.isActive !== false,
+    order: Number.isFinite(Number(source.order)) ? Number(source.order) : orderFallback,
+    type,
+    platform,
+    handle,
+  };
+}
+
+function normalizeLinks(links = []) {
+  return normalizeOrder(links).map((link, index) => normalizeLink(link, index));
+}
+
 function normalizeCollections(collections = []) {
   return normalizeOrder(collections).map((collection) => ({
     ...collection,
@@ -78,12 +219,75 @@ function normalizeCollections(collections = []) {
   }));
 }
 
+function normalizeTheme(theme = {}) {
+  const normalizedTheme = toPlainObject(theme) || {};
+  const legacyRadius =
+    LEGACY_BUTTON_STYLE_TO_RADIUS[normalizedTheme.buttonStyle] || null;
+  const surfaceColor = normalizedTheme.surfaceColor || normalizedTheme.cardColor;
+  const pageTextColor =
+    normalizedTheme.pageTextColor || normalizedTheme.textColor;
+  const titleTextColor =
+    normalizedTheme.titleTextColor || normalizedTheme.textColor;
+
+  return {
+    ...THEME_DEFAULTS,
+    ...normalizedTheme,
+    backgroundColor:
+      typeof normalizedTheme.backgroundColor === "string" &&
+      normalizedTheme.backgroundColor.trim()
+        ? normalizedTheme.backgroundColor.trim()
+        : THEME_DEFAULTS.backgroundColor,
+    surfaceColor:
+      typeof surfaceColor === "string" && surfaceColor.trim()
+        ? surfaceColor.trim()
+        : THEME_DEFAULTS.surfaceColor,
+    buttonColor:
+      typeof normalizedTheme.buttonColor === "string" &&
+      normalizedTheme.buttonColor.trim()
+        ? normalizedTheme.buttonColor.trim()
+        : THEME_DEFAULTS.buttonColor,
+    buttonTextColor:
+      typeof normalizedTheme.buttonTextColor === "string" &&
+      normalizedTheme.buttonTextColor.trim()
+        ? normalizedTheme.buttonTextColor.trim()
+        : THEME_DEFAULTS.buttonTextColor,
+    pageTextColor:
+      typeof pageTextColor === "string" && pageTextColor.trim()
+        ? pageTextColor.trim()
+        : THEME_DEFAULTS.pageTextColor,
+    titleTextColor:
+      typeof titleTextColor === "string" && titleTextColor.trim()
+        ? titleTextColor.trim()
+        : THEME_DEFAULTS.titleTextColor,
+    buttonStyle: legacyRadius
+      ? THEME_DEFAULTS.buttonStyle
+      : typeof normalizedTheme.buttonStyle === "string" &&
+          normalizedTheme.buttonStyle.trim()
+        ? normalizedTheme.buttonStyle.trim()
+        : THEME_DEFAULTS.buttonStyle,
+    buttonRadius:
+      typeof normalizedTheme.buttonRadius === "string" &&
+      normalizedTheme.buttonRadius.trim()
+        ? normalizedTheme.buttonRadius.trim()
+        : legacyRadius || THEME_DEFAULTS.buttonRadius,
+    cardColor:
+      typeof surfaceColor === "string" && surfaceColor.trim()
+        ? surfaceColor.trim()
+        : THEME_DEFAULTS.surfaceColor,
+    textColor:
+      typeof pageTextColor === "string" && pageTextColor.trim()
+        ? pageTextColor.trim()
+        : THEME_DEFAULTS.pageTextColor,
+  };
+}
+
 function serializePage(pageDocument) {
   const page = toPlainObject(pageDocument);
 
   return {
     ...page,
-    links: normalizeOrder(page.links || []),
+    theme: normalizeTheme(page.theme || {}),
+    links: normalizeLinks(page.links || []),
     collections: normalizeCollections(page.collections || []),
   };
 }
@@ -103,7 +307,7 @@ async function ensureUniqueSlug(slug, excludeId) {
 }
 
 function applyDocumentNormalization(page) {
-  page.links = normalizeOrder((page.links || []).map((link) => toPlainObject(link)));
+  page.links = normalizeLinks((page.links || []).map((link) => toPlainObject(link)));
   page.collections = normalizeCollections(
     (page.collections || []).map((collection) => toPlainObject(collection)),
   );
@@ -160,20 +364,63 @@ function sanitizeProfilePayload(payload = {}) {
 }
 
 function sanitizeThemePayload(payload = {}) {
-  return {
-    backgroundColor:
-      typeof payload.backgroundColor === "string"
-        ? payload.backgroundColor.trim()
-        : undefined,
-    cardColor:
-      typeof payload.cardColor === "string" ? payload.cardColor.trim() : undefined,
-    textColor:
-      typeof payload.textColor === "string" ? payload.textColor.trim() : undefined,
-    buttonStyle:
-      typeof payload.buttonStyle === "string"
-        ? payload.buttonStyle.trim()
-        : undefined,
-  };
+  const updates = {};
+
+  for (const key of [
+    "themePreset",
+    "brandLayout",
+    "backgroundStyle",
+    "backgroundGradientDirection",
+    "backgroundPatternVariant",
+    "surfaceStyle",
+    "surfacePatternVariant",
+    "surfaceColor",
+    "buttonColor",
+    "buttonTextColor",
+    "pageTextColor",
+    "titleTextColor",
+    "fontPreset",
+    "buttonShadow",
+    "buttonRadius",
+    "primaryButtonsLayout",
+    "secondaryLinksStyle",
+    "secondaryLinksIconLayout",
+    "secondaryLinksSize",
+    "secondaryLinksAlign",
+    "animationPreset",
+    "backgroundColor",
+    "cardColor",
+    "textColor",
+  ]) {
+    if (typeof payload[key] === "string") {
+      updates[key] = payload[key].trim();
+    }
+  }
+
+  if (typeof payload.buttonStyle === "string") {
+    const buttonStyle = payload.buttonStyle.trim();
+    const legacyRadius = LEGACY_BUTTON_STYLE_TO_RADIUS[buttonStyle];
+    if (legacyRadius) {
+      updates.buttonRadius = legacyRadius;
+    } else {
+      updates.buttonStyle = buttonStyle;
+    }
+  }
+
+  if (updates.cardColor && !updates.surfaceColor) {
+    updates.surfaceColor = updates.cardColor;
+  }
+
+  if (updates.textColor) {
+    if (!updates.pageTextColor) {
+      updates.pageTextColor = updates.textColor;
+    }
+    if (!updates.titleTextColor) {
+      updates.titleTextColor = updates.textColor;
+    }
+  }
+
+  return updates;
 }
 
 function sanitizeLinkPayload(payload = {}) {
@@ -183,9 +430,9 @@ function sanitizeLinkPayload(payload = {}) {
     isActive:
       typeof payload.isActive === "boolean" ? payload.isActive : undefined,
     type: typeof payload.type === "string" ? payload.type.trim() : undefined,
-    icon: typeof payload.icon === "string" ? payload.icon.trim() : undefined,
-    thumbnail:
-      typeof payload.thumbnail === "string" ? payload.thumbnail.trim() : undefined,
+    platform:
+      typeof payload.platform === "string" ? payload.platform.trim().toLowerCase() : undefined,
+    handle: typeof payload.handle === "string" ? payload.handle.trim() : undefined,
   };
 }
 
@@ -255,12 +502,12 @@ export async function updateTheme(payload = {}) {
   const page = await getMainPageDocument();
   const updates = sanitizeThemePayload(payload);
 
-  page.theme = {
-    ...toPlainObject(page.theme),
+  page.theme = normalizeTheme({
+    ...normalizeTheme(page.theme || {}),
     ...Object.fromEntries(
       Object.entries(updates).filter(([, value]) => value !== undefined),
     ),
-  };
+  });
 
   await page.save();
   return serializePage(page);
@@ -277,8 +524,8 @@ export async function createLink(payload = {}) {
     isActive: data.isActive ?? true,
     order: page.links.length,
     type: data.type || "link",
-    icon: data.icon || "",
-    thumbnail: data.thumbnail || "",
+    platform: data.type === "social" ? data.platform || "" : "",
+    handle: data.type === "social" ? data.handle || "" : "",
   });
 
   applyDocumentNormalization(page);

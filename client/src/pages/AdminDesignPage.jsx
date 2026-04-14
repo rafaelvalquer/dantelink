@@ -1,16 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { getMyPage, saveMyPageTheme } from "../app/api.js";
-import DesignEditorCard from "../components/editor/DesignEditorCard.jsx";
+import DesignEditorPanel from "../components/editor/DesignEditorPanel.jsx";
 import EditorShell from "../components/layout/EditorShell.jsx";
+import { MY_PAGE_THEME_DEFAULTS } from "../components/public/myPageTheme.js";
 
 export default function AdminDesignPage() {
   const [page, setPage] = useState(null);
-  const [themeDraft, setThemeDraft] = useState({
-    backgroundColor: "#c4b5fd",
-    cardColor: "#f8fafc",
-    textColor: "#111827",
-    buttonStyle: "rounded-soft",
-  });
+  const [themeDraft, setThemeDraft] = useState({ ...MY_PAGE_THEME_DEFAULTS });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
@@ -25,7 +21,10 @@ export default function AdminDesignPage() {
         const response = await getMyPage();
         if (!active) return;
         setPage(response.page);
-        setThemeDraft(response.page.theme || {});
+        setThemeDraft({
+          ...MY_PAGE_THEME_DEFAULTS,
+          ...(response.page.theme || {}),
+        });
       } catch (loadError) {
         if (!active) return;
         setError(loadError.message);
@@ -54,11 +53,20 @@ export default function AdminDesignPage() {
     };
   }, [page, themeDraft]);
 
-  function handleChange(field, value) {
-    setThemeDraft((current) => ({
-      ...current,
-      [field]: value,
-    }));
+  function handleChange(fieldOrPatch, value) {
+    setThemeDraft((current) => {
+      if (fieldOrPatch && typeof fieldOrPatch === "object") {
+        return {
+          ...current,
+          ...fieldOrPatch,
+        };
+      }
+
+      return {
+        ...current,
+        [fieldOrPatch]: value,
+      };
+    });
   }
 
   async function handleSave() {
@@ -67,7 +75,10 @@ export default function AdminDesignPage() {
       setError("");
       const response = await saveMyPageTheme(themeDraft);
       setPage(response.page);
-      setThemeDraft(response.page.theme || {});
+      setThemeDraft({
+        ...MY_PAGE_THEME_DEFAULTS,
+        ...(response.page.theme || {}),
+      });
       setNotice("Tema salvo.");
     } catch (saveError) {
       setError(saveError.message);
@@ -79,7 +90,7 @@ export default function AdminDesignPage() {
   return (
     <EditorShell
       title="Design"
-      description="Ajuste cores e bordas para definir a experiência da página pública."
+      description="Ajuste o visual público da página com seções de marca, fundo, superfície, botões, redes e cor."
       page={previewPage}
       notice={notice}
       error={error}
@@ -87,7 +98,8 @@ export default function AdminDesignPage() {
       {loading ? (
         <div className="loading-state">Carregando editor de tema...</div>
       ) : (
-        <DesignEditorCard
+        <DesignEditorPanel
+          page={page}
           value={themeDraft}
           onChange={handleChange}
           onSave={handleSave}
@@ -97,3 +109,4 @@ export default function AdminDesignPage() {
     </EditorShell>
   );
 }
+
