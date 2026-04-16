@@ -11,7 +11,7 @@ export default function AdminDesignPage() {
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
-
+  console.log("teste");
   useEffect(() => {
     let active = true;
 
@@ -109,4 +109,3 @@ export default function AdminDesignPage() {
     </EditorShell>
   );
 }
-
