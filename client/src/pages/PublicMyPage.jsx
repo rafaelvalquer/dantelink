@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { getPublicMyPage } from "../app/api.js";
-import PublicPageScene from "../components/public/PublicPageScene.jsx";
+import PublicPageSceneView from "../components/public/PublicPageSceneView.jsx";
 
 export default function PublicMyPage() {
   const { slug } = useParams();
@@ -46,7 +46,7 @@ export default function PublicMyPage() {
 
   return (
     <div className="public-shell">
-      <PublicPageScene page={page} />
+      <PublicPageSceneView page={page} />
     </div>
   );
 }

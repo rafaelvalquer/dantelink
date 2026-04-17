@@ -1,4 +1,4 @@
-import PublicPageScene from "../public/PublicPageScene.jsx";
+import PublicPageSceneView from "../public/PublicPageSceneView.jsx";
 import { getMyPageTheme } from "../public/myPageTheme.js";
 
 export default function PhonePreview({ page }) {
@@ -13,12 +13,12 @@ export default function PhonePreview({ page }) {
         }}
       >
         <div className="phone-preview__speaker" />
-        <div className="phone-preview__screen" style={theme.rootStyle}>
+        <div className="phone-preview__screen">
           <div className="phone-preview__status">
             <span>9:41</span>
             <span>Preview ao vivo</span>
           </div>
-          <PublicPageScene page={page} mode="preview" interactive={false} />
+          <PublicPageSceneView page={page} mode="preview" interactive={false} />
         </div>
       </div>
     </div>

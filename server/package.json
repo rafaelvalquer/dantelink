@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "node --watch server.js",
     "start": "node server.js",
-    "seed": "node src/seed/seedMyPage.js"
+    "seed": "node src/seed/seedMyPage.js",
+    "cleanup:collections": "node src/scripts/removeCollectionsFromMyPage.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

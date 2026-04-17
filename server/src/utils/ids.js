@@ -10,10 +10,6 @@ export function createLinkId() {
   return createId("link");
 }
 
-export function createCollectionId() {
-  return createId("collection");
-}
-
-export function createCollectionItemId() {
-  return createId("item");
+export function createSecondaryLinkId() {
+  return createId("secondary_link");
 }

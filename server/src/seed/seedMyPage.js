@@ -1,6 +1,8 @@
 import { connectToMongo } from "../config/mongo.js";
 import MyPage from "../models/MyPage.js";
-import { createCollectionId, createLinkId } from "../utils/ids.js";
+import {
+  createSecondaryLinkId,
+} from "../utils/ids.js";
 import { normalizeSlug } from "../utils/slug.js";
 
 const seedData = {
@@ -14,25 +16,16 @@ const seedData = {
     textColor: "#111827",
     buttonStyle: "rounded-soft",
   },
-  links: [
+  links: [],
+  secondaryLinks: [
     {
-      id: createLinkId(),
+      id: createSecondaryLinkId(),
       title: "Instagram",
       url: "https://www.instagram.com/use.mutant/",
       isActive: true,
       order: 0,
-      type: "social",
       platform: "instagram",
       handle: "use.mutant",
-    },
-  ],
-  collections: [
-    {
-      id: createCollectionId(),
-      title: "teste",
-      isActive: false,
-      order: 0,
-      items: [],
     },
   ],
   shop: {
@@ -60,7 +53,7 @@ async function seedMyPage() {
   existing.avatarUrl = seedData.avatarUrl;
   existing.theme = seedData.theme;
   existing.links = seedData.links;
-  existing.collections = seedData.collections;
+  existing.secondaryLinks = seedData.secondaryLinks;
   existing.shop = seedData.shop;
 
   await existing.save();

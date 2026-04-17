@@ -10,9 +10,8 @@ import {
   SwatchBook,
   Type,
 } from "lucide-react";
-import ButtonShadowEditor from "./ButtonShadowEditor.jsx";
-import ButtonThemePreview from "./ButtonThemePreview.jsx";
-import Button from "../ui/Button.jsx";
+import Input from "../ui/Input.jsx";
+import { PublicPageMiniPreview } from "../public/PublicPageUi.jsx";
 import {
   MY_PAGE_ANIMATION_PRESET_OPTIONS,
   MY_PAGE_BACKGROUND_GRADIENT_DIRECTION_OPTIONS,
@@ -20,8 +19,10 @@ import {
   MY_PAGE_BACKGROUND_STYLE_OPTIONS,
   MY_PAGE_BRAND_LAYOUT_OPTIONS,
   MY_PAGE_BUTTON_RADIUS_OPTIONS,
+  MY_PAGE_BUTTON_SHADOW_OPTIONS,
   MY_PAGE_BUTTON_STYLE_OPTIONS,
   MY_PAGE_FONT_PRESET_OPTIONS,
+  MY_PAGE_PRIMARY_BUTTON_LAYOUT_OPTIONS,
   MY_PAGE_SECONDARY_LINK_ALIGN_OPTIONS,
   MY_PAGE_SECONDARY_LINK_ICON_LAYOUT_OPTIONS,
   MY_PAGE_SECONDARY_LINK_SIZE_OPTIONS,
@@ -33,10 +34,8 @@ import {
   getMyPagePreviewPrimaryLinks,
   getMyPagePreviewSocialLinks,
   getMyPageThemePresetValues,
-  getMyPageSocialBrand,
   getMyPageTheme,
 } from "../public/myPageTheme.js";
-import { getButtonRadiusClassName } from "../public/buttonTheme.js";
 
 const DESIGN_CATEGORIES = [
   {
@@ -117,20 +116,37 @@ function normalizeColor(value, fallback) {
 }
 
 function OptionGrid({ columns = "3", children }) {
-  return <div className={cls("design-options-grid", `is-${columns}`)}>{children}</div>;
+  const gridClassName = {
+    2: "grid-cols-1 md:grid-cols-2",
+    3: "grid-cols-1 md:grid-cols-2 2xl:grid-cols-3",
+    4: "grid-cols-1 md:grid-cols-2 2xl:grid-cols-4",
+    5: "grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5",
+  }[Number(columns)] || "grid-cols-1 md:grid-cols-2 2xl:grid-cols-3";
+
+  return <div className={cls("grid gap-4", gridClassName)}>{children}</div>;
 }
 
 function OptionCard({ selected, title, description, preview, onClick }) {
   return (
     <button
       type="button"
-      className={cls("design-option-card", selected ? "is-selected" : "")}
+      className={cls(
+        "group grid gap-4 rounded-[28px] border p-4 text-left transition duration-200",
+        "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#A78BFA]/30",
+        selected
+          ? "border-[#8E67F3] bg-[#F2EDFF] shadow-[0_24px_50px_-28px_rgba(124,58,237,0.45)]"
+          : "border-[#E5E8F5] bg-white hover:border-[#CFC6FF] hover:bg-[#FAF8FF]",
+      )}
       onClick={onClick}
     >
-      <div className="design-option-card__preview">{preview}</div>
-      <div className="design-option-card__body">
-        <strong>{title}</strong>
-        <span>{description}</span>
+      <div className="overflow-hidden rounded-[24px] border border-[#DDE1F2] bg-[#111327] p-3">
+        {preview}
+      </div>
+      <div className="grid gap-1.5">
+        <strong className="text-base font-semibold tracking-[-0.03em] text-[#171A2F]">
+          {title}
+        </strong>
+        <span className="text-sm leading-6 text-[#6B7394]">{description}</span>
       </div>
     </button>
   );
@@ -138,14 +154,17 @@ function OptionCard({ selected, title, description, preview, onClick }) {
 
 function ChoiceButtons({ value, options, onChange }) {
   return (
-    <div className="design-choice-buttons">
+    <div className="flex flex-wrap gap-3">
       {options.map((option) => (
         <button
           key={option.value}
           type="button"
           className={cls(
-            "design-choice-buttons__item",
-            value === option.value ? "is-selected" : "",
+            "rounded-full border px-4 py-2.5 text-sm font-semibold transition duration-200",
+            "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#A78BFA]/30",
+            value === option.value
+              ? "border-[#8E67F3] bg-[#EEE9FF] text-[#5B21B6]"
+              : "border-[#DCE1F1] bg-white text-[#303653] hover:border-[#CFC6FF] hover:bg-[#FAF8FF]",
           )}
           onClick={() => onChange(option.value)}
         >
@@ -170,11 +189,11 @@ function ColorRow({ label, value, fallback, onChange }) {
   }
 
   return (
-    <div className="design-color-row">
-      <label className="design-color-row__label">{label}</label>
-      <div className="design-color-row__control">
-        <input
-          className="ui-input design-color-row__input"
+    <div className="flex flex-col gap-3 rounded-[24px] border border-[#E3E7F4] bg-white p-4 md:flex-row md:items-center md:justify-between">
+      <label className="text-sm font-semibold text-[#2B3150]">{label}</label>
+      <div className="flex items-center gap-3">
+        <Input
+          className="min-w-[140px]"
           type="text"
           value={draft}
           maxLength={7}
@@ -188,7 +207,7 @@ function ColorRow({ label, value, fallback, onChange }) {
           }}
         />
         <input
-          className="design-color-row__swatch"
+          className="h-12 w-12 cursor-pointer rounded-2xl border border-[#D9DDEF] bg-white p-1"
           type="color"
           value={normalizeColor(value, fallback)}
           onChange={(event) => commit(event.target.value)}
@@ -198,210 +217,167 @@ function ColorRow({ label, value, fallback, onChange }) {
   );
 }
 
-function BrandPreview({ page, theme, mode }) {
+function DesignOptionPreview({
+  page,
+  theme,
+  primaryLinks = [],
+  socialLinks = [],
+  eyebrow,
+  description,
+  showButtons = true,
+  showSocial = false,
+  buttonCount = 2,
+  socialCount = 3,
+}) {
   return (
-    <div className="design-mini-page" style={theme.rootStyle}>
-      {mode === "hero" ? (
-        <div className="design-mini-page__hero-cover" style={theme.heroMediaStyle} />
-      ) : null}
-      <div className="design-mini-page__surface" style={theme.surfaceStyle}>
-        <div className="design-mini-page__hero">
-          {mode === "hero" ? null : (
-            <div className="design-mini-page__avatar-shell">
-              {page?.avatarUrl ? (
-                <img
-                  className="design-mini-page__avatar"
-                  src={page.avatarUrl}
-                  alt={page?.title || "Minha Pagina"}
-                />
-              ) : (
-                <div className="design-mini-page__avatar design-mini-page__avatar--placeholder">
-                  {String(page?.title || "M").slice(0, 1)}
-                </div>
-              )}
-            </div>
-          )}
-          <div className="design-mini-page__copy">
-            <span style={theme.accentTextStyle}>Avatar ou Hero</span>
-            <strong style={theme.titleStyle}>{page?.title || "Minha Pagina"}</strong>
-            <small>{mode === "hero" ? "Imagem no fundo." : "Avatar redondo."}</small>
-          </div>
-        </div>
-      </div>
-    </div>
+    <PublicPageMiniPreview
+      page={page}
+      theme={theme}
+      primaryLinks={primaryLinks}
+      socialLinks={socialLinks}
+      eyebrow={eyebrow}
+      description={description}
+      showButtons={showButtons}
+      showSocial={showSocial}
+      buttonCount={buttonCount}
+      socialCount={socialCount}
+    />
   );
 }
 
-function ThemePreview({ page, theme, option }) {
-  const previewTitle = option?.previewTitle || page?.title || "Minha Pagina";
-  const previewLabel = option?.previewLabel || option?.label || "Tema";
-  const previewCtaLabel = option?.previewCtaLabel || "Ver layout";
-  const previewVariant = option?.previewVariant || "airy";
-  const previewArtwork = option?.previewArtwork || "paper";
-
+function BrandPreview({ page, theme, mode, primaryLinks }) {
   return (
-    <div
-      className={cls("design-mini-page", "design-theme-preview", `is-${previewVariant}`)}
-      style={theme.rootStyle}
-    >
-      <div
-        className={cls(
-          "design-theme-preview__artwork",
-          `is-${previewArtwork}`,
-          `is-${previewVariant}`,
-        )}
-      />
-      <div className="design-theme-preview__shell" style={theme.surfaceStyle}>
-        <div className="design-theme-preview__masthead">
-          <span className="design-theme-preview__type" style={theme.titleStyle}>
-            Aa
-          </span>
-          <span className="design-theme-preview__label" style={theme.accentTextStyle}>
-            {previewLabel}
-          </span>
-        </div>
-        <strong style={theme.titleStyle}>{previewTitle}</strong>
-        <div
-          className={cls(
-            "design-mini-page__button",
-            "design-theme-preview__button",
-            `is-${previewVariant}`,
-          )}
-          style={theme.primaryButtonStyle}
-        >
-          {previewCtaLabel}
-        </div>
-      </div>
-    </div>
+    <DesignOptionPreview
+      page={page}
+      theme={theme}
+      primaryLinks={primaryLinks}
+      eyebrow="Avatar ou Hero"
+      description={mode === "hero" ? "Imagem destacada com sobreposicao." : "Avatar e copy em foco."}
+      showButtons={false}
+      showSocial={false}
+    />
   );
 }
 
-function BackgroundPreview({ theme }) {
+function ThemePreview({ page, theme, option, primaryLinks, socialLinks }) {
   return (
-    <div className="design-mini-page" style={theme.rootStyle}>
-      <div className="design-preview-block" />
-    </div>
+    <DesignOptionPreview
+      page={page}
+      theme={theme}
+      primaryLinks={primaryLinks}
+      socialLinks={socialLinks}
+      eyebrow={option?.previewLabel || option?.label || "Tema"}
+      description={option?.description || "Preset visual para a pagina publica."}
+      showButtons
+      showSocial
+      buttonCount={1}
+      socialCount={2}
+    />
   );
 }
 
-function SurfacePreview({ theme }) {
+function BackgroundPreview({ page, theme, primaryLinks }) {
   return (
-    <div className="design-mini-page" style={theme.rootStyle}>
-      <div className="design-preview-stack">
-        <div className="design-preview-surface" style={theme.surfaceStyle}>
-          <div className="design-preview-line" />
-          <div className="design-preview-line design-preview-line--soft" />
-          <div className="design-mini-page__button" style={theme.primaryButtonStyle}>
-            CTA
-          </div>
-        </div>
-      </div>
-    </div>
+    <DesignOptionPreview
+      page={page}
+      theme={theme}
+      primaryLinks={primaryLinks}
+      eyebrow="Fundo"
+      description="Visual do pano de fundo com a nova composicao publica."
+      buttonCount={1}
+    />
+  );
+}
+
+function SurfacePreview({ page, theme, primaryLinks }) {
+  return (
+    <DesignOptionPreview
+      page={page}
+      theme={theme}
+      primaryLinks={primaryLinks}
+      eyebrow="Superficie"
+      description="Camada frontal onde vivem hero, CTAs e blocos."
+      buttonCount={1}
+    />
   );
 }
 
 function FontPreview({ page, theme }) {
   return (
-    <div className="design-mini-page design-mini-page--font" style={theme.rootStyle}>
-      <div className="design-mini-page__surface" style={theme.surfaceStyle}>
-        <span style={theme.titleStyle}>Aa</span>
-        <strong style={theme.titleStyle}>{page?.title || "Minha Pagina"}</strong>
-      </div>
-    </div>
+    <DesignOptionPreview
+      page={page}
+      theme={theme}
+      eyebrow="Tipografia"
+      description="Hierarquia de titulo e texto aplicada na home."
+      showButtons={false}
+      showSocial={false}
+    />
   );
 }
 
-function ButtonPreview({ theme, links }) {
+function ButtonPreview({ page, theme, links }) {
   return (
-    <div className="design-mini-page" style={theme.rootStyle}>
-      <ButtonThemePreview
-        theme={theme}
-        links={links}
-        className={cls(`is-${theme.design.primaryButtonsLayout}`)}
-      />
-    </div>
+    <DesignOptionPreview
+      page={page}
+      theme={theme}
+      primaryLinks={links}
+      eyebrow="CTAs"
+      description="Peso visual e ritmo dos botoes principais."
+      showButtons
+      showSocial={false}
+      buttonCount={2}
+    />
   );
 }
 
-function SocialPreview({ theme, links }) {
-  const iconOnly = theme.design.secondaryLinksStyle === "icon";
-  const showIcon = theme.design.secondaryLinksStyle !== "text";
-  const useBadge = theme.design.secondaryLinksIconLayout === "brand_badge";
-  const radiusClassName = getButtonRadiusClassName(theme);
-
+function SocialPreview({ page, theme, links }) {
   return (
-    <div className="design-mini-page" style={theme.rootStyle}>
-      <div className="design-social-preview" style={theme.surfaceStyle}>
-        <span>Redes sociais</span>
-        <div
-          className={cls(
-            "design-social-preview__list",
-            theme.design.secondaryLinksAlign === "left"
-              ? "is-left"
-              : theme.design.secondaryLinksAlign === "right"
-                ? "is-right"
-                : "is-center",
-          )}
-        >
-          {links.slice(0, 3).map((link) => {
-            const brand = getMyPageSocialBrand(link);
-            const Icon = brand.Icon;
-            return (
-              <div
-                key={link.id}
-                className={cls(
-                  "design-social-preview__item",
-                  radiusClassName,
-                  iconOnly ? "is-icon-only" : "",
-                  theme.design.secondaryLinksSize === "small" ? "is-small" : "",
-                )}
-                style={theme.secondaryButtonStyle}
-              >
-                {showIcon ? (
-                  <span
-                    className={cls("design-social-preview__badge", radiusClassName)}
-                    style={
-                      useBadge
-                        ? brand.badgeStyle || theme.primaryButtonStyle
-                        : theme.softSurfaceStyle
-                    }
-                  >
-                    <Icon size={13} />
-                  </span>
-                ) : null}
-                {iconOnly ? null : <small>{link.title}</small>}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
+    <DesignOptionPreview
+      page={page}
+      theme={theme}
+      socialLinks={links}
+      eyebrow="Redes"
+      description="Bloco social reaproveitando os mesmos componentes da home."
+      showButtons={false}
+      showSocial
+      socialCount={3}
+    />
   );
 }
 
-function AnimationPreview({ theme }) {
+function AnimationPreview({ page, theme, links, socialLinks }) {
   return (
-    <div className="design-mini-page" style={theme.rootStyle}>
-      <div className={cls("design-animation-preview", `is-${theme.design.animationPreset}`)}>
-        <div className="design-animation-preview__card" style={theme.surfaceStyle}>
-          <div className="design-mini-page__button" style={theme.primaryButtonStyle} />
-          <div className="design-preview-line" />
-          <div className="design-preview-line design-preview-line--soft" />
-        </div>
-      </div>
-    </div>
+    <DesignOptionPreview
+      page={page}
+      theme={theme}
+      primaryLinks={links}
+      socialLinks={socialLinks}
+      eyebrow="Animacao"
+      description="Entrada e composicao geral da pagina publica."
+      showButtons
+      showSocial
+      buttonCount={1}
+      socialCount={2}
+    />
   );
 }
 
 function DesignCategoryNav({ activeId, onSelect }) {
   return (
     <>
-      <aside className="design-shell__nav" aria-label="Subcategorias de design">
-        <div className="design-shell__nav-header">
-          <span>Design</span>
-          <strong>Subcategorias</strong>
+      <aside
+        className="hidden rounded-[30px] border border-white/10 bg-[#111327] p-4 shadow-[0_28px_70px_-42px_rgba(0,0,0,0.72)] xl:block xl:sticky xl:top-[6.5rem]"
+        aria-label="Subcategorias de design"
+      >
+        <div className="mb-4 grid gap-2 border-b border-white/8 pb-4">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#A9AEC7]">
+            Design
+          </span>
+          <strong className="text-lg font-semibold tracking-[-0.03em] text-white">
+            Subcategorias
+          </strong>
         </div>
-        <div className="design-shell__nav-list">
+        <div className="grid gap-2">
           {DESIGN_CATEGORIES.map((category) => {
             const Icon = category.Icon;
 
@@ -410,27 +386,47 @@ function DesignCategoryNav({ activeId, onSelect }) {
                 key={category.id}
                 type="button"
                 className={cls(
-                  "design-shell__nav-item",
-                  activeId === category.id ? "is-active" : "",
+                  "flex items-center gap-3 rounded-[22px] border px-4 py-3 text-left transition duration-200",
+                  "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#A78BFA]/30",
+                  activeId === category.id
+                    ? "border-[#8E67F3] bg-[#151834] text-white"
+                    : "border-white/5 bg-white/[0.03] text-[#D9DBE8] hover:border-white/10 hover:bg-white/[0.06]",
                 )}
                 onClick={() => onSelect(category.id)}
               >
-                <Icon className="design-shell__nav-icon" size={18} />
-                <span>{category.label}</span>
+                <span
+                  className={cls(
+                    "inline-flex h-10 w-10 items-center justify-center rounded-2xl border",
+                    activeId === category.id
+                      ? "border-[#A78BFA]/40 bg-[#7C3AED] text-white"
+                      : "border-white/8 bg-white/[0.06] text-[#A9AEC7]",
+                  )}
+                >
+                  <Icon size={18} />
+                </span>
+                <span className="text-sm font-semibold tracking-[-0.01em]">
+                  {category.label}
+                </span>
               </button>
             );
           })}
         </div>
       </aside>
 
-      <div className="design-shell__chips" aria-label="Subcategorias de design">
+      <div
+        className="flex gap-3 overflow-x-auto pb-1 xl:hidden"
+        aria-label="Subcategorias de design"
+      >
         {DESIGN_CATEGORIES.map((category) => (
           <button
             key={category.id}
             type="button"
             className={cls(
-              "design-shell__chip",
-              activeId === category.id ? "is-active" : "",
+              "whitespace-nowrap rounded-full border px-4 py-2.5 text-sm font-semibold transition duration-200",
+              "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#A78BFA]/30",
+              activeId === category.id
+                ? "border-[#8E67F3] bg-[#151834] text-white"
+                : "border-white/10 bg-[#111327] text-[#D9DBE8] hover:border-white/20",
             )}
             onClick={() => onSelect(category.id)}
           >
@@ -442,21 +438,41 @@ function DesignCategoryNav({ activeId, onSelect }) {
   );
 }
 
-function DesignPanelShell({ category, onSave, isSaving, children }) {
+function DesignPanelShell({ category, isSaving, children }) {
   return (
-    <section className="design-shell__panel">
-      <header className="design-shell__panel-header">
-        <div>
-          <span className="design-shell__panel-eyebrow">{category.label}</span>
-          <h2>{category.title}</h2>
-          <p>{category.description}</p>
+    <section className="rounded-[32px] border border-white/10 bg-[#F6F7FB] p-5 text-[#171A2F] shadow-[0_30px_80px_-45px_rgba(17,19,39,0.5)] sm:p-6">
+      <header className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="grid gap-2">
+          <span className="text-[11px] font-bold uppercase tracking-[0.24em] text-[#7C3AED]">
+            {category.label}
+          </span>
+          <h2 className="text-[1.95rem] font-semibold tracking-[-0.05em] text-[#111327]">
+            {category.title}
+          </h2>
+          <p className="max-w-3xl text-sm leading-6 text-[#69708F]">
+            {category.description}
+          </p>
         </div>
-        <Button onClick={onSave} disabled={isSaving}>
-          {isSaving ? "Salvando..." : "Salvar tema"}
-        </Button>
+        <div className="inline-flex items-center gap-2 rounded-full border border-[#DDDFF0] bg-white px-4 py-2 text-sm font-medium text-[#5E6789]">
+          <span
+            className={cls(
+              "h-2.5 w-2.5 rounded-full",
+              isSaving ? "bg-[#7C3AED]" : "bg-[#9AA1BE]",
+            )}
+          />
+          {isSaving ? "Salvando alteracoes" : "Preview em tempo real"}
+        </div>
       </header>
-      <div className="design-shell__panel-body">{children}</div>
+      <div className="grid gap-5">{children}</div>
     </section>
+  );
+}
+
+function GroupLabel({ children }) {
+  return (
+    <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#7C3AED]">
+      {children}
+    </div>
   );
 }
 
@@ -487,6 +503,7 @@ function renderPanelContent({
                   page={previewPage}
                   theme={getOptionTheme("brandLayout", option.value)}
                   mode={option.value}
+                  primaryLinks={previewPrimaryLinks}
                 />
               }
             />
@@ -508,6 +525,8 @@ function renderPanelContent({
                   page={previewPage}
                   option={option}
                   theme={getPresetOptionTheme(option.value)}
+                  primaryLinks={previewPrimaryLinks}
+                  socialLinks={previewSocialLinks}
                 />
               }
             />
@@ -527,15 +546,17 @@ function renderPanelContent({
                 onClick={() => onChange("backgroundStyle", option.value)}
                 preview={
                   <BackgroundPreview
+                    page={previewPage}
                     theme={getOptionTheme("backgroundStyle", option.value)}
+                    primaryLinks={previewPrimaryLinks}
                   />
                 }
               />
             ))}
           </OptionGrid>
           {value.backgroundStyle === "gradient" ? (
-            <div className="design-editor__group">
-              <div className="design-editor__group-label">Direcao</div>
+            <div className="grid gap-3">
+              <GroupLabel>Direcao</GroupLabel>
               <ChoiceButtons
                 value={value.backgroundGradientDirection}
                 options={MY_PAGE_BACKGROUND_GRADIENT_DIRECTION_OPTIONS}
@@ -546,8 +567,8 @@ function renderPanelContent({
             </div>
           ) : null}
           {value.backgroundStyle === "pattern" ? (
-            <div className="design-editor__group">
-              <div className="design-editor__group-label">Textura</div>
+            <div className="grid gap-3">
+              <GroupLabel>Textura</GroupLabel>
               <ChoiceButtons
                 value={value.backgroundPatternVariant}
                 options={MY_PAGE_BACKGROUND_PATTERN_VARIANT_OPTIONS}
@@ -575,14 +596,18 @@ function renderPanelContent({
                 description={option.description}
                 onClick={() => onChange("surfaceStyle", option.value)}
                 preview={
-                  <SurfacePreview theme={getOptionTheme("surfaceStyle", option.value)} />
+                  <SurfacePreview
+                    page={previewPage}
+                    theme={getOptionTheme("surfaceStyle", option.value)}
+                    primaryLinks={previewPrimaryLinks}
+                  />
                 }
               />
             ))}
           </OptionGrid>
           {value.surfaceStyle === "pattern" ? (
-            <div className="design-editor__group">
-              <div className="design-editor__group-label">Textura</div>
+            <div className="grid gap-3">
+              <GroupLabel>Textura</GroupLabel>
               <ChoiceButtons
                 value={value.surfacePatternVariant}
                 options={MY_PAGE_SURFACE_PATTERN_VARIANT_OPTIONS}
@@ -621,8 +646,29 @@ function renderPanelContent({
     case "botao":
       return (
         <>
-          <div className="design-editor__group">
-            <div className="design-editor__group-label">Estilo</div>
+          <div className="grid gap-4">
+            <GroupLabel>Layout</GroupLabel>
+            <OptionGrid columns="3">
+              {MY_PAGE_PRIMARY_BUTTON_LAYOUT_OPTIONS.map((option) => (
+                <OptionCard
+                  key={option.value}
+                  selected={value.primaryButtonsLayout === option.value}
+                  title={option.label}
+                  description={option.description}
+                  onClick={() => onChange("primaryButtonsLayout", option.value)}
+                  preview={
+                    <ButtonPreview
+                      page={previewPage}
+                      theme={getOptionTheme("primaryButtonsLayout", option.value)}
+                      links={previewPrimaryLinks}
+                    />
+                  }
+                />
+              ))}
+            </OptionGrid>
+          </div>
+          <div className="grid gap-4">
+            <GroupLabel>Estilo</GroupLabel>
             <OptionGrid columns="5">
               {MY_PAGE_BUTTON_STYLE_OPTIONS.map((option) => (
                 <OptionCard
@@ -633,6 +679,7 @@ function renderPanelContent({
                   onClick={() => onChange("buttonStyle", option.value)}
                   preview={
                     <ButtonPreview
+                      page={previewPage}
                       theme={getOptionTheme("buttonStyle", option.value)}
                       links={previewPrimaryLinks}
                     />
@@ -641,14 +688,29 @@ function renderPanelContent({
               ))}
             </OptionGrid>
           </div>
-          <ButtonShadowEditor
-            design={value}
-            previewLinks={previewPrimaryLinks}
-            onChange={(nextValue) => onChange("buttonShadow", nextValue)}
-            getOptionTheme={getOptionTheme}
-          />
-          <div className="design-editor__group">
-            <div className="design-editor__group-label">Forma</div>
+          <div className="grid gap-4">
+            <GroupLabel>Button shadow</GroupLabel>
+            <OptionGrid columns="4">
+              {MY_PAGE_BUTTON_SHADOW_OPTIONS.map((option) => (
+                <OptionCard
+                  key={option.value}
+                  selected={value.buttonShadow === option.value}
+                  title={option.label}
+                  description={option.description}
+                  onClick={() => onChange("buttonShadow", option.value)}
+                  preview={
+                    <ButtonPreview
+                      page={previewPage}
+                      theme={getOptionTheme("buttonShadow", option.value)}
+                      links={previewPrimaryLinks}
+                    />
+                  }
+                />
+              ))}
+            </OptionGrid>
+          </div>
+          <div className="grid gap-4">
+            <GroupLabel>Forma</GroupLabel>
             <OptionGrid columns="3">
               {MY_PAGE_BUTTON_RADIUS_OPTIONS.map((option) => (
                 <OptionCard
@@ -659,6 +721,7 @@ function renderPanelContent({
                   onClick={() => onChange("buttonRadius", option.value)}
                   preview={
                     <ButtonPreview
+                      page={previewPage}
                       theme={getOptionTheme("buttonRadius", option.value)}
                       links={previewPrimaryLinks}
                     />
@@ -672,8 +735,8 @@ function renderPanelContent({
     case "redes":
       return (
         <>
-          <div className="design-editor__group">
-            <div className="design-editor__group-label">Conteudo</div>
+          <div className="grid gap-4">
+            <GroupLabel>Conteudo</GroupLabel>
             <OptionGrid columns="3">
               {MY_PAGE_SECONDARY_LINK_STYLE_OPTIONS.map((option) => (
                 <OptionCard
@@ -684,6 +747,7 @@ function renderPanelContent({
                   onClick={() => onChange("secondaryLinksStyle", option.value)}
                   preview={
                     <SocialPreview
+                      page={previewPage}
                       theme={getOptionTheme("secondaryLinksStyle", option.value)}
                       links={previewSocialLinks}
                     />
@@ -692,8 +756,8 @@ function renderPanelContent({
               ))}
             </OptionGrid>
           </div>
-          <div className="design-editor__group">
-            <div className="design-editor__group-label">Layout do icone</div>
+          <div className="grid gap-4">
+            <GroupLabel>Layout do icone</GroupLabel>
             <OptionGrid columns="2">
               {MY_PAGE_SECONDARY_LINK_ICON_LAYOUT_OPTIONS.map((option) => (
                 <OptionCard
@@ -704,6 +768,7 @@ function renderPanelContent({
                   onClick={() => onChange("secondaryLinksIconLayout", option.value)}
                   preview={
                     <SocialPreview
+                      page={previewPage}
                       theme={getOptionTheme("secondaryLinksIconLayout", option.value)}
                       links={previewSocialLinks}
                     />
@@ -712,16 +777,16 @@ function renderPanelContent({
               ))}
             </OptionGrid>
           </div>
-          <div className="design-editor__group">
-            <div className="design-editor__group-label">Tamanho</div>
+          <div className="grid gap-3">
+            <GroupLabel>Tamanho</GroupLabel>
             <ChoiceButtons
               value={value.secondaryLinksSize}
               options={MY_PAGE_SECONDARY_LINK_SIZE_OPTIONS}
               onChange={(nextValue) => onChange("secondaryLinksSize", nextValue)}
             />
           </div>
-          <div className="design-editor__group">
-            <div className="design-editor__group-label">Alinhamento</div>
+          <div className="grid gap-3">
+            <GroupLabel>Alinhamento</GroupLabel>
             <ChoiceButtons
               value={value.secondaryLinksAlign}
               options={MY_PAGE_SECONDARY_LINK_ALIGN_OPTIONS}
@@ -742,7 +807,10 @@ function renderPanelContent({
               onClick={() => onChange("animationPreset", option.value)}
               preview={
                 <AnimationPreview
+                  page={previewPage}
                   theme={getOptionTheme("animationPreset", option.value)}
+                  links={previewPrimaryLinks}
+                  socialLinks={previewSocialLinks}
                 />
               }
             />
@@ -752,7 +820,7 @@ function renderPanelContent({
     case "cor":
     default:
       return (
-        <div className="design-color-stack">
+        <div className="grid gap-4">
           <ColorRow
             label="Fundo"
             value={value.backgroundColor}
@@ -788,11 +856,10 @@ function renderPanelContent({
   }
 }
 
-export default function DesignEditorPanel({
+export default function DesignEditorPanelPremium({
   page,
   value,
   onChange,
-  onSave,
   isSaving = false,
 }) {
   const [activeDesignCategory, setActiveDesignCategory] = useState("marca");
@@ -842,13 +909,13 @@ export default function DesignEditorPanel({
   }
 
   return (
-    <div className="design-shell">
+    <div className="grid gap-5 xl:grid-cols-[260px_minmax(0,1fr)]">
       <DesignCategoryNav
         activeId={activeCategory.id}
         onSelect={setActiveDesignCategory}
       />
 
-      <DesignPanelShell category={activeCategory} onSave={onSave} isSaving={isSaving}>
+      <DesignPanelShell category={activeCategory} isSaving={isSaving}>
         {renderPanelContent({
           categoryId: activeCategory.id,
           value,

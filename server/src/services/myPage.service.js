@@ -1,8 +1,7 @@
 import MyPage from "../models/MyPage.js";
 import {
-  createCollectionId,
-  createCollectionItemId,
   createLinkId,
+  createSecondaryLinkId,
 } from "../utils/ids.js";
 import {
   applyOrderByIds,
@@ -26,7 +25,7 @@ const THEME_DEFAULTS = {
   titleTextColor: "#0f172a",
   fontPreset: "inter",
   buttonStyle: "solid",
-  buttonShadow: "soft",
+  buttonShadow: "none",
   buttonRadius: "round",
   primaryButtonsLayout: "stack",
   secondaryLinksStyle: "icon_text",
@@ -45,7 +44,40 @@ const LEGACY_BUTTON_STYLE_TO_RADIUS = {
   "square-soft": "square",
 };
 
-const SOCIAL_PLATFORMS = new Set(["instagram", "facebook", "youtube", "tiktok"]);
+const VALID_THEME_OPTIONS = {
+  fontPreset: new Set(["inter", "manrope", "jakarta", "editorial"]),
+  buttonStyle: new Set(["solid", "soft", "outline", "glass", "metallic"]),
+  buttonShadow: new Set(["none", "soft", "strong", "hard"]),
+  buttonRadius: new Set(["square", "round", "pill"]),
+};
+
+const PRIMARY_LINK_TYPES = new Set([
+  "link",
+  "shop-preview",
+  "whatsapp",
+  "location",
+]);
+const SECONDARY_LINK_PLATFORMS = new Set([
+  "instagram",
+  "facebook",
+  "youtube",
+  "tiktok",
+  "site",
+]);
+const HANDLE_BASED_PLATFORMS = new Set(["instagram", "youtube", "tiktok"]);
+const WHATSAPP_DEFAULT_MESSAGE =
+  "Ola! Vim pela sua pagina publica e gostaria de mais informacoes.";
+const NOMINATIM_BASE_URL = "https://nominatim.openstreetmap.org/search";
+const NOMINATIM_MIN_INTERVAL_MS = 1100;
+let lastNominatimRequestAt = 0;
+
+const SECONDARY_PLATFORM_LABELS = {
+  instagram: "Instagram",
+  facebook: "Facebook",
+  youtube: "YouTube",
+  tiktok: "TikTok",
+  site: "Site",
+};
 
 const DEFAULT_PAGE = {
   title: "Mutantwear",
@@ -53,25 +85,16 @@ const DEFAULT_PAGE = {
   bio: "Viva a Mutação.",
   avatarUrl: "https://placehold.co/160x160/png?text=MW",
   theme: { ...THEME_DEFAULTS },
-  links: [
+  links: [],
+  secondaryLinks: [
     {
-      id: createLinkId(),
+      id: createSecondaryLinkId(),
       title: "Instagram",
       url: "https://www.instagram.com/use.mutant/",
       isActive: true,
       order: 0,
-      type: "social",
       platform: "instagram",
       handle: "use.mutant",
-    },
-  ],
-  collections: [
-    {
-      id: createCollectionId(),
-      title: "teste",
-      isActive: false,
-      order: 0,
-      items: [],
     },
   ],
   shop: {
@@ -102,12 +125,27 @@ function toPlainObject(value) {
   return typeof value.toObject === "function" ? value.toObject() : { ...value };
 }
 
-function isSocialPlatform(value) {
-  return SOCIAL_PLATFORMS.has(String(value || "").trim().toLowerCase());
+function isPrimaryLinkType(value) {
+  return PRIMARY_LINK_TYPES.has(String(value || "").trim().toLowerCase());
 }
 
-function inferSocialPlatform(link = {}) {
-  if (isSocialPlatform(link.platform)) {
+function isSecondaryPlatform(value) {
+  return SECONDARY_LINK_PLATFORMS.has(
+    String(value || "").trim().toLowerCase(),
+  );
+}
+
+function isHandlePlatform(platform) {
+  return HANDLE_BASED_PLATFORMS.has(String(platform || "").trim().toLowerCase());
+}
+
+function getSecondaryPlatformLabel(platform = "") {
+  const normalizedPlatform = String(platform || "").trim().toLowerCase();
+  return SECONDARY_PLATFORM_LABELS[normalizedPlatform] || "Site";
+}
+
+function inferSecondaryPlatform(link = {}) {
+  if (isSecondaryPlatform(link.platform)) {
     return String(link.platform).trim().toLowerCase();
   }
 
@@ -116,7 +154,7 @@ function inferSocialPlatform(link = {}) {
   if (sample.includes("facebook")) return "facebook";
   if (sample.includes("tiktok")) return "tiktok";
   if (sample.includes("youtube") || sample.includes("youtu.be")) return "youtube";
-  return "";
+  return "site";
 }
 
 function extractHandleFromUrl(url = "", platform = "") {
@@ -143,9 +181,11 @@ function extractHandleFromUrl(url = "", platform = "") {
   return "";
 }
 
-function normalizeSocialHandle(value = "", platform = "") {
+function normalizeSecondaryHandle(value = "", platform = "") {
+  if (!isHandlePlatform(platform)) return "";
+
   const sample = String(value || "").trim();
-  if (!sample || platform === "facebook") return "";
+  if (!sample) return "";
 
   const extracted = sample.includes("http")
     ? extractHandleFromUrl(sample, platform)
@@ -154,8 +194,8 @@ function normalizeSocialHandle(value = "", platform = "") {
   return extracted.replace(/^@+/, "").replace(/\s+/g, "").replace(/\/+$/, "");
 }
 
-function buildSocialUrl(platform = "", handle = "", fallbackUrl = "") {
-  const safeHandle = normalizeSocialHandle(handle, platform);
+function buildSecondaryUrl(platform = "", handle = "", fallbackUrl = "") {
+  const safeHandle = normalizeSecondaryHandle(handle, platform);
 
   if (platform === "instagram") {
     return safeHandle ? `https://www.instagram.com/${safeHandle}/` : "";
@@ -169,42 +209,144 @@ function buildSocialUrl(platform = "", handle = "", fallbackUrl = "") {
     return safeHandle ? `https://www.youtube.com/@${safeHandle}` : "";
   }
 
-  if (platform === "facebook") {
-    return String(fallbackUrl || "").trim();
+  return String(fallbackUrl || "").trim();
+}
+
+function normalizePhoneNumber(value = "") {
+  return String(value || "").replace(/\D+/g, "");
+}
+
+function normalizeWhatsappMessage(value = "") {
+  const sample = String(value || "").trim();
+  return sample || WHATSAPP_DEFAULT_MESSAGE;
+}
+
+function buildWhatsAppUrl(phone = "", message = "") {
+  const normalizedPhone = normalizePhoneNumber(phone);
+  if (!normalizedPhone) return "";
+
+  const normalizedMessage = normalizeWhatsappMessage(message);
+  return `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(normalizedMessage)}`;
+}
+
+function buildLocationUrl(address = "", placeId = "") {
+  const safeAddress = String(address || "").trim();
+  const fallbackQuery = String(placeId || "").trim();
+
+  if (!safeAddress && !fallbackQuery) return "";
+
+  const params = new URLSearchParams();
+  params.set("api", "1");
+  params.set("query", safeAddress || fallbackQuery);
+
+  return `https://www.google.com/maps/search/?${params.toString()}`;
+}
+
+async function waitForNominatimSlot() {
+  const now = Date.now();
+  const remaining = NOMINATIM_MIN_INTERVAL_MS - (now - lastNominatimRequestAt);
+
+  if (remaining > 0) {
+    await new Promise((resolve) => setTimeout(resolve, remaining));
   }
 
-  return String(fallbackUrl || "").trim();
+  lastNominatimRequestAt = Date.now();
+}
+
+function compactParts(parts = []) {
+  return parts
+    .map((part) => String(part || "").trim())
+    .filter(Boolean)
+    .filter((part, index, list) => list.indexOf(part) === index);
+}
+
+function formatNominatimSuggestion(item = {}) {
+  const address = item?.address || {};
+  const street = compactParts([
+    address.road,
+    address.pedestrian,
+    address.cycleway,
+    address.footway,
+    address.residential,
+    item?.name,
+    String(item?.display_name || "").split(",")?.[0],
+  ])[0] || "";
+  const number = String(address.house_number || "").trim();
+  const district = compactParts([
+    address.suburb,
+    address.neighbourhood,
+    address.city_district,
+    address.quarter,
+    address.borough,
+  ])[0] || "";
+  const city = compactParts([
+    address.city,
+    address.town,
+    address.village,
+    address.municipality,
+  ])[0] || "";
+  const mainText = compactParts([street, number]).join(", ");
+  const secondaryText = compactParts([district, city]).join(", ");
+  const description = compactParts([mainText, secondaryText]).join(", ");
+
+  return {
+    description: description || String(item?.display_name || "").trim(),
+    placeId: String(item?.place_id || "").trim(),
+    mainText: mainText || street || String(item?.display_name || "").split(",")?.[0]?.trim() || "",
+    secondaryText,
+    lat: String(item?.lat || "").trim(),
+    lon: String(item?.lon || "").trim(),
+  };
 }
 
 function normalizeLink(link = {}, orderFallback = 0) {
   const source = toPlainObject(link) || {};
-  const type = typeof source.type === "string" && source.type.trim()
-    ? source.type.trim()
-    : "link";
+  const rawType =
+    typeof source.type === "string" ? source.type.trim().toLowerCase() : "link";
+  const type = isPrimaryLinkType(rawType) ? rawType : "link";
   const title = typeof source.title === "string" && source.title.trim()
     ? source.title.trim()
     : "Novo link";
-  const platform = type === "social" ? inferSocialPlatform(source) : "";
-  const handle =
-    type === "social" && platform && platform !== "facebook"
-      ? normalizeSocialHandle(source.handle || source.url || "", platform)
+  const phone =
+    type === "whatsapp" ? normalizePhoneNumber(source.phone) : "";
+  const message =
+    type === "whatsapp"
+      ? normalizeWhatsappMessage(source.message)
       : "";
-  const url =
-    type === "social"
-      ? buildSocialUrl(platform, handle, source.url)
-      : typeof source.url === "string"
-        ? source.url.trim()
-        : "";
+  const address =
+    type === "location" && typeof source.address === "string"
+      ? source.address.trim()
+      : "";
+  const placeId =
+    type === "location" && typeof source.placeId === "string"
+      ? source.placeId.trim()
+      : "";
+  const showMap =
+    type === "location" ? source.showMap === true : false;
+  let url =
+    typeof source.url === "string" ? source.url.trim() : "";
+
+  if (type === "whatsapp") {
+    url = buildWhatsAppUrl(phone, message);
+  } else if (type === "location") {
+    url = buildLocationUrl(address, placeId);
+  }
 
   return {
-    id: source.id,
+    id:
+      typeof source.id === "string" && source.id.trim()
+        ? source.id.trim()
+        : createLinkId(),
     title,
     url,
+    phone,
+    message,
+    address,
+    placeId,
+    showMap,
     isActive: source.isActive !== false,
     order: Number.isFinite(Number(source.order)) ? Number(source.order) : orderFallback,
     type,
-    platform,
-    handle,
   };
 }
 
@@ -212,11 +354,52 @@ function normalizeLinks(links = []) {
   return normalizeOrder(links).map((link, index) => normalizeLink(link, index));
 }
 
-function normalizeCollections(collections = []) {
-  return normalizeOrder(collections).map((collection) => ({
-    ...collection,
-    items: normalizeOrder(collection.items || []),
-  }));
+function normalizeSecondaryLink(link = {}, orderFallback = 0) {
+  const source = toPlainObject(link) || {};
+  const platform = inferSecondaryPlatform(source);
+  const handle = normalizeSecondaryHandle(source.handle || source.url || "", platform);
+  const url = buildSecondaryUrl(platform, handle, source.url);
+  const title = typeof source.title === "string" && source.title.trim()
+    ? source.title.trim()
+    : getSecondaryPlatformLabel(platform);
+
+  return {
+    id:
+      typeof source.id === "string" && source.id.trim()
+        ? source.id.trim()
+        : createSecondaryLinkId(),
+    platform,
+    title,
+    url,
+    handle,
+    isActive: source.isActive !== false,
+    order: Number.isFinite(Number(source.order)) ? Number(source.order) : orderFallback,
+  };
+}
+
+function buildSecondaryLinkSignature(link = {}) {
+  return [
+    String(link.platform || "").trim().toLowerCase(),
+    String(link.handle || "").trim().toLowerCase(),
+    String(link.url || "").trim().toLowerCase(),
+    String(link.title || "").trim().toLowerCase(),
+  ].join("::");
+}
+
+function normalizeSecondaryLinks(links = []) {
+  const dedupe = new Set();
+
+  return normalizeOrder(links)
+    .map((link, index) => normalizeSecondaryLink(link, index))
+    .filter((link) => {
+      const signature = buildSecondaryLinkSignature(link);
+      if (dedupe.has(signature)) {
+        return false;
+      }
+      dedupe.add(signature);
+      return true;
+    })
+    .map((link, index) => ({ ...link, order: index }));
 }
 
 function normalizeTheme(theme = {}) {
@@ -259,15 +442,25 @@ function normalizeTheme(theme = {}) {
       typeof titleTextColor === "string" && titleTextColor.trim()
         ? titleTextColor.trim()
         : THEME_DEFAULTS.titleTextColor,
+    fontPreset:
+      typeof normalizedTheme.fontPreset === "string" &&
+      VALID_THEME_OPTIONS.fontPreset.has(normalizedTheme.fontPreset.trim())
+        ? normalizedTheme.fontPreset.trim()
+        : THEME_DEFAULTS.fontPreset,
     buttonStyle: legacyRadius
       ? THEME_DEFAULTS.buttonStyle
       : typeof normalizedTheme.buttonStyle === "string" &&
-          normalizedTheme.buttonStyle.trim()
+          VALID_THEME_OPTIONS.buttonStyle.has(normalizedTheme.buttonStyle.trim())
         ? normalizedTheme.buttonStyle.trim()
         : THEME_DEFAULTS.buttonStyle,
+    buttonShadow:
+      typeof normalizedTheme.buttonShadow === "string" &&
+      VALID_THEME_OPTIONS.buttonShadow.has(normalizedTheme.buttonShadow.trim())
+        ? normalizedTheme.buttonShadow.trim()
+        : THEME_DEFAULTS.buttonShadow,
     buttonRadius:
       typeof normalizedTheme.buttonRadius === "string" &&
-      normalizedTheme.buttonRadius.trim()
+      VALID_THEME_OPTIONS.buttonRadius.has(normalizedTheme.buttonRadius.trim())
         ? normalizedTheme.buttonRadius.trim()
         : legacyRadius || THEME_DEFAULTS.buttonRadius,
     cardColor:
@@ -288,7 +481,7 @@ function serializePage(pageDocument) {
     ...page,
     theme: normalizeTheme(page.theme || {}),
     links: normalizeLinks(page.links || []),
-    collections: normalizeCollections(page.collections || []),
+    secondaryLinks: normalizeSecondaryLinks(page.secondaryLinks || []),
   };
 }
 
@@ -306,11 +499,49 @@ async function ensureUniqueSlug(slug, excludeId) {
   }
 }
 
-function applyDocumentNormalization(page) {
-  page.links = normalizeLinks((page.links || []).map((link) => toPlainObject(link)));
-  page.collections = normalizeCollections(
-    (page.collections || []).map((collection) => toPlainObject(collection)),
+function getNormalizedLinkSets(page = {}) {
+  const currentLinks = (page.links || []).map((link) => toPlainObject(link));
+  const currentSecondaryLinks = (page.secondaryLinks || []).map((link) =>
+    toPlainObject(link),
   );
+  const legacySocialLinks = currentLinks.filter(
+    (link) => String(link?.type || "").trim().toLowerCase() === "social",
+  );
+  const primaryLinks = currentLinks.filter(
+    (link) => String(link?.type || "").trim().toLowerCase() !== "social",
+  );
+
+  return {
+    links: normalizeLinks(primaryLinks),
+    secondaryLinks: normalizeSecondaryLinks([
+      ...currentSecondaryLinks,
+      ...legacySocialLinks,
+    ]),
+  };
+}
+
+function applyDocumentNormalization(page) {
+  const next = getNormalizedLinkSets(page);
+  const currentLinks = JSON.stringify((page.links || []).map((link) => toPlainObject(link)));
+  const currentSecondaryLinks = JSON.stringify(
+    (page.secondaryLinks || []).map((link) => toPlainObject(link)),
+  );
+  const nextLinks = JSON.stringify(next.links);
+  const nextSecondaryLinks = JSON.stringify(next.secondaryLinks);
+  const changed =
+    currentLinks !== nextLinks || currentSecondaryLinks !== nextSecondaryLinks;
+
+  page.links = next.links;
+  page.secondaryLinks = next.secondaryLinks;
+
+  return changed;
+}
+
+async function persistNormalizedPage(page) {
+  const changed = applyDocumentNormalization(page);
+  if (changed) {
+    await page.save();
+  }
   return page;
 }
 
@@ -321,36 +552,17 @@ async function getMainPageDocument() {
     page = await MyPage.create(DEFAULT_PAGE);
   }
 
-  return page;
+  return persistNormalizedPage(page);
 }
 
 function findLinkIndex(page, id) {
   return (page.links || []).findIndex((link) => String(link.id) === String(id));
 }
 
-function findCollectionIndex(page, id) {
-  return (page.collections || []).findIndex(
-    (collection) => String(collection.id) === String(id),
+function findSecondaryLinkIndex(page, id) {
+  return (page.secondaryLinks || []).findIndex(
+    (link) => String(link.id) === String(id),
   );
-}
-
-function findCollectionItemIndex(collection, itemId) {
-  return (collection.items || []).findIndex(
-    (item) => String(item.id) === String(itemId),
-  );
-}
-
-function ensureCollection(page, collectionId) {
-  const collectionIndex = findCollectionIndex(page, collectionId);
-
-  if (collectionIndex === -1) {
-    throw createHttpError(404, "Coleção não encontrada.", "COLLECTION_NOT_FOUND");
-  }
-
-  return {
-    collectionIndex,
-    collection: page.collections[collectionIndex],
-  };
 }
 
 function sanitizeProfilePayload(payload = {}) {
@@ -424,30 +636,38 @@ function sanitizeThemePayload(payload = {}) {
 }
 
 function sanitizeLinkPayload(payload = {}) {
+  const rawType =
+    typeof payload.type === "string" ? payload.type.trim().toLowerCase() : undefined;
+
   return {
     title: typeof payload.title === "string" ? payload.title.trim() : undefined,
     url: typeof payload.url === "string" ? payload.url.trim() : undefined,
+    phone: typeof payload.phone === "string" ? payload.phone.trim() : undefined,
+    message:
+      typeof payload.message === "string" ? payload.message.trim() : undefined,
+    address:
+      typeof payload.address === "string" ? payload.address.trim() : undefined,
+    placeId:
+      typeof payload.placeId === "string" ? payload.placeId.trim() : undefined,
+    showMap:
+      typeof payload.showMap === "boolean" ? payload.showMap : undefined,
     isActive:
       typeof payload.isActive === "boolean" ? payload.isActive : undefined,
-    type: typeof payload.type === "string" ? payload.type.trim() : undefined,
-    platform:
-      typeof payload.platform === "string" ? payload.platform.trim().toLowerCase() : undefined,
+    type: isPrimaryLinkType(rawType) ? rawType : undefined,
+  };
+}
+
+function sanitizeSecondaryLinkPayload(payload = {}) {
+  const rawPlatform =
+    typeof payload.platform === "string"
+      ? payload.platform.trim().toLowerCase()
+      : undefined;
+
+  return {
+    platform: isSecondaryPlatform(rawPlatform) ? rawPlatform : undefined,
+    title: typeof payload.title === "string" ? payload.title.trim() : undefined,
+    url: typeof payload.url === "string" ? payload.url.trim() : undefined,
     handle: typeof payload.handle === "string" ? payload.handle.trim() : undefined,
-  };
-}
-
-function sanitizeCollectionPayload(payload = {}) {
-  return {
-    title: typeof payload.title === "string" ? payload.title.trim() : undefined,
-    isActive:
-      typeof payload.isActive === "boolean" ? payload.isActive : undefined,
-  };
-}
-
-function sanitizeCollectionItemPayload(payload = {}) {
-  return {
-    title: typeof payload.title === "string" ? payload.title.trim() : undefined,
-    url: typeof payload.url === "string" ? payload.url.trim() : undefined,
     isActive:
       typeof payload.isActive === "boolean" ? payload.isActive : undefined,
   };
@@ -517,16 +737,19 @@ export async function createLink(payload = {}) {
   const page = await getMainPageDocument();
   const data = sanitizeLinkPayload(payload);
 
-  page.links.push({
+  page.links.push(normalizeLink({
     id: createLinkId(),
     title: data.title || "Novo link",
     url: data.url || "",
+    phone: data.phone || "",
+    message: data.message || "",
+    address: data.address || "",
+    placeId: data.placeId || "",
+    showMap: data.showMap ?? false,
     isActive: data.isActive ?? true,
     order: page.links.length,
     type: data.type || "link",
-    platform: data.type === "social" ? data.platform || "" : "",
-    handle: data.type === "social" ? data.handle || "" : "",
-  });
+  }, page.links.length));
 
   applyDocumentNormalization(page);
   await page.save();
@@ -544,12 +767,15 @@ export async function updateLink(id, payload = {}) {
   const currentLink = toPlainObject(page.links[linkIndex]);
   const updates = sanitizeLinkPayload(payload);
 
-  page.links[linkIndex] = {
-    ...currentLink,
-    ...Object.fromEntries(
-      Object.entries(updates).filter(([, value]) => value !== undefined),
-    ),
-  };
+  page.links[linkIndex] = normalizeLink(
+    {
+      ...currentLink,
+      ...Object.fromEntries(
+        Object.entries(updates).filter(([, value]) => value !== undefined),
+      ),
+    },
+    currentLink.order ?? linkIndex,
+  );
 
   applyDocumentNormalization(page);
   await page.save();
@@ -566,7 +792,7 @@ export async function deleteLink(id) {
     throw createHttpError(404, "Link não encontrado.", "LINK_NOT_FOUND");
   }
 
-  page.links = normalizeOrder(nextLinks.map((link) => toPlainObject(link)));
+  page.links = normalizeLinks(nextLinks.map((link) => toPlainObject(link)));
   await page.save();
   return serializePage(page);
 }
@@ -597,20 +823,23 @@ export async function reorderLinks(ids = []) {
     ids,
   );
 
+  page.links = normalizeLinks(page.links);
   await page.save();
   return serializePage(page);
 }
 
-export async function createCollection(payload = {}) {
+export async function createSecondaryLink(payload = {}) {
   const page = await getMainPageDocument();
-  const data = sanitizeCollectionPayload(payload);
+  const data = sanitizeSecondaryLinkPayload(payload);
 
-  page.collections.push({
-    id: createCollectionId(),
-    title: data.title || "Nova coleção",
+  page.secondaryLinks.push({
+    id: createSecondaryLinkId(),
+    platform: data.platform || "instagram",
+    title: data.title || getSecondaryPlatformLabel(data.platform || "instagram"),
+    url: data.url || "",
+    handle: data.handle || "",
     isActive: data.isActive ?? true,
-    order: page.collections.length,
-    items: [],
+    order: page.secondaryLinks.length,
   });
 
   applyDocumentNormalization(page);
@@ -618,19 +847,23 @@ export async function createCollection(payload = {}) {
   return serializePage(page);
 }
 
-export async function updateCollection(id, payload = {}) {
+export async function updateSecondaryLink(id, payload = {}) {
   const page = await getMainPageDocument();
-  const collectionIndex = findCollectionIndex(page, id);
+  const linkIndex = findSecondaryLinkIndex(page, id);
 
-  if (collectionIndex === -1) {
-    throw createHttpError(404, "Coleção não encontrada.", "COLLECTION_NOT_FOUND");
+  if (linkIndex === -1) {
+    throw createHttpError(
+      404,
+      "Link secundario nao encontrado.",
+      "SECONDARY_LINK_NOT_FOUND",
+    );
   }
 
-  const currentCollection = toPlainObject(page.collections[collectionIndex]);
-  const updates = sanitizeCollectionPayload(payload);
+  const currentLink = toPlainObject(page.secondaryLinks[linkIndex]);
+  const updates = sanitizeSecondaryLinkPayload(payload);
 
-  page.collections[collectionIndex] = {
-    ...currentCollection,
+  page.secondaryLinks[linkIndex] = {
+    ...currentLink,
     ...Object.fromEntries(
       Object.entries(updates).filter(([, value]) => value !== undefined),
     ),
@@ -641,154 +874,58 @@ export async function updateCollection(id, payload = {}) {
   return serializePage(page);
 }
 
-export async function deleteCollection(id) {
+export async function deleteSecondaryLink(id) {
   const page = await getMainPageDocument();
-  const nextCollections = (page.collections || []).filter(
-    (collection) => String(collection.id) !== String(id),
+  const nextLinks = (page.secondaryLinks || []).filter(
+    (link) => String(link.id) !== String(id),
   );
 
-  if (nextCollections.length === (page.collections || []).length) {
-    throw createHttpError(404, "Coleção não encontrada.", "COLLECTION_NOT_FOUND");
+  if (nextLinks.length === (page.secondaryLinks || []).length) {
+    throw createHttpError(
+      404,
+      "Link secundario nao encontrado.",
+      "SECONDARY_LINK_NOT_FOUND",
+    );
   }
 
-  page.collections = normalizeCollections(
-    nextCollections.map((collection) => toPlainObject(collection)),
+  page.secondaryLinks = normalizeSecondaryLinks(
+    nextLinks.map((link) => toPlainObject(link)),
   );
-
   await page.save();
   return serializePage(page);
 }
 
-export async function toggleCollection(id) {
+export async function toggleSecondaryLink(id) {
   const page = await getMainPageDocument();
-  const collectionIndex = findCollectionIndex(page, id);
+  const linkIndex = findSecondaryLinkIndex(page, id);
 
-  if (collectionIndex === -1) {
-    throw createHttpError(404, "Coleção não encontrada.", "COLLECTION_NOT_FOUND");
+  if (linkIndex === -1) {
+    throw createHttpError(
+      404,
+      "Link secundario nao encontrado.",
+      "SECONDARY_LINK_NOT_FOUND",
+    );
   }
 
-  const currentCollection = toPlainObject(page.collections[collectionIndex]);
-  page.collections[collectionIndex] = {
-    ...currentCollection,
-    isActive: !currentCollection.isActive,
+  const currentLink = toPlainObject(page.secondaryLinks[linkIndex]);
+  page.secondaryLinks[linkIndex] = {
+    ...currentLink,
+    isActive: !currentLink.isActive,
   };
 
   await page.save();
   return serializePage(page);
 }
 
-export async function reorderCollections(ids = []) {
+export async function reorderSecondaryLinks(ids = []) {
   const page = await getMainPageDocument();
-  const orderedCollections = applyOrderByIds(
-    (page.collections || []).map((collection) => toPlainObject(collection)),
+
+  page.secondaryLinks = applyOrderByIds(
+    (page.secondaryLinks || []).map((link) => toPlainObject(link)),
     ids,
   );
 
-  page.collections = normalizeCollections(orderedCollections);
-  await page.save();
-  return serializePage(page);
-}
-
-export async function createCollectionItem(collectionId, payload = {}) {
-  const page = await getMainPageDocument();
-  const { collectionIndex, collection } = ensureCollection(page, collectionId);
-  const data = sanitizeCollectionItemPayload(payload);
-  const collectionPlain = toPlainObject(collection);
-
-  page.collections[collectionIndex] = {
-    ...collectionPlain,
-    items: normalizeOrder([
-      ...(collectionPlain.items || []),
-      {
-        id: createCollectionItemId(),
-        title: data.title || "Novo item",
-        url: data.url || "",
-        isActive: data.isActive ?? true,
-        order: (collectionPlain.items || []).length,
-      },
-    ]),
-  };
-
-  applyDocumentNormalization(page);
-  await page.save();
-  return serializePage(page);
-}
-
-export async function updateCollectionItem(collectionId, itemId, payload = {}) {
-  const page = await getMainPageDocument();
-  const { collectionIndex, collection } = ensureCollection(page, collectionId);
-  const collectionPlain = toPlainObject(collection);
-  const itemIndex = findCollectionItemIndex(collectionPlain, itemId);
-
-  if (itemIndex === -1) {
-    throw createHttpError(
-      404,
-      "Item da coleção não encontrado.",
-      "COLLECTION_ITEM_NOT_FOUND",
-    );
-  }
-
-  const updates = sanitizeCollectionItemPayload(payload);
-  const currentItem = toPlainObject(collectionPlain.items[itemIndex]);
-  const nextItems = [...(collectionPlain.items || [])];
-
-  nextItems[itemIndex] = {
-    ...currentItem,
-    ...Object.fromEntries(
-      Object.entries(updates).filter(([, value]) => value !== undefined),
-    ),
-  };
-
-  page.collections[collectionIndex] = {
-    ...collectionPlain,
-    items: normalizeOrder(nextItems),
-  };
-
-  applyDocumentNormalization(page);
-  await page.save();
-  return serializePage(page);
-}
-
-export async function deleteCollectionItem(collectionId, itemId) {
-  const page = await getMainPageDocument();
-  const { collectionIndex, collection } = ensureCollection(page, collectionId);
-  const collectionPlain = toPlainObject(collection);
-  const nextItems = (collectionPlain.items || []).filter(
-    (item) => String(item.id) !== String(itemId),
-  );
-
-  if (nextItems.length === (collectionPlain.items || []).length) {
-    throw createHttpError(
-      404,
-      "Item da coleção não encontrado.",
-      "COLLECTION_ITEM_NOT_FOUND",
-    );
-  }
-
-  page.collections[collectionIndex] = {
-    ...collectionPlain,
-    items: normalizeOrder(nextItems),
-  };
-
-  applyDocumentNormalization(page);
-  await page.save();
-  return serializePage(page);
-}
-
-export async function reorderCollectionItems(collectionId, ids = []) {
-  const page = await getMainPageDocument();
-  const { collectionIndex, collection } = ensureCollection(page, collectionId);
-  const collectionPlain = toPlainObject(collection);
-
-  page.collections[collectionIndex] = {
-    ...collectionPlain,
-    items: applyOrderByIds(
-      (collectionPlain.items || []).map((item) => toPlainObject(item)),
-      ids,
-    ),
-  };
-
-  applyDocumentNormalization(page);
+  page.secondaryLinks = normalizeSecondaryLinks(page.secondaryLinks);
   await page.save();
   return serializePage(page);
 }
@@ -808,6 +945,48 @@ export async function updateShop(payload = {}) {
   return serializePage(page);
 }
 
+export async function searchLocationSuggestions(query = "") {
+  const normalizedQuery = String(query || "").trim();
+
+  if (normalizedQuery.length < 3) {
+    return [];
+  }
+
+  await waitForNominatimSlot();
+
+  const params = new URLSearchParams({
+    q: normalizedQuery,
+    format: "jsonv2",
+    addressdetails: "1",
+    limit: "5",
+    countrycodes: "br",
+    "accept-language": "pt-BR",
+  });
+
+  const response = await fetch(`${NOMINATIM_BASE_URL}?${params.toString()}`, {
+    headers: {
+      "User-Agent": "dandelink/1.0 (admin address search)",
+      "Accept-Language": "pt-BR",
+    },
+  });
+
+  if (!response.ok) {
+    throw createHttpError(
+      502,
+      "Falha ao consultar o servico de busca de enderecos.",
+      "NOMINATIM_REQUEST_FAILED",
+    );
+  }
+
+  const payload = await response.json();
+
+  if (!Array.isArray(payload) || !payload.length) {
+    return [];
+  }
+
+  return payload.map((item) => formatNominatimSuggestion(item));
+}
+
 export async function getPublicMyPageBySlug(slug) {
   const normalizedSlug = normalizeSlug(slug);
 
@@ -821,6 +1000,8 @@ export async function getPublicMyPageBySlug(slug) {
     throw createHttpError(404, "Página pública não encontrada.", "PUBLIC_PAGE_NOT_FOUND");
   }
 
+  await persistNormalizedPage(page);
+
   const publicPage = serializePage(page);
 
   return {
@@ -830,12 +1011,9 @@ export async function getPublicMyPageBySlug(slug) {
     avatarUrl: publicPage.avatarUrl,
     theme: publicPage.theme,
     links: sortByOrder(publicPage.links || []).filter((link) => link.isActive),
-    collections: sortByOrder(publicPage.collections || [])
-      .filter((collection) => collection.isActive)
-      .map((collection) => ({
-        ...collection,
-        items: sortByOrder(collection.items || []).filter((item) => item.isActive),
-      })),
+    secondaryLinks: sortByOrder(publicPage.secondaryLinks || []).filter(
+      (link) => link.isActive,
+    ),
     shop: publicPage.shop?.isActive ? publicPage.shop : null,
   };
 }

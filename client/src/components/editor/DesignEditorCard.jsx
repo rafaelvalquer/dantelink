@@ -32,6 +32,7 @@ import {
   MY_PAGE_THEME_PRESET_OPTIONS,
   createMyPageThemePreviewPage,
   getMyPageButtonIcon,
+  getMyPageButtonMeta,
   getMyPagePreviewPrimaryLinks,
   getMyPagePreviewSocialLinks,
   getMyPageSocialBrand,
@@ -314,13 +315,13 @@ function ButtonPreview({ theme, links }) {
             >
               <div className="design-button-preview__icon" style={theme.secondaryButtonStyle}>
                 <Icon size={14} />
+                </div>
+                <div className="design-button-preview__copy">
+                  <strong>{link.title}</strong>
+                  <small>{getMyPageButtonMeta(link)}</small>
+                </div>
               </div>
-              <div className="design-button-preview__copy">
-                <strong>{link.title}</strong>
-                <small>{link.type === "shop-preview" ? "Catalogo" : "CTA principal"}</small>
-              </div>
-            </div>
-          );
+            );
         })}
       </div>
     </div>

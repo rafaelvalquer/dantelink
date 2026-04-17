@@ -6,12 +6,16 @@ import {
   getMyPageButtonIcon,
   getMyPageButtonMeta,
   getMyPageMotionPreset,
-  getMyPageSocialBrand,
   getMyPageTheme,
   getPrimaryLinksLayout,
-  getSecondaryLinksLayout,
 } from "./myPageTheme.js";
-import { PublicPageLocationCard } from "./PublicPageUi.jsx";
+import {
+  getPublicButtonProps,
+  PublicPageHero,
+  PublicPageLocationCard,
+  PublicPageScreen,
+  PublicPageSocialLinks,
+} from "./PublicPageUi.jsx";
 
 function cls(...parts) {
   return parts.filter(Boolean).join(" ");
@@ -83,35 +87,22 @@ function ActionContainer({
   );
 }
 
-function HeroAvatar({ page }) {
-  if (page?.avatarUrl) {
-    return (
-      <img
-        className="public-page__hero-avatar"
-        src={page.avatarUrl}
-        alt={page?.title || "Avatar da pagina"}
-      />
-    );
-  }
-
-  return (
-    <div className="public-page__hero-avatar public-page__hero-avatar--placeholder">
-      <span>{String(page?.title || "M").slice(0, 1)}</span>
-    </div>
-  );
-}
-
 function PrimaryLinkCard({ link, interactive, theme, preview = false }) {
   const Icon = getMyPageButtonIcon(link);
   const title = renderTitle(link?.title, "Novo link");
   const meta = getMyPageButtonMeta(link);
+  const buttonProps = getPublicButtonProps(
+    theme,
+    "primary",
+    cls(preview && "is-preview"),
+  );
 
   return (
     <ActionContainer
       interactive={interactive}
       href={link?.url}
-      className={cls("public-page__cta", preview ? "is-preview" : "")}
-      style={theme.primaryButtonStyle}
+      className={buttonProps.className}
+      style={buttonProps.style}
       ariaLabel={title}
     >
       <div className="public-page__cta-main">
@@ -126,75 +117,36 @@ function PrimaryLinkCard({ link, interactive, theme, preview = false }) {
           <strong>{title}</strong>
         </div>
       </div>
-      <span className="public-page__cta-arrow">
-        {interactive ? "Abrir" : "Preview"}
-      </span>
-    </ActionContainer>
-  );
-}
-
-function SecondaryLinkChip({ link, theme, interactive }) {
-  const brand = getMyPageSocialBrand(link);
-  const layout = getSecondaryLinksLayout(theme);
-  const label = renderTitle(link?.title, brand.platform);
-  const Icon = brand.Icon;
-  const iconOnly = theme?.design?.secondaryLinksStyle === "icon";
-  const showIcon = theme?.design?.secondaryLinksStyle !== "text";
-  const useBadge = theme?.design?.secondaryLinksIconLayout !== "plain";
-
-  return (
-    <ActionContainer
-      interactive={interactive}
-      href={link?.url}
-      className={cls(
-        "public-page__social-chip",
-        iconOnly ? "is-icon-only" : "",
-        `is-${layout.size}`,
-      )}
-      style={theme.secondaryButtonStyle}
-      ariaLabel={label}
-    >
-      {showIcon ? (
-        <span
-          className={cls(
-            "public-page__social-badge",
-            useBadge ? "is-badge" : "is-plain",
-          )}
-          style={
-            useBadge ? brand.badgeStyle || theme.softSurfaceStyle : undefined
-          }
-        >
-          <Icon />
-        </span>
-      ) : null}
-      {iconOnly ? null : (
-        <span className="public-page__social-label">{label}</span>
-      )}
     </ActionContainer>
   );
 }
 
 function ShopCard({ shop, theme }) {
   return (
-    <section className="public-page__shop" style={theme.surfaceStyle}>
-      <div className="public-page__section-header">
-        <div className="public-page__section-title">
+    <section className="public-page-section-card public-page__shop">
+      <div className="public-page-section-card__header public-page__section-header">
+        <div className="public-page-section-card__title public-page__section-title">
           <div
-            className="public-page__section-icon"
+            className="public-page-section-card__icon public-page__section-icon"
             style={theme.primaryButtonStyle}
           >
-            <Sparkles className="public-page__section-icon-svg" />
+            <Sparkles className="public-page-section-card__icon-svg public-page__section-icon-svg" />
           </div>
-          <div>
-            <span className="public-page__section-eyebrow">Shop</span>
-            <h2>{renderTitle(shop?.title, "Loja")}</h2>
+          <div className="public-page-section-card__copy">
+            <span className="public-page-section-card__eyebrow public-page__section-eyebrow">
+              Shop
+            </span>
+            <h2 style={theme.titleStyle}>{renderTitle(shop?.title, "Loja")}</h2>
           </div>
         </div>
-        <span className="public-page__section-counter">
+        <span className="public-page-section-card__count public-page__section-counter">
           {Number(shop?.productsCount || 0)} produtos
         </span>
       </div>
-      <p className="public-page__shop-copy">
+      <p
+        className="public-page-section-card__description public-page__shop-copy"
+        style={theme.bodyStyle}
+      >
         {shop?.description ||
           "Configure este bloco de loja no painel administrativo."}
       </p>
@@ -202,7 +154,7 @@ function ShopCard({ shop, theme }) {
   );
 }
 
-export default function PublicPageScene({
+export default function PublicPageSceneView({
   page,
   mode = "public",
   interactive = true,
@@ -220,8 +172,6 @@ export default function PublicPageScene({
   const socialLinks = sortActive(page?.secondaryLinks || []);
   const hasVisibleContent =
     primaryLinks.length || socialLinks.length || page?.shop?.isActive;
-  const linksLayout = getPrimaryLinksLayout(theme);
-  const secondaryLayout = getSecondaryLinksLayout(theme);
   const publicUrl = getPublicPageUrl(page, interactive, true);
   const publicPath = getPublicPageUrl(page, interactive, false);
   const [shareFeedback, setShareFeedback] = useState("");
@@ -281,13 +231,7 @@ export default function PublicPageScene({
   }
 
   return (
-    <div
-      className={cls("public-page", previewMode ? "public-page--preview" : "")}
-      style={theme.rootStyle}
-    >
-      <div className="public-page__halo public-page__halo--top" />
-      <div className="public-page__halo public-page__halo--bottom" />
-
+    <PublicPageScreen page={page} theme={theme} mode={mode}>
       <div className="public-page__stage">
         <div className="public-page__main-column">
           <motion.section
@@ -332,48 +276,21 @@ export default function PublicPageScene({
             ) : null}
 
             <div className="public-page__shell-content">
-              <motion.section
-                className={cls(
-                  "public-page__hero-shell",
-                  theme.usesHeroLayout ? "is-hero-layout" : "",
-                )}
+              <motion.div
+                className="public-page__shell-block"
                 variants={motionPreset.cardVariants}
                 initial={motionPreset.wrapper.initial}
                 animate={motionPreset.wrapper.animate}
               >
-                {theme.usesHeroLayout ? (
-                  <div
-                    className="public-page__hero-media"
-                    style={theme.heroMediaStyle}
-                  />
-                ) : null}
-
-                <div className="public-page__hero">
-                  <div
-                    className="public-page__hero-avatar-wrap"
-                    style={theme.chromeButtonStyle}
-                  >
-                    <HeroAvatar page={page} />
-                  </div>
-
-                  <div className="public-page__hero-copy">
-                    <h1
-                      className="public-page__hero-title"
-                      style={theme.titleStyle}
-                    >
-                      {renderTitle(page?.title, "Minha pagina")}
-                    </h1>
-                    <p className="public-page__hero-bio">
-                      {page?.bio ||
-                        "Comece a editar sua bio na area administrativa."}
-                    </p>
-                  </div>
-                </div>
-              </motion.section>
+                <PublicPageHero page={page} theme={theme} />
+              </motion.div>
 
               {primaryLinks.length ? (
                 <motion.div
-                  className={linksLayout}
+                  className={cls(
+                    "public-page__shell-block",
+                    getPrimaryLinksLayout(theme),
+                  )}
                   initial={motionPreset.wrapper.initial}
                   animate={motionPreset.wrapper.animate}
                   variants={motionPreset.containerVariants}
@@ -396,7 +313,7 @@ export default function PublicPageScene({
 
               {locationMapLinks.length ? (
                 <motion.div
-                  className="public-page__location-stack public-page__shell-block--location"
+                  className="public-page__shell-block public-page__location-stack public-page__shell-block--location"
                   initial={motionPreset.wrapper.initial}
                   animate={motionPreset.wrapper.animate}
                   variants={motionPreset.containerVariants}
@@ -414,36 +331,24 @@ export default function PublicPageScene({
               ) : null}
 
               {socialLinks.length ? (
-                <motion.section
-                  className="public-page__social-shell"
-                  style={theme.softSurfaceStyle}
+                <motion.div
+                  className="public-page__shell-block public-page-section-card public-page__social-shell"
                   variants={motionPreset.cardVariants}
                   initial={motionPreset.wrapper.initial}
                   animate={motionPreset.wrapper.animate}
                 >
-                  <div className="public-page__social-header">
-                    <span className="public-page__section-eyebrow">
-                      Redes sociais
-                    </span>
-                    <strong style={theme.titleStyle}>
-                      Continue acompanhando
-                    </strong>
-                  </div>
-                  <div className={secondaryLayout.containerClassName}>
-                    {socialLinks.map((link) => (
-                      <SecondaryLinkChip
-                        key={link.id}
-                        link={link}
-                        theme={theme}
-                        interactive={interactive}
-                      />
-                    ))}
-                  </div>
-                </motion.section>
+                  <PublicPageSocialLinks
+                    theme={theme}
+                    links={socialLinks}
+                    interactive={interactive}
+                    forceIconOnly
+                  />
+                </motion.div>
               ) : null}
 
               {page?.shop?.isActive ? (
                 <motion.div
+                  className="public-page__shell-block public-page__shell-subsection"
                   variants={motionPreset.cardVariants}
                   initial={motionPreset.wrapper.initial}
                   animate={motionPreset.wrapper.animate}
@@ -454,8 +359,7 @@ export default function PublicPageScene({
 
               {!hasVisibleContent ? (
                 <motion.div
-                  className="public-page__empty public-page__empty--standalone"
-                  style={theme.softSurfaceStyle}
+                  className="public-page__shell-block public-page__empty public-page__empty--standalone"
                   variants={motionPreset.cardVariants}
                   initial={motionPreset.wrapper.initial}
                   animate={motionPreset.wrapper.animate}
@@ -468,30 +372,30 @@ export default function PublicPageScene({
           </motion.section>
 
           <div className="public-page__micro-footer">
-            Pagina publica • Compartilhavel • Responsiva
+            Pagina publica | Compartilhavel | Responsiva
           </div>
         </div>
-      </div>
 
-      {!previewMode ? (
-        <aside
-          className="public-page__desktop-aside"
-          style={theme.qrPanelStyle}
-        >
-          <span className="public-page__aside-label">Ver no mobile</span>
-          <div className="public-page__qr-card">
-            <QRCodeSVG
-              value={publicUrl}
-              size={132}
-              level="M"
-              includeMargin={false}
-              bgColor="transparent"
-              fgColor={theme.design.titleTextColor}
-            />
-          </div>
-          <span className="public-page__aside-url">{publicPath}</span>
-        </aside>
-      ) : null}
-    </div>
+        {!previewMode ? (
+          <aside
+            className="public-page__desktop-aside"
+            style={theme.qrPanelStyle}
+          >
+            <span className="public-page__aside-label">Ver no mobile</span>
+            <div className="public-page__qr-card">
+              <QRCodeSVG
+                value={publicUrl}
+                size={132}
+                level="M"
+                includeMargin={false}
+                bgColor="transparent"
+                fgColor={theme.design.titleTextColor}
+              />
+            </div>
+            <span className="public-page__aside-url">{publicPath}</span>
+          </aside>
+        ) : null}
+      </div>
+    </PublicPageScreen>
   );
 }

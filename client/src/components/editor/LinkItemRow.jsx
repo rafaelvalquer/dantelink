@@ -4,7 +4,6 @@ import Switch from "../ui/Switch.jsx";
 
 const typeOptions = [
   { value: "link", label: "Link" },
-  { value: "social", label: "Rede social" },
   { value: "shop-preview", label: "Prévia da loja" },
 ];
 

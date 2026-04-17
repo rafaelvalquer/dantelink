@@ -1,7 +1,6 @@
 import {
-  Boxes,
-  ExternalLink,
   Link2,
+  MapPin,
   ShoppingBag,
   Store,
 } from "lucide-react";
@@ -10,8 +9,18 @@ import {
   FaGlobe,
   FaInstagram,
   FaTiktok,
+  FaWhatsapp,
   FaYoutube,
 } from "react-icons/fa6";
+import {
+  buildPrimaryButtonStyle,
+  buildSecondaryButtonStyle,
+  BUTTON_RADIUS_OPTIONS,
+  BUTTON_SHADOW_OPTIONS,
+  BUTTON_STYLE_OPTIONS,
+  getButtonThemeDefaults,
+  normalizeButtonTheme,
+} from "./buttonTheme.js";
 
 export const MY_PAGE_THEME_DEFAULTS = {
   themePreset: "clean_light",
@@ -22,14 +31,9 @@ export const MY_PAGE_THEME_DEFAULTS = {
   surfaceStyle: "soft",
   surfacePatternVariant: "grid",
   surfaceColor: "#ffffff",
-  buttonColor: "#0f172a",
-  buttonTextColor: "#ffffff",
+  ...getButtonThemeDefaults(),
   pageTextColor: "#64748b",
   titleTextColor: "#0f172a",
-  fontPreset: "inter",
-  buttonStyle: "solid",
-  buttonShadow: "soft",
-  buttonRadius: "round",
   primaryButtonsLayout: "stack",
   secondaryLinksStyle: "icon_text",
   secondaryLinksIconLayout: "brand_badge",
@@ -313,24 +317,15 @@ export const MY_PAGE_FONT_PRESET_OPTIONS = [
 ];
 
 export const MY_PAGE_BUTTON_STYLE_OPTIONS = [
-  { value: "solid", label: "Solido", description: "CTA mais forte." },
-  { value: "soft", label: "Soft", description: "Visual suave e elegante." },
-  { value: "outline", label: "Outline", description: "Transparente e leve." },
-  { value: "glass", label: "Glass", description: "Translucido com blur e brilho." },
-  { value: "metallic", label: "Metalico", description: "Brilho premium de metal polido." },
+  ...BUTTON_STYLE_OPTIONS,
 ];
 
 export const MY_PAGE_BUTTON_SHADOW_OPTIONS = [
-  { value: "none", label: "None", description: "Sem moldura preta extra." },
-  { value: "soft", label: "Soft", description: "Sombra leve com contorno discreto." },
-  { value: "strong", label: "Strong", description: "Mais presenca e offset marcado." },
-  { value: "hard", label: "Hard", description: "Borda preta dura no estilo cartaz." },
+  ...BUTTON_SHADOW_OPTIONS,
 ];
 
 export const MY_PAGE_BUTTON_RADIUS_OPTIONS = [
-  { value: "square", label: "Reta", description: "Borda baixa." },
-  { value: "round", label: "Round", description: "Curva media." },
-  { value: "pill", label: "Pill", description: "Curva maxima." },
+  ...BUTTON_RADIUS_OPTIONS,
 ];
 
 export const MY_PAGE_PRIMARY_BUTTON_LAYOUT_OPTIONS = [
@@ -630,48 +625,6 @@ function buildSurfaceStyle(design, colors, tone = "main") {
   };
 }
 
-function buildButtonShadow(color, shadowStyle) {
-  if (shadowStyle === "none") return "none";
-  if (shadowStyle === "strong") {
-    return `0 20px 44px -18px ${alphaColor(color, 0.42)}`;
-  }
-  if (shadowStyle === "hard") {
-    return `6px 8px 0 0 ${alphaColor(mixColors(color, "#020617", 0.34), 0.8)}`;
-  }
-  return `0 18px 38px -22px ${alphaColor(color, 0.32)}`;
-}
-
-function buildButtonStyle(design, colors, variant = "primary") {
-  const color = variant === "primary" ? colors.buttonColor : mixColors(colors.buttonColor, colors.surfaceColor, 0.18);
-  const contrast = variant === "primary"
-    ? colors.buttonTextColor
-    : isDarkColor(colors.surfaceColor)
-      ? "#f8fafc"
-      : colors.titleTextColor;
-
-  let background = `linear-gradient(135deg, ${mixColors(color, "#ffffff", 0.04)} 0%, ${color} 100%)`;
-  let border = `1px solid ${alphaColor(color, 0.22)}`;
-
-  if (design.buttonStyle === "soft") {
-    background = `linear-gradient(180deg, ${alphaColor(color, 0.18)} 0%, ${alphaColor(color, 0.26)} 100%)`;
-  } else if (design.buttonStyle === "outline") {
-    background = alphaColor(color, 0.08);
-  } else if (design.buttonStyle === "glass") {
-    background = `linear-gradient(180deg, ${alphaColor(color, 0.2)} 0%, ${alphaColor(colors.surfaceColor, 0.34)} 100%)`;
-    border = `1px solid ${alphaColor(mixColors(color, "#ffffff", 0.42), 0.28)}`;
-  } else if (design.buttonStyle === "metallic") {
-    background = `linear-gradient(135deg, ${mixColors(color, "#ffffff", 0.32)} 0%, ${mixColors(color, "#111827", 0.16)} 100%)`;
-    border = `1px solid ${alphaColor(mixColors(color, "#ffffff", 0.22), 0.34)}`;
-  }
-
-  return {
-    background,
-    color: contrast,
-    border,
-    boxShadow: buildButtonShadow(color, design.buttonShadow),
-  };
-}
-
 function getRadiusValue(buttonRadius) {
   if (buttonRadius === "square") return "22px";
   if (buttonRadius === "pill") return "999px";
@@ -694,16 +647,19 @@ const FALLBACK_PRIMARY_LINKS = [
   {
     id: "preview-whatsapp",
     title: "Falar no WhatsApp",
-    type: "link",
-    url: "https://wa.me/5511999999999",
+    type: "whatsapp",
+    url: "https://wa.me/5511999999999?text=Ola%21",
+    phone: "5511999999999",
+    message: "Ola!",
     isActive: true,
     order: 0,
   },
   {
-    id: "preview-catalog",
-    title: "Ver catalogo",
-    type: "shop-preview",
-    url: "https://example.com/catalogo",
+    id: "preview-location",
+    title: "Nossa localizacao",
+    type: "location",
+    url: "https://www.google.com/maps/search/?api=1&query=Sao%20Paulo",
+    address: "Sao Paulo, SP",
     isActive: true,
     order: 1,
   },
@@ -713,7 +669,6 @@ const FALLBACK_SOCIAL_LINKS = [
   {
     id: "social-instagram",
     title: "Instagram",
-    type: "social",
     platform: "instagram",
     url: "https://instagram.com",
     isActive: true,
@@ -722,7 +677,6 @@ const FALLBACK_SOCIAL_LINKS = [
   {
     id: "social-youtube",
     title: "YouTube",
-    type: "social",
     platform: "youtube",
     url: "https://youtube.com",
     isActive: true,
@@ -730,10 +684,9 @@ const FALLBACK_SOCIAL_LINKS = [
   },
   {
     id: "social-site",
-    title: "TikTok",
-    type: "social",
-    platform: "tiktok",
-    url: "https://tiktok.com",
+    title: "Site",
+    platform: "site",
+    url: "https://example.com",
     isActive: true,
     order: 2,
   },
@@ -767,10 +720,15 @@ export function normalizeMyPageTheme(rawTheme = {}) {
       legacyTitleTextColor,
       presetTheme.titleTextColor,
     ),
-    buttonStyle: legacyRadius
-      ? presetTheme.buttonStyle
-      : rawTheme.buttonStyle || presetTheme.buttonStyle,
-    buttonRadius: rawTheme.buttonRadius || legacyRadius || presetTheme.buttonRadius,
+    ...normalizeButtonTheme({
+      ...MY_PAGE_THEME_DEFAULTS,
+      ...presetTheme,
+      ...rawTheme,
+      buttonStyle: legacyRadius
+        ? presetTheme.buttonStyle
+        : rawTheme.buttonStyle || presetTheme.buttonStyle,
+      buttonRadius: rawTheme.buttonRadius || legacyRadius || presetTheme.buttonRadius,
+    }),
   };
 
   return {
@@ -782,13 +740,12 @@ export function normalizeMyPageTheme(rawTheme = {}) {
 
 export function getMyPagePreviewPrimaryLinks(page = {}, limit = 2) {
   const activeLinks = sortActive(page?.links || []);
-  const primaryLinks = activeLinks.filter((link) => link?.type !== "social");
+  const primaryLinks = activeLinks;
   return primaryLinks.length ? primaryLinks.slice(0, limit) : FALLBACK_PRIMARY_LINKS;
 }
 
 export function getMyPagePreviewSocialLinks(page = {}, limit = 3) {
-  const activeLinks = sortActive(page?.links || []);
-  const socialLinks = activeLinks.filter((link) => link?.type === "social");
+  const socialLinks = sortActive(page?.secondaryLinks || []);
   return socialLinks.length ? socialLinks.slice(0, limit) : FALLBACK_SOCIAL_LINKS;
 }
 
@@ -797,12 +754,13 @@ export function createMyPageThemePreviewPage(page = {}, themeOverrides = {}) {
     ...page,
     title: page?.title || "Minha Pagina",
     bio:
-      page?.bio ||
-      "Uma bio curta para apresentar links, colecoes e canais principais.",
+      page?.bio || "Uma bio curta para apresentar links e canais principais.",
     links: page?.links?.length
       ? page.links
-      : [...FALLBACK_PRIMARY_LINKS, ...FALLBACK_SOCIAL_LINKS],
-    collections: page?.collections || [],
+      : FALLBACK_PRIMARY_LINKS,
+    secondaryLinks: page?.secondaryLinks?.length
+      ? page.secondaryLinks
+      : FALLBACK_SOCIAL_LINKS,
     shop: page?.shop || { isActive: false, title: "Loja", productsCount: 0 },
     theme: normalizeMyPageTheme(themeOverrides),
   };
@@ -815,16 +773,12 @@ export function getMyPageTheme(page = {}) {
     design.fontPreset === "editorial" ? FONT_FAMILIES.editorial : fontFamily;
   const background = buildBackground(design, design);
   const surfaceStyle = buildSurfaceStyle(design, design, "main");
+  const shellSurfaceStyle = buildSurfaceStyle(design, design, "main");
   const softSurfaceStyle = buildSurfaceStyle(design, design, "soft");
-  const primaryButtonStyle = buildButtonStyle(design, design, "primary");
-  const secondaryButtonStyle = buildButtonStyle(design, design, "secondary");
+  const primaryButtonStyle = buildPrimaryButtonStyle(design);
+  const secondaryButtonStyle = buildSecondaryButtonStyle(design);
   const usesHeroLayout = design.brandLayout === "hero" && Boolean(page?.avatarUrl);
   const darkSurface = isDarkColor(design.surfaceColor);
-  const shellColor = mixColors(
-    design.surfaceColor,
-    design.backgroundColor,
-    darkSurface ? 0.28 : 0.12,
-  );
   const chromeColor = mixColors(
     design.surfaceColor,
     "#ffffff",
@@ -844,6 +798,7 @@ export function getMyPageTheme(page = {}) {
       "--page-heading-font": headingFontFamily,
       "--page-body-font": fontFamily,
       "--page-card-radius": getPreviewRadiusValue(design.buttonRadius),
+      "--page-button-radius": getRadiusValue(design.buttonRadius),
       background: background.background,
       backgroundSize: background.backgroundSize,
       color: design.pageTextColor,
@@ -864,16 +819,19 @@ export function getMyPageTheme(page = {}) {
       color: design.pageTextColor,
       fontFamily,
     },
+    mutedTextStyle: {
+      color: alphaColor(design.pageTextColor, 0.92),
+      fontFamily,
+    },
     accentTextStyle: {
       color: design.buttonColor,
       fontFamily: headingFontFamily,
     },
     shellStyle: {
-      background: `linear-gradient(180deg, ${alphaColor(mixColors(shellColor, "#ffffff", 0.08), 0.9)} 0%, ${alphaColor(shellColor, 0.94)} 100%)`,
-      border: `1px solid ${alphaColor(mixColors(design.surfaceColor, "#ffffff", darkSurface ? 0.4 : 0.14), 0.18)}`,
-      boxShadow: `0 44px 120px -64px ${alphaColor(design.titleTextColor, darkSurface ? 0.62 : 0.24)}`,
-      backdropFilter: "blur(26px) saturate(1.02)",
-      WebkitBackdropFilter: "blur(26px) saturate(1.02)",
+      ...shellSurfaceStyle,
+      borderRadius: getPreviewRadiusValue(design.buttonRadius),
+      color: design.pageTextColor,
+      fontFamily,
     },
     chromeButtonStyle: {
       background: alphaColor(chromeColor, darkSurface ? 0.16 : 0.88),
@@ -905,12 +863,10 @@ export function getMyPageTheme(page = {}) {
     },
     primaryButtonStyle: {
       ...primaryButtonStyle,
-      borderRadius: getRadiusValue(design.buttonRadius),
       fontFamily,
     },
     secondaryButtonStyle: {
       ...secondaryButtonStyle,
-      borderRadius: getRadiusValue(design.buttonRadius),
       fontFamily,
     },
     activeCardStyle: {
@@ -925,7 +881,7 @@ export function getMyPageTheme(page = {}) {
 
 function getSocialPlatform(link = {}) {
   if (
-    ["instagram", "facebook", "tiktok", "youtube"].includes(
+    ["instagram", "facebook", "tiktok", "youtube", "site"].includes(
       String(link.platform || "").toLowerCase(),
     )
   ) {
@@ -995,14 +951,18 @@ export function getMyPageSocialBrand(link = {}) {
 }
 
 export function getMyPageButtonIcon(link = {}) {
+  if (link?.type === "whatsapp") return FaWhatsapp;
+  if (link?.type === "location") return MapPin;
   if (link?.type === "shop-preview") return ShoppingBag;
-  if (link?.type === "social") return ExternalLink;
   if (String(link?.title || "").toLowerCase().includes("loja")) return Store;
   return Link2;
 }
 
-export function getMyPageCollectionIcon() {
-  return Boxes;
+export function getMyPageButtonMeta(link = {}) {
+  if (link?.type === "whatsapp") return "WhatsApp";
+  if (link?.type === "location") return "Localizacao";
+  if (link?.type === "shop-preview") return "Shop";
+  return "Link";
 }
 
 export function getPrimaryLinksLayout(theme) {

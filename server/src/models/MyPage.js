@@ -6,47 +6,36 @@ const linkSchema = new mongoose.Schema(
     id: { type: String, required: true, trim: true },
     title: { type: String, required: true, trim: true, default: "Novo link" },
     url: { type: String, trim: true, default: "" },
+    phone: { type: String, trim: true, default: "" },
+    message: { type: String, trim: true, default: "" },
+    address: { type: String, trim: true, default: "" },
+    placeId: { type: String, trim: true, default: "" },
+    showMap: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
     order: { type: Number, default: 0 },
     type: {
       type: String,
-      enum: ["link", "social", "shop-preview"],
+      enum: ["link", "shop-preview", "whatsapp", "location"],
       default: "link",
     },
+  },
+  { _id: false },
+);
+
+const secondaryLinkSchema = new mongoose.Schema(
+  {
+    id: { type: String, required: true, trim: true },
     platform: {
       type: String,
-      enum: ["", "instagram", "facebook", "youtube", "tiktok"],
+      enum: ["instagram", "facebook", "youtube", "tiktok", "site"],
       trim: true,
-      default: "",
+      default: "instagram",
     },
-    handle: { type: String, trim: true, default: "" },
-  },
-  { _id: false },
-);
-
-const collectionItemSchema = new mongoose.Schema(
-  {
-    id: { type: String, required: true, trim: true },
-    title: { type: String, required: true, trim: true, default: "Novo item" },
+    title: { type: String, required: true, trim: true, default: "Instagram" },
     url: { type: String, trim: true, default: "" },
+    handle: { type: String, trim: true, default: "" },
     isActive: { type: Boolean, default: true },
     order: { type: Number, default: 0 },
-  },
-  { _id: false },
-);
-
-const collectionSchema = new mongoose.Schema(
-  {
-    id: { type: String, required: true, trim: true },
-    title: {
-      type: String,
-      required: true,
-      trim: true,
-      default: "Nova coleção",
-    },
-    isActive: { type: Boolean, default: true },
-    order: { type: Number, default: 0 },
-    items: { type: [collectionItemSchema], default: [] },
   },
   { _id: false },
 );
@@ -86,7 +75,7 @@ const myPageSchema = new mongoose.Schema(
       titleTextColor: { type: String, trim: true, default: "#0f172a" },
       fontPreset: { type: String, trim: true, default: "inter" },
       buttonStyle: { type: String, trim: true, default: "solid" },
-      buttonShadow: { type: String, trim: true, default: "soft" },
+      buttonShadow: { type: String, trim: true, default: "none" },
       buttonRadius: { type: String, trim: true, default: "round" },
       primaryButtonsLayout: { type: String, trim: true, default: "stack" },
       secondaryLinksStyle: { type: String, trim: true, default: "icon_text" },
@@ -100,7 +89,7 @@ const myPageSchema = new mongoose.Schema(
       animationPreset: { type: String, trim: true, default: "subtle" },
     },
     links: { type: [linkSchema], default: [] },
-    collections: { type: [collectionSchema], default: [] },
+    secondaryLinks: { type: [secondaryLinkSchema], default: [] },
     shop: {
       isActive: { type: Boolean, default: true },
       title: { type: String, trim: true, default: "Ver loja completa" },

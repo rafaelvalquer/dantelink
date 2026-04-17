@@ -1,26 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  createCollection,
-  createCollectionItem,
   createLink,
+  createSecondaryLink,
   getMyPage,
-  removeCollection,
-  removeCollectionItem,
   removeLink,
-  reorderCollectionItems,
-  reorderCollections,
+  removeSecondaryLink,
   reorderLinks,
-  saveCollection,
-  saveCollectionItem,
+  reorderSecondaryLinks,
   saveLink,
   saveMyPageProfile,
+  saveSecondaryLink,
   uploadMyPageAvatar,
-  toggleCollection,
   toggleLink,
+  toggleSecondaryLink,
 } from "../app/api.js";
-import CollectionsEditorCard from "../components/editor/CollectionsEditorCard.jsx";
 import LinksEditorCard from "../components/editor/LinksEditorCard.jsx";
 import ProfileEditorCard from "../components/editor/ProfileEditorCardV2.jsx";
+import SecondaryLinksEditorCard from "../components/editor/SecondaryLinksEditorCard.jsx";
 import EditorShell from "../components/layout/EditorShell.jsx";
 
 function swapById(items = [], id, direction) {
@@ -151,6 +147,19 @@ export default function AdminLinksPage() {
     }));
   }
 
+  function updateLocalSecondaryLink(id, fieldOrPatch, value) {
+    setPage((current) => ({
+      ...current,
+      secondaryLinks: (current?.secondaryLinks || []).map((link) =>
+        link.id !== id
+          ? link
+          : fieldOrPatch && typeof fieldOrPatch === "object"
+            ? { ...link, ...fieldOrPatch }
+            : { ...link, [fieldOrPatch]: value },
+      ),
+    }));
+  }
+
   async function handleAddLink() {
     try {
       setError("");
@@ -180,12 +189,53 @@ export default function AdminLinksPage() {
     }
   }
 
+  async function handleAddSecondaryLink() {
+    try {
+      setError("");
+      const response = await createSecondaryLink({
+        platform: "instagram",
+        title: "Instagram",
+        url: "",
+        handle: "",
+        isActive: true,
+      });
+      setPage(response.page);
+      setNotice("Link secundario adicionado.");
+    } catch (actionError) {
+      setError(actionError.message);
+    }
+  }
+
+  async function handleSaveSecondaryLink(id) {
+    try {
+      setError("");
+      const link = (page?.secondaryLinks || []).find((item) => item.id === id);
+      if (!link) return;
+      const response = await saveSecondaryLink(id, link);
+      setPage(response.page);
+      setNotice("Link secundario salvo.");
+    } catch (actionError) {
+      setError(actionError.message);
+    }
+  }
+
   async function handleDeleteLink(id) {
     try {
       setError("");
       const response = await removeLink(id);
       setPage(response.page);
       setNotice("Link excluído.");
+    } catch (actionError) {
+      setError(actionError.message);
+    }
+  }
+
+  async function handleDeleteSecondaryLink(id) {
+    try {
+      setError("");
+      const response = await removeSecondaryLink(id);
+      setPage(response.page);
+      setNotice("Link secundario excluido.");
     } catch (actionError) {
       setError(actionError.message);
     }
@@ -203,6 +253,23 @@ export default function AdminLinksPage() {
       const response = await toggleLink(id);
       setPage(response.page);
       setNotice("Visibilidade do link atualizada.");
+    } catch (actionError) {
+      setError(actionError.message);
+    }
+  }
+
+  async function handleToggleSecondaryLink(id) {
+    try {
+      setError("");
+      setPage((current) => ({
+        ...current,
+        secondaryLinks: (current?.secondaryLinks || []).map((link) =>
+          link.id === id ? { ...link, isActive: !link.isActive } : link,
+        ),
+      }));
+      const response = await toggleSecondaryLink(id);
+      setPage(response.page);
+      setNotice("Visibilidade do link secundario atualizada.");
     } catch (actionError) {
       setError(actionError.message);
     }
@@ -229,180 +296,22 @@ export default function AdminLinksPage() {
     }
   }
 
-  function updateLocalCollection(id, field, value) {
-    setPage((current) => ({
-      ...current,
-      collections: (current?.collections || []).map((collection) =>
-        collection.id === id ? { ...collection, [field]: value } : collection,
-      ),
-    }));
-  }
-
-  async function handleAddCollection() {
-    try {
-      setError("");
-      const response = await createCollection({
-        title: "Nova coleção",
-        isActive: true,
-      });
-      setPage(response.page);
-      setNotice("Coleção adicionada.");
-    } catch (actionError) {
-      setError(actionError.message);
-    }
-  }
-
-  async function handleSaveCollection(id) {
-    try {
-      setError("");
-      const collection = (page?.collections || []).find((item) => item.id === id);
-      if (!collection) return;
-      const response = await saveCollection(id, collection);
-      setPage(response.page);
-      setNotice("Coleção salva.");
-    } catch (actionError) {
-      setError(actionError.message);
-    }
-  }
-
-  async function handleDeleteCollection(id) {
-    try {
-      setError("");
-      const response = await removeCollection(id);
-      setPage(response.page);
-      setNotice("Coleção excluída.");
-    } catch (actionError) {
-      setError(actionError.message);
-    }
-  }
-
-  async function handleToggleCollection(id) {
-    try {
-      setError("");
-      setPage((current) => ({
-        ...current,
-        collections: (current?.collections || []).map((collection) =>
-          collection.id === id
-            ? { ...collection, isActive: !collection.isActive }
-            : collection,
-        ),
-      }));
-      const response = await toggleCollection(id);
-      setPage(response.page);
-      setNotice("Visibilidade da coleção atualizada.");
-    } catch (actionError) {
-      setError(actionError.message);
-    }
-  }
-
-  async function handleMoveCollection(id, direction) {
-    const nextIds = swapById(page?.collections || [], id, direction);
+  async function handleMoveSecondaryLink(id, direction) {
+    const nextIds = swapById(page?.secondaryLinks || [], id, direction);
 
     try {
       setError("");
       setPage((current) => {
-        const nextCollections = [...(current?.collections || [])];
+        const nextLinks = [...(current?.secondaryLinks || [])];
         const ordered = nextIds
-          .map((collectionId) =>
-            nextCollections.find((item) => item.id === collectionId),
-          )
+          .map((linkId) => nextLinks.find((item) => item.id === linkId))
           .filter(Boolean)
           .map((item, index) => ({ ...item, order: index }));
-        return { ...current, collections: ordered };
+        return { ...current, secondaryLinks: ordered };
       });
-      const response = await reorderCollections(nextIds);
+      const response = await reorderSecondaryLinks(nextIds);
       setPage(response.page);
-      setNotice("Coleções reordenadas.");
-    } catch (actionError) {
-      setError(actionError.message);
-    }
-  }
-
-  async function handleAddCollectionItem(collectionId) {
-    try {
-      setError("");
-      const response = await createCollectionItem(collectionId, {
-        title: "Novo item",
-        url: "",
-        isActive: true,
-      });
-      setPage(response.page);
-      setNotice("Item da coleção adicionado.");
-    } catch (actionError) {
-      setError(actionError.message);
-    }
-  }
-
-  function updateLocalCollectionItem(collectionId, itemId, field, value) {
-    setPage((current) => ({
-      ...current,
-      collections: (current?.collections || []).map((collection) =>
-        collection.id !== collectionId
-          ? collection
-          : {
-              ...collection,
-              items: (collection.items || []).map((item) =>
-                item.id === itemId ? { ...item, [field]: value } : item,
-              ),
-            },
-      ),
-    }));
-  }
-
-  async function handleSaveCollectionItem(collectionId, itemId) {
-    try {
-      setError("");
-      const collection = (page?.collections || []).find(
-        (item) => item.id === collectionId,
-      );
-      const item = collection?.items?.find((entry) => entry.id === itemId);
-      if (!item) return;
-      const response = await saveCollectionItem(collectionId, itemId, item);
-      setPage(response.page);
-      setNotice("Item da coleção salvo.");
-    } catch (actionError) {
-      setError(actionError.message);
-    }
-  }
-
-  async function handleDeleteCollectionItem(collectionId, itemId) {
-    try {
-      setError("");
-      const response = await removeCollectionItem(collectionId, itemId);
-      setPage(response.page);
-      setNotice("Item da coleção excluído.");
-    } catch (actionError) {
-      setError(actionError.message);
-    }
-  }
-
-  async function handleMoveCollectionItem(collectionId, itemId, direction) {
-    const collection = (page?.collections || []).find((item) => item.id === collectionId);
-    const nextIds = swapById(collection?.items || [], itemId, direction);
-
-    try {
-      setError("");
-      setPage((current) => ({
-        ...current,
-        collections: (current?.collections || []).map((entry) => {
-          if (entry.id !== collectionId) {
-            return entry;
-          }
-
-          const reordered = nextIds
-            .map((id) => (entry.items || []).find((item) => item.id === id))
-            .filter(Boolean)
-            .map((item, index) => ({ ...item, order: index }));
-
-          return {
-            ...entry,
-            items: reordered,
-          };
-        }),
-      }));
-      const response = await reorderCollectionItems(collectionId, nextIds);
-      setPage(response.page);
-      setNotice("Itens da coleção reordenados.");
+      setNotice("Links secundarios reordenados.");
     } catch (actionError) {
       setError(actionError.message);
     }
@@ -410,14 +319,14 @@ export default function AdminLinksPage() {
 
   return (
     <EditorShell
-      title="Links e Coleções"
-      description="Monte os blocos públicos da página e acompanhe o preview enquanto edita."
+      title="Links"
+      description="Monte os blocos publicos da pagina e acompanhe o preview enquanto edita."
       page={previewPage}
       notice={notice}
       error={error}
     >
       {loading ? (
-        <div className="loading-state">Carregando editor da página...</div>
+        <div className="loading-state">Carregando editor da pagina...</div>
       ) : (
         <div className="stack">
           <ProfileEditorCard
@@ -425,6 +334,8 @@ export default function AdminLinksPage() {
             onChange={handleProfileChange}
             onSave={handleSaveProfile}
             isSaving={savingProfile}
+            onUploadAvatar={handleUploadAvatar}
+            isUploadingAvatar={uploadingAvatar}
           />
 
           <LinksEditorCard
@@ -437,19 +348,14 @@ export default function AdminLinksPage() {
             onMove={handleMoveLink}
           />
 
-          <CollectionsEditorCard
-            collections={page?.collections || []}
-            onAdd={handleAddCollection}
-            onChange={updateLocalCollection}
-            onSave={handleSaveCollection}
-            onDelete={handleDeleteCollection}
-            onToggle={handleToggleCollection}
-            onMove={handleMoveCollection}
-            onAddItem={handleAddCollectionItem}
-            onItemChange={updateLocalCollectionItem}
-            onItemSave={handleSaveCollectionItem}
-            onItemDelete={handleDeleteCollectionItem}
-            onItemMove={handleMoveCollectionItem}
+          <SecondaryLinksEditorCard
+            links={page?.secondaryLinks || []}
+            onAdd={handleAddSecondaryLink}
+            onChange={updateLocalSecondaryLink}
+            onSave={handleSaveSecondaryLink}
+            onDelete={handleDeleteSecondaryLink}
+            onToggle={handleToggleSecondaryLink}
+            onMove={handleMoveSecondaryLink}
           />
         </div>
       )}

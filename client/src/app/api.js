@@ -74,46 +74,32 @@ export function reorderLinks(ids) {
   return request("PATCH", "/my-page/links/reorder", { ids });
 }
 
-export function createCollection(payload) {
-  return request("POST", "/my-page/collections", payload);
-}
-
-export function saveCollection(id, payload) {
-  return request("PUT", `/my-page/collections/${id}`, payload);
-}
-
-export function removeCollection(id) {
-  return request("DELETE", `/my-page/collections/${id}`);
-}
-
-export function toggleCollection(id) {
-  return request("PATCH", `/my-page/collections/${id}/toggle`);
-}
-
-export function reorderCollections(ids) {
-  return request("PATCH", "/my-page/collections/reorder", { ids });
-}
-
-export function createCollectionItem(collectionId, payload) {
-  return request("POST", `/my-page/collections/${collectionId}/items`, payload);
-}
-
-export function saveCollectionItem(collectionId, itemId, payload) {
+export function searchLocationSuggestions(query) {
+  const normalizedQuery = String(query || "").trim();
   return request(
-    "PUT",
-    `/my-page/collections/${collectionId}/items/${itemId}`,
-    payload,
+    "GET",
+    `/my-page/locations/autocomplete?q=${encodeURIComponent(normalizedQuery)}`,
   );
 }
 
-export function removeCollectionItem(collectionId, itemId) {
-  return request("DELETE", `/my-page/collections/${collectionId}/items/${itemId}`);
+export function createSecondaryLink(payload) {
+  return request("POST", "/my-page/secondary-links", payload);
 }
 
-export function reorderCollectionItems(collectionId, ids) {
-  return request("PATCH", `/my-page/collections/${collectionId}/items/reorder`, {
-    ids,
-  });
+export function saveSecondaryLink(id, payload) {
+  return request("PUT", `/my-page/secondary-links/${id}`, payload);
+}
+
+export function removeSecondaryLink(id) {
+  return request("DELETE", `/my-page/secondary-links/${id}`);
+}
+
+export function toggleSecondaryLink(id) {
+  return request("PATCH", `/my-page/secondary-links/${id}/toggle`);
+}
+
+export function reorderSecondaryLinks(ids) {
+  return request("PATCH", "/my-page/secondary-links/reorder", { ids });
 }
 
 export function saveShop(payload) {
