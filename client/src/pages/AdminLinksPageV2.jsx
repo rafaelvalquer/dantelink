@@ -19,6 +19,57 @@ import ProfileEditorCard from "../components/editor/ProfileEditorCardV2.jsx";
 import SecondaryLinksEditorCard from "../components/editor/SecondaryLinksEditorCard.jsx";
 import EditorShell from "../components/layout/EditorShell.jsx";
 
+function cloneItems(items = []) {
+  return items.map((item) => ({ ...item }));
+}
+
+function createProfileDraft(page = {}) {
+  return {
+    title: page.title || "",
+    slug: page.slug || "",
+    bio: page.bio || "",
+    avatarUrl: page.avatarUrl || "",
+  };
+}
+
+function hydrateEditorState(page = {}) {
+  return {
+    serverPage: page,
+    profileDraft: createProfileDraft(page),
+    linksDraft: cloneItems(page.links || []),
+    secondaryLinksDraft: cloneItems(page.secondaryLinks || []),
+  };
+}
+
+function buildPreviewPage(serverPage, profileDraft, linksDraft, secondaryLinksDraft) {
+  if (!serverPage) {
+    return null;
+  }
+
+  return {
+    ...serverPage,
+    ...profileDraft,
+    links: cloneItems(linksDraft),
+    secondaryLinks: cloneItems(secondaryLinksDraft),
+  };
+}
+
+function updateDraftItem(items = [], id, fieldOrPatch, value) {
+  return items.map((item) =>
+    item.id !== id
+      ? item
+      : fieldOrPatch && typeof fieldOrPatch === "object"
+        ? { ...item, ...fieldOrPatch }
+        : { ...item, [fieldOrPatch]: value },
+  );
+}
+
+function toggleDraftItem(items = [], id) {
+  return items.map((item) =>
+    item.id === id ? { ...item, isActive: !item.isActive } : item,
+  );
+}
+
 function swapById(items = [], id, direction) {
   const index = items.findIndex((item) => item.id === id);
   const targetIndex = index + direction;
@@ -32,14 +83,47 @@ function swapById(items = [], id, direction) {
   return next.map((item) => item.id);
 }
 
-export default function AdminLinksPageV2() {
-  const [page, setPage] = useState(null);
-  const [profileDraft, setProfileDraft] = useState({
-    title: "",
-    slug: "",
-    bio: "",
-    avatarUrl: "",
+function reorderDraftItemsByIds(items = [], ids = []) {
+  return ids
+    .map((itemId) => items.find((item) => item.id === itemId))
+    .filter(Boolean)
+    .map((item, index) => ({ ...item, order: index }));
+}
+
+function mergeServerIdsPreservingDraftContent(
+  serverItems = [],
+  draftItems = [],
+  preferServerIds = [],
+) {
+  const draftMap = new Map((draftItems || []).map((item) => [String(item.id), item]));
+  const preferServer = new Set(preferServerIds.map(String));
+
+  return (serverItems || []).map((serverItem, index) => {
+    const draftItem = draftMap.get(String(serverItem.id));
+
+    if (!draftItem) {
+      return {
+        ...serverItem,
+        order: Number.isFinite(Number(serverItem.order)) ? Number(serverItem.order) : index,
+      };
+    }
+
+    const merged = preferServer.has(String(serverItem.id))
+      ? { ...draftItem, ...serverItem }
+      : { ...serverItem, ...draftItem };
+
+    return {
+      ...merged,
+      order: Number.isFinite(Number(serverItem.order)) ? Number(serverItem.order) : index,
+    };
   });
+}
+
+export default function AdminLinksPageV2() {
+  const [serverPage, setServerPage] = useState(null);
+  const [profileDraft, setProfileDraft] = useState(createProfileDraft());
+  const [linksDraft, setLinksDraft] = useState([]);
+  const [secondaryLinksDraft, setSecondaryLinksDraft] = useState([]);
   const [loading, setLoading] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -55,13 +139,12 @@ export default function AdminLinksPageV2() {
         setError("");
         const response = await getMyPage();
         if (!active) return;
-        setPage(response.page);
-        setProfileDraft({
-          title: response.page.title || "",
-          slug: response.page.slug || "",
-          bio: response.page.bio || "",
-          avatarUrl: response.page.avatarUrl || "",
-        });
+
+        const hydrated = hydrateEditorState(response.page);
+        setServerPage(hydrated.serverPage);
+        setProfileDraft(hydrated.profileDraft);
+        setLinksDraft(hydrated.linksDraft);
+        setSecondaryLinksDraft(hydrated.secondaryLinksDraft);
       } catch (loadError) {
         if (!active) return;
         setError(loadError.message);
@@ -79,16 +162,10 @@ export default function AdminLinksPageV2() {
     };
   }, []);
 
-  const previewPage = useMemo(() => {
-    if (!page) {
-      return null;
-    }
-
-    return {
-      ...page,
-      ...profileDraft,
-    };
-  }, [page, profileDraft]);
+  const previewPage = useMemo(
+    () => buildPreviewPage(serverPage, profileDraft, linksDraft, secondaryLinksDraft),
+    [serverPage, profileDraft, linksDraft, secondaryLinksDraft],
+  );
 
   function handleProfileChange(field, value) {
     setProfileDraft((current) => ({
@@ -102,13 +179,8 @@ export default function AdminLinksPageV2() {
       setSavingProfile(true);
       setError("");
       const response = await saveMyPageProfile(profileDraft);
-      setPage(response.page);
-      setProfileDraft({
-        title: response.page.title || "",
-        slug: response.page.slug || "",
-        bio: response.page.bio || "",
-        avatarUrl: response.page.avatarUrl || "",
-      });
+      setServerPage(response.page);
+      setProfileDraft(createProfileDraft(response.page));
       setNotice("Perfil salvo.");
     } catch (saveError) {
       setError(saveError.message);
@@ -135,29 +207,13 @@ export default function AdminLinksPageV2() {
   }
 
   function updateLocalLink(id, fieldOrPatch, value) {
-    setPage((current) => ({
-      ...current,
-      links: (current?.links || []).map((link) =>
-        link.id !== id
-          ? link
-          : fieldOrPatch && typeof fieldOrPatch === "object"
-            ? { ...link, ...fieldOrPatch }
-            : { ...link, [fieldOrPatch]: value },
-      ),
-    }));
+    setLinksDraft((current) => updateDraftItem(current, id, fieldOrPatch, value));
   }
 
   function updateLocalSecondaryLink(id, fieldOrPatch, value) {
-    setPage((current) => ({
-      ...current,
-      secondaryLinks: (current?.secondaryLinks || []).map((link) =>
-        link.id !== id
-          ? link
-          : fieldOrPatch && typeof fieldOrPatch === "object"
-            ? { ...link, ...fieldOrPatch }
-            : { ...link, [fieldOrPatch]: value },
-      ),
-    }));
+    setSecondaryLinksDraft((current) =>
+      updateDraftItem(current, id, fieldOrPatch, value),
+    );
   }
 
   async function handleAddLink() {
@@ -169,7 +225,10 @@ export default function AdminLinksPageV2() {
         isActive: true,
         type: "link",
       });
-      setPage(response.page);
+      setServerPage(response.page);
+      setLinksDraft((current) =>
+        mergeServerIdsPreservingDraftContent(response.page.links || [], current),
+      );
       setNotice("Link adicionado.");
     } catch (actionError) {
       setError(actionError.message);
@@ -179,10 +238,14 @@ export default function AdminLinksPageV2() {
   async function handleSaveLink(id) {
     try {
       setError("");
-      const link = (page?.links || []).find((item) => item.id === id);
+      const link = linksDraft.find((item) => item.id === id);
       if (!link) return;
+
       const response = await saveLink(id, link);
-      setPage(response.page);
+      setServerPage(response.page);
+      setLinksDraft((current) =>
+        mergeServerIdsPreservingDraftContent(response.page.links || [], current, [id]),
+      );
       setNotice("Link salvo.");
     } catch (actionError) {
       setError(actionError.message);
@@ -199,7 +262,13 @@ export default function AdminLinksPageV2() {
         handle: "",
         isActive: true,
       });
-      setPage(response.page);
+      setServerPage(response.page);
+      setSecondaryLinksDraft((current) =>
+        mergeServerIdsPreservingDraftContent(
+          response.page.secondaryLinks || [],
+          current,
+        ),
+      );
       setNotice("Link secundario adicionado.");
     } catch (actionError) {
       setError(actionError.message);
@@ -209,10 +278,18 @@ export default function AdminLinksPageV2() {
   async function handleSaveSecondaryLink(id) {
     try {
       setError("");
-      const link = (page?.secondaryLinks || []).find((item) => item.id === id);
+      const link = secondaryLinksDraft.find((item) => item.id === id);
       if (!link) return;
+
       const response = await saveSecondaryLink(id, link);
-      setPage(response.page);
+      setServerPage(response.page);
+      setSecondaryLinksDraft((current) =>
+        mergeServerIdsPreservingDraftContent(
+          response.page.secondaryLinks || [],
+          current,
+          [id],
+        ),
+      );
       setNotice("Link secundario salvo.");
     } catch (actionError) {
       setError(actionError.message);
@@ -223,7 +300,13 @@ export default function AdminLinksPageV2() {
     try {
       setError("");
       const response = await removeLink(id);
-      setPage(response.page);
+      setServerPage(response.page);
+      setLinksDraft((current) =>
+        mergeServerIdsPreservingDraftContent(
+          response.page.links || [],
+          current.filter((item) => item.id !== id),
+        ),
+      );
       setNotice("Link excluido.");
     } catch (actionError) {
       setError(actionError.message);
@@ -234,7 +317,13 @@ export default function AdminLinksPageV2() {
     try {
       setError("");
       const response = await removeSecondaryLink(id);
-      setPage(response.page);
+      setServerPage(response.page);
+      setSecondaryLinksDraft((current) =>
+        mergeServerIdsPreservingDraftContent(
+          response.page.secondaryLinks || [],
+          current.filter((item) => item.id !== id),
+        ),
+      );
       setNotice("Link secundario excluido.");
     } catch (actionError) {
       setError(actionError.message);
@@ -244,14 +333,12 @@ export default function AdminLinksPageV2() {
   async function handleToggleLink(id) {
     try {
       setError("");
-      setPage((current) => ({
-        ...current,
-        links: (current?.links || []).map((link) =>
-          link.id === id ? { ...link, isActive: !link.isActive } : link,
-        ),
-      }));
+      setLinksDraft((current) => toggleDraftItem(current, id));
       const response = await toggleLink(id);
-      setPage(response.page);
+      setServerPage(response.page);
+      setLinksDraft((current) =>
+        mergeServerIdsPreservingDraftContent(response.page.links || [], current, [id]),
+      );
       setNotice("Visibilidade do link atualizada.");
     } catch (actionError) {
       setError(actionError.message);
@@ -261,14 +348,16 @@ export default function AdminLinksPageV2() {
   async function handleToggleSecondaryLink(id) {
     try {
       setError("");
-      setPage((current) => ({
-        ...current,
-        secondaryLinks: (current?.secondaryLinks || []).map((link) =>
-          link.id === id ? { ...link, isActive: !link.isActive } : link,
-        ),
-      }));
+      setSecondaryLinksDraft((current) => toggleDraftItem(current, id));
       const response = await toggleSecondaryLink(id);
-      setPage(response.page);
+      setServerPage(response.page);
+      setSecondaryLinksDraft((current) =>
+        mergeServerIdsPreservingDraftContent(
+          response.page.secondaryLinks || [],
+          current,
+          [id],
+        ),
+      );
       setNotice("Visibilidade do link secundario atualizada.");
     } catch (actionError) {
       setError(actionError.message);
@@ -276,20 +365,16 @@ export default function AdminLinksPageV2() {
   }
 
   async function handleMoveLink(id, direction) {
-    const nextIds = swapById(page?.links || [], id, direction);
+    const nextIds = swapById(linksDraft, id, direction);
 
     try {
       setError("");
-      setPage((current) => {
-        const nextLinks = [...(current?.links || [])];
-        const ordered = nextIds
-          .map((linkId) => nextLinks.find((item) => item.id === linkId))
-          .filter(Boolean)
-          .map((item, index) => ({ ...item, order: index }));
-        return { ...current, links: ordered };
-      });
+      setLinksDraft((current) => reorderDraftItemsByIds(current, nextIds));
       const response = await reorderLinks(nextIds);
-      setPage(response.page);
+      setServerPage(response.page);
+      setLinksDraft((current) =>
+        mergeServerIdsPreservingDraftContent(response.page.links || [], current),
+      );
       setNotice("Links reordenados.");
     } catch (actionError) {
       setError(actionError.message);
@@ -297,20 +382,19 @@ export default function AdminLinksPageV2() {
   }
 
   async function handleMoveSecondaryLink(id, direction) {
-    const nextIds = swapById(page?.secondaryLinks || [], id, direction);
+    const nextIds = swapById(secondaryLinksDraft, id, direction);
 
     try {
       setError("");
-      setPage((current) => {
-        const nextLinks = [...(current?.secondaryLinks || [])];
-        const ordered = nextIds
-          .map((linkId) => nextLinks.find((item) => item.id === linkId))
-          .filter(Boolean)
-          .map((item, index) => ({ ...item, order: index }));
-        return { ...current, secondaryLinks: ordered };
-      });
+      setSecondaryLinksDraft((current) => reorderDraftItemsByIds(current, nextIds));
       const response = await reorderSecondaryLinks(nextIds);
-      setPage(response.page);
+      setServerPage(response.page);
+      setSecondaryLinksDraft((current) =>
+        mergeServerIdsPreservingDraftContent(
+          response.page.secondaryLinks || [],
+          current,
+        ),
+      );
       setNotice("Links secundarios reordenados.");
     } catch (actionError) {
       setError(actionError.message);
@@ -333,7 +417,7 @@ export default function AdminLinksPageV2() {
           />
 
           <LinksEditorCard
-            links={page?.links || []}
+            links={linksDraft}
             onAdd={handleAddLink}
             onChange={updateLocalLink}
             onSave={handleSaveLink}
@@ -343,7 +427,7 @@ export default function AdminLinksPageV2() {
           />
 
           <SecondaryLinksEditorCard
-            links={page?.secondaryLinks || []}
+            links={secondaryLinksDraft}
             onAdd={handleAddSecondaryLink}
             onChange={updateLocalSecondaryLink}
             onSave={handleSaveSecondaryLink}

@@ -11,6 +11,15 @@ export default function SecondaryLinksEditorCard({
   onToggle,
   onMove,
 }) {
+  function handleRowChange(linkId, fieldOrPatch, value) {
+    if (fieldOrPatch && typeof fieldOrPatch === "object") {
+      onChange(linkId, fieldOrPatch);
+      return;
+    }
+
+    onChange(linkId, fieldOrPatch, value);
+  }
+
   return (
     <SectionCard
       title="Links secundarios"
@@ -23,7 +32,9 @@ export default function SecondaryLinksEditorCard({
             <SecondaryLinkItemRowV2
               key={link.id}
               link={link}
-              onChange={(field, value) => onChange(link.id, field, value)}
+              onChange={(fieldOrPatch, value) =>
+                handleRowChange(link.id, fieldOrPatch, value)
+              }
               onSave={() => onSave(link.id)}
               onDelete={() => onDelete(link.id)}
               onToggle={() => onToggle(link.id)}

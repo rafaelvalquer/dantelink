@@ -291,27 +291,30 @@ export function PublicPageLocationCard({
   const Icon = getMyPageButtonIcon(link);
   const title = String(link?.title || "Localizacao").trim();
   const embedUrl = buildGoogleMapsEmbedUrl(link);
-  const buttonProps = getPublicButtonProps(
-    theme,
-    "secondary",
-    "public-page__location-cta public-page__location-route-chip",
-  );
 
   return (
     <section
       className={cls("public-page-section-card", "public-page__location-card", className)}
-      style={theme.softSurfaceStyle}
+      style={theme.locationCardStyle}
     >
       <div className="public-page__location-header">
         <div className="public-page__location-copy">
-          <span className="public-page__section-eyebrow">Localizacao</span>
+          <span className="public-page__section-eyebrow" style={theme.accentTextStyle}>
+            Localizacao
+          </span>
           <h2 style={theme.titleStyle}>{title}</h2>
-          <p className="public-page__location-address" style={theme.bodyStyle}>
+          <p className="public-page__location-address" style={theme.mutedTextStyle}>
             {link.address}
           </p>
         </div>
 
-        <div className="public-page__location-badge" style={theme.secondaryButtonStyle}>
+        <div
+          className={cls(
+            "public-page__location-badge",
+            theme.locationIconRadiusClassName,
+          )}
+          style={theme.softSurfaceStyle}
+        >
           <Icon className="public-page__cta-icon-svg" />
         </div>
       </div>
@@ -333,12 +336,17 @@ export function PublicPageLocationCard({
       )}
 
       <div className="public-page__location-footer">
-        <span className="public-page__location-footer-copy">Abrir no Google Maps</span>
+        <span className="public-page__location-footer-copy" style={theme.mutedTextStyle}>
+          Abrir no Google Maps
+        </span>
         <ActionContainer
           interactive={interactive}
           href={link?.url}
-          className={buttonProps.className}
-          style={buttonProps.style}
+          className={cls(
+            "public-page__location-route-chip",
+            theme.locationRouteChipRadiusClassName,
+          )}
+          style={theme.softSurfaceStyle}
           title={`Abrir rota para ${title}`}
         >
           <span className="public-page__location-footer-button">Ver rota</span>

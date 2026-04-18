@@ -19,6 +19,8 @@ import ProfileEditorCard from "../components/editor/ProfileEditorCardV2.jsx";
 import SecondaryLinksEditorCard from "../components/editor/SecondaryLinksEditorCard.jsx";
 import EditorShell from "../components/layout/EditorShell.jsx";
 
+export { default } from "./AdminLinksPageV2.jsx";
+
 function swapById(items = [], id, direction) {
   const index = items.findIndex((item) => item.id === id);
   const targetIndex = index + direction;
@@ -32,7 +34,7 @@ function swapById(items = [], id, direction) {
   return next.map((item) => item.id);
 }
 
-export default function AdminLinksPage() {
+function AdminLinksPageLegacy() {
   const [page, setPage] = useState(null);
   const [profileDraft, setProfileDraft] = useState({
     title: "",

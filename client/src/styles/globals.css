@@ -1205,13 +1205,14 @@ a {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 20px;
-  padding-inline: 18px;
+  gap: 12px;
+  padding-inline: 0;
 }
 
 .public-page__location-copy {
   display: grid;
-  gap: 10px;
+  gap: 8px;
+  min-width: 0;
 }
 
 .public-page__location-copy h2 {
@@ -1223,20 +1224,34 @@ a {
 
 .public-page__location-address {
   margin: 0;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.6;
   color: var(--page-copy);
 }
 
 .public-page__location-badge {
-  width: 52px;
-  height: 52px;
-  border-radius: 18px;
+  width: 44px;
+  height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  margin-right: 8px;
+}
+
+.public-page__icon-radius-square {
+  border-radius: 12px;
+}
+
+.public-page__icon-radius-round {
+  border-radius: 14px;
+}
+
+.public-page__icon-radius-pill {
+  border-radius: 999px;
+}
+
+.public-page__chip-radius-pill {
+  border-radius: 999px;
 }
 
 .public-page__location-map-shell {
@@ -1268,27 +1283,18 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
+  font-size: 12px;
 }
 
 .public-page__location-footer-copy {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
   color: var(--page-copy);
 }
 
-.public-page__location-cta {
-  width: auto;
-  min-width: 0;
-  justify-content: center;
-  padding: 8px 12px;
-  gap: 8px;
-  border-radius: 999px;
-  box-shadow: none;
-  align-self: flex-start;
-}
-
-.public-page__location-footer .public-page__location-route-chip {
+.public-page__location-route-chip {
   width: fit-content;
   min-width: 0;
   max-width: max-content;
@@ -1297,9 +1303,11 @@ a {
   align-items: center;
   justify-content: center;
   align-self: center;
-  padding: 8px 14px;
+  padding: 4px 12px;
   gap: 0;
+  border-radius: 999px;
   white-space: nowrap;
+  transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 }
 
 .public-page__location-footer-button {
@@ -2541,9 +2549,8 @@ a {
   }
 
     .public-page__location-badge {
-      width: 48px;
-      height: 48px;
-      margin-right: 0;
+      width: 44px;
+      height: 44px;
     }
 
   .public-page__location-map {
@@ -2561,12 +2568,7 @@ a {
     width: 100%;
   }
 
-  .public-page__location-cta {
-    width: auto;
-    align-self: flex-start;
-  }
-
-  .public-page__location-footer .public-page__location-route-chip {
+  .public-page__location-route-chip {
     width: fit-content;
     max-width: max-content;
     flex: 0 0 auto;

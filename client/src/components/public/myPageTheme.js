@@ -800,6 +800,15 @@ const LEGACY_RADIUS_MAP = {
   "square-soft": "square",
 };
 
+const BUTTON_ICON_RADIUS_CLASSNAMES = {
+  square: "public-page__icon-radius-square",
+  round: "public-page__icon-radius-round",
+  pill: "public-page__icon-radius-pill",
+};
+
+const LOCATION_ICON_RADIUS_CLASSNAME = "public-page__icon-radius-round";
+const LOCATION_ROUTE_CHIP_RADIUS_CLASSNAME = "public-page__chip-radius-pill";
+
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
@@ -901,27 +910,31 @@ function buildBackground(design, colors) {
   if (design.backgroundStyle === "gradient") {
     if (design.backgroundGradientDirection === "linear_down") {
       return {
-        background: `linear-gradient(180deg, ${mixColors(colors.backgroundColor, "#ffffff", 0.56)} 0%, ${colors.backgroundColor} 100%)`,
+        backgroundColor: colors.backgroundColor,
+        backgroundImage: `linear-gradient(180deg, ${mixColors(colors.backgroundColor, "#ffffff", 0.56)} 0%, ${colors.backgroundColor} 100%)`,
         backgroundSize: "auto",
       };
     }
 
     if (design.backgroundGradientDirection === "radial") {
       return {
-        background: `radial-gradient(circle at top, ${mixColors(colors.backgroundColor, "#ffffff", 0.62)} 0%, ${colors.backgroundColor} 72%)`,
+        backgroundColor: colors.backgroundColor,
+        backgroundImage: `radial-gradient(circle at top, ${mixColors(colors.backgroundColor, "#ffffff", 0.62)} 0%, ${colors.backgroundColor} 72%)`,
         backgroundSize: "auto",
       };
     }
 
     return {
-      background: `linear-gradient(180deg, ${colors.backgroundColor} 0%, ${mixColors(colors.backgroundColor, "#ffffff", 0.52)} 100%)`,
+      backgroundColor: colors.backgroundColor,
+      backgroundImage: `linear-gradient(180deg, ${colors.backgroundColor} 0%, ${mixColors(colors.backgroundColor, "#ffffff", 0.52)} 100%)`,
       backgroundSize: "auto",
     };
   }
 
   if (design.backgroundStyle === "blur") {
     return {
-      background: [
+      backgroundColor: colors.backgroundColor,
+      backgroundImage: [
         `radial-gradient(circle at 12% 14%, ${alphaColor(colors.buttonColor, 0.22)} 0%, transparent 28%)`,
         `radial-gradient(circle at 86% 18%, ${alphaColor(mixColors(colors.buttonColor, "#ffffff", 0.36), 0.18)} 0%, transparent 24%)`,
         `radial-gradient(circle at 84% 84%, ${alphaColor(colors.titleTextColor, 0.12)} 0%, transparent 26%)`,
@@ -934,7 +947,8 @@ function buildBackground(design, colors) {
   if (design.backgroundStyle === "pattern") {
     const pattern = resolveBackgroundPattern(design, colors);
     return {
-      background: [
+      backgroundColor: colors.backgroundColor,
+      backgroundImage: [
         pattern.layer,
         `linear-gradient(180deg, ${mixColors(colors.backgroundColor, "#ffffff", 0.18)} 0%, ${colors.backgroundColor} 100%)`,
       ].join(", "),
@@ -943,7 +957,8 @@ function buildBackground(design, colors) {
   }
 
   return {
-    background: colors.backgroundColor,
+    backgroundColor: colors.backgroundColor,
+    backgroundImage: "none",
     backgroundSize: "auto",
   };
 }
@@ -1210,6 +1225,11 @@ export function getMyPageTheme(page = {}) {
     fontFamily,
     headingFontFamily,
     usesHeroLayout,
+    buttonIconRadiusClassName:
+      BUTTON_ICON_RADIUS_CLASSNAMES[design.buttonRadius] ||
+      BUTTON_ICON_RADIUS_CLASSNAMES.round,
+    locationIconRadiusClassName: LOCATION_ICON_RADIUS_CLASSNAME,
+    locationRouteChipRadiusClassName: LOCATION_ROUTE_CHIP_RADIUS_CLASSNAME,
     rootStyle: {
       "--page-title": design.titleTextColor,
       "--page-copy": design.pageTextColor,
@@ -1219,7 +1239,9 @@ export function getMyPageTheme(page = {}) {
       "--page-body-font": fontFamily,
       "--page-card-radius": getPreviewRadiusValue(design.buttonRadius),
       "--page-button-radius": getRadiusValue(design.buttonRadius),
-      background: background.background,
+      backgroundColor: background.backgroundColor,
+      backgroundImage: background.backgroundImage,
+      backgroundRepeat: "no-repeat",
       backgroundSize: background.backgroundSize,
       color: design.pageTextColor,
       fontFamily,
@@ -1278,6 +1300,12 @@ export function getMyPageTheme(page = {}) {
     softSurfaceStyle: {
       ...softSurfaceStyle,
       borderRadius: getRadiusValue(design.buttonRadius),
+      color: design.pageTextColor,
+      fontFamily,
+    },
+    locationCardStyle: {
+      ...softSurfaceStyle,
+      borderRadius: "24px",
       color: design.pageTextColor,
       fontFamily,
     },
