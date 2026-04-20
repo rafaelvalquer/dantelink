@@ -3,6 +3,8 @@ export default function Switch({
   onChange,
   label,
   className = "",
+  ariaLabel,
+  disabled = false,
 }) {
   return (
     <label className={["ui-switch", className].filter(Boolean).join(" ")}>
@@ -10,8 +12,13 @@ export default function Switch({
         type="button"
         role="switch"
         aria-checked={checked}
+        aria-label={ariaLabel || label}
         className={`ui-switch__track ${checked ? "is-on" : ""}`}
-        onClick={() => onChange?.(!checked)}
+        onClick={() => {
+          if (disabled) return;
+          onChange?.(!checked);
+        }}
+        disabled={disabled}
       >
         <span className="ui-switch__thumb" />
       </button>

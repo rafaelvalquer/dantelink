@@ -1,6 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
+  ChevronDown,
+  GripVertical,
+  Link2,
+  MapPin,
+  MessageCircle,
+  Pencil,
+  ShoppingBag,
+  Trash2,
+} from "lucide-react";
 import { searchLocationSuggestions } from "../../app/api.js";
-import Button from "../ui/Button.jsx";
 import Input from "../ui/Input.jsx";
 import Switch from "../ui/Switch.jsx";
 
@@ -14,80 +25,251 @@ const typeOptions = [
 const WHATSAPP_DEFAULT_MESSAGE =
   "Ola! Vim pela sua pagina publica e gostaria de mais informacoes.";
 
-function normalizePhoneNumber(value = "") {
-  return String(value || "").replace(/\D+/g, "");
-}
+const LINK_TYPE_META = {
+  link: {
+    label: "Link",
+    Icon: Link2,
+    primaryFieldLabel: "URL",
+    primaryPlaceholder: "https://...",
+  },
+  whatsapp: {
+    label: "WhatsApp",
+    Icon: MessageCircle,
+    primaryFieldLabel: "Numero do WhatsApp",
+    primaryPlaceholder: "5511999999999",
+  },
+  location: {
+    label: "Localizacao",
+    Icon: MapPin,
+    primaryFieldLabel: "Endereco",
+    primaryPlaceholder: "Digite o endereco para ver sugestoes",
+  },
+  "shop-preview": {
+    label: "Previa da loja",
+    Icon: ShoppingBag,
+    primaryFieldLabel: "URL da loja",
+    primaryPlaceholder: "https://...",
+  },
+};
 
-function buildWhatsAppPreviewUrl(phone = "") {
-  const normalizedPhone = normalizePhoneNumber(phone);
-  if (!normalizedPhone) return "";
-
-  return `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(WHATSAPP_DEFAULT_MESSAGE)}`;
-}
-
-function buildLocationPreviewUrl(address = "", placeId = "") {
-  const safeAddress = String(address || "").trim();
-  const fallbackQuery = String(placeId || "").trim();
-  if (!safeAddress && !fallbackQuery) return "";
-
-  const params = new URLSearchParams();
-  params.set("api", "1");
-  params.set("query", safeAddress || fallbackQuery);
-  return `https://www.google.com/maps/search/?${params.toString()}`;
-}
-
-function getTypeLabel(type = "") {
+function getTypeMeta(type = "") {
   const normalizedType = String(type || "").trim().toLowerCase();
-  return typeOptions.find((option) => option.value === normalizedType)?.label || "Link";
+  return LINK_TYPE_META[normalizedType] || LINK_TYPE_META.link;
 }
+
+function isUrlType(type = "") {
+  const normalizedType = String(type || "").trim().toLowerCase();
+  return normalizedType === "link" || normalizedType === "shop-preview";
+}
+
+function getPrimaryFieldValue(link = {}) {
+  const linkType = String(link.type || "").trim().toLowerCase();
+
+  if (linkType === "whatsapp") {
+    return String(link.phone || "").trim();
+  }
+
+  if (linkType === "location") {
+    return String(link.address || "").trim();
+  }
+
+  return String(link.url || "").trim();
+}
+
+function buildEditableLinkSnapshot(link = {}) {
+  return JSON.stringify({
+    title: String(link.title || ""),
+    type: String(link.type || "link").trim().toLowerCase(),
+    url: String(link.url || ""),
+    phone: String(link.phone || ""),
+    message: String(link.message || ""),
+    address: String(link.address || ""),
+    placeId: String(link.placeId || ""),
+    showMap: link.showMap === true,
+    isActive: link.isActive !== false,
+  });
+}
+
+function hasPatchChanges(link = {}, patch = {}) {
+  return (
+    buildEditableLinkSnapshot({ ...link, ...patch }) !==
+    buildEditableLinkSnapshot(link)
+  );
+}
+
+function buildFieldPatch(link = {}, field, value, locationPlaceId = "") {
+  if (field === "title") {
+    return { title: value };
+  }
+
+  const linkType = String(link.type || "").trim().toLowerCase();
+
+  if (linkType === "whatsapp") {
+    return {
+      phone: value,
+    };
+  }
+
+  if (linkType === "location") {
+    return {
+      address: value,
+      placeId: locationPlaceId,
+    };
+  }
+
+  return { url: value };
+}
+
+function createTypeChangePatch(link = {}, nextType) {
+  const normalizedNextType = String(nextType || "link").trim().toLowerCase();
+  const currentType = String(link.type || "").trim().toLowerCase();
+
+  if (normalizedNextType === "whatsapp") {
+    return {
+      type: "whatsapp",
+      url: "",
+      address: "",
+      placeId: "",
+      showMap: false,
+      phone: currentType === "whatsapp" ? String(link.phone || "") : "",
+      message:
+        currentType === "whatsapp"
+          ? String(link.message || "") || WHATSAPP_DEFAULT_MESSAGE
+          : WHATSAPP_DEFAULT_MESSAGE,
+    };
+  }
+
+  if (normalizedNextType === "location") {
+    return {
+      type: "location",
+      url: "",
+      phone: "",
+      message: "",
+      address: currentType === "location" ? String(link.address || "") : "",
+      placeId: currentType === "location" ? String(link.placeId || "") : "",
+      showMap: currentType === "location" ? link.showMap === true : false,
+    };
+  }
+
+  return {
+    type: normalizedNextType,
+    url: isUrlType(currentType) ? String(link.url || "") : "",
+    phone: "",
+    message: "",
+    address: "",
+    placeId: "",
+    showMap: false,
+  };
+}
+
 
 export default function LinkItemRowV2({
   link,
-  onChange,
-  onSave,
+  onCommit,
   onDelete,
   onToggle,
-  onMoveUp,
-  onMoveDown,
 }) {
-  const [addressQuery, setAddressQuery] = useState(link.address || "");
+  const [editingField, setEditingField] = useState(null);
+  const [draftValue, setDraftValue] = useState("");
+  const [savingField, setSavingField] = useState(null);
+  const [fieldError, setFieldError] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuSaving, setMenuSaving] = useState(false);
+  const [menuError, setMenuError] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [autocompleteError, setAutocompleteError] = useState("");
-  const lastSuccessfulQueryRef = useRef("");
+  const [locationDraftPlaceId, setLocationDraftPlaceId] = useState(
+    String(link.placeId || ""),
+  );
   const requestSequenceRef = useRef(0);
-  const linkType = link.type || "link";
-  const isWhatsapp = linkType === "whatsapp";
-  const isLocation = linkType === "location";
-  const isUrlType = linkType === "link" || linkType === "shop-preview";
-
-  const whatsappPreviewUrl = useMemo(
-    () => buildWhatsAppPreviewUrl(link.phone || ""),
-    [link.phone],
-  );
-  const locationPreviewUrl = useMemo(
-    () => buildLocationPreviewUrl(link.address || "", link.placeId || ""),
-    [link.address, link.placeId],
+  const lastSuccessfulQueryRef = useRef("");
+  const inputRef = useRef(null);
+  const menuRef = useRef(null);
+  const isInteractionLocked = Boolean(editingField || savingField || menuSaving);
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: link.id,
+    disabled: isInteractionLocked,
+  });
+  const typeMeta = getTypeMeta(link.type);
+  const primaryValue = getPrimaryFieldValue(link);
+  const Icon = typeMeta.Icon;
+  const isEditingValue = editingField === "value";
+  const isLocationValue = isEditingValue && link.type === "location";
+  const sortableStyle = useMemo(
+    () => ({
+      transform: CSS.Transform.toString(transform),
+      transition,
+    }),
+    [transform, transition],
   );
 
   useEffect(() => {
-    if (!isLocation) {
-      setSuggestions([]);
-      setLoadingSuggestions(false);
-      setAutocompleteError("");
-      lastSuccessfulQueryRef.current = "";
-      return;
-    }
-
-    setAddressQuery(link.address || "");
-  }, [isLocation, link.address, link.id]);
+    setEditingField(null);
+    setDraftValue("");
+    setSavingField(null);
+    setFieldError("");
+    setMenuOpen(false);
+    setMenuError("");
+    setSuggestions([]);
+    setLoadingSuggestions(false);
+    setAutocompleteError("");
+    setLocationDraftPlaceId(String(link.placeId || ""));
+    lastSuccessfulQueryRef.current = "";
+    requestSequenceRef.current = 0;
+  }, [link.id]);
 
   useEffect(() => {
-    if (!isLocation) {
+    if (!editingField) {
       return undefined;
     }
 
-    const query = String(addressQuery || "").trim();
+    const timeoutId = window.setTimeout(() => {
+      inputRef.current?.focus?.();
+      inputRef.current?.select?.();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [editingField]);
+
+  useEffect(() => {
+    if (!menuOpen) {
+      return undefined;
+    }
+
+    function handleOutsideClick(event) {
+      if (!menuRef.current?.contains(event.target)) {
+        setMenuOpen(false);
+        setMenuError("");
+      }
+    }
+
+    window.addEventListener("mousedown", handleOutsideClick);
+
+    return () => {
+      window.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, [menuOpen]);
+
+  useEffect(() => {
+    if (!isLocationValue) {
+      setSuggestions([]);
+      setLoadingSuggestions(false);
+      setAutocompleteError("");
+      return undefined;
+    }
+
+    const query = String(draftValue || "").trim();
 
     if (query.length < 3) {
       setSuggestions([]);
@@ -127,7 +309,9 @@ export default function LinkItemRowV2({
         }
 
         setSuggestions([]);
-        setAutocompleteError(error.message || "Nao foi possivel buscar enderecos.");
+        setAutocompleteError(
+          error.message || "Nao foi possivel buscar enderecos.",
+        );
       } finally {
         if (!isCancelled && requestSequenceRef.current === currentRequest) {
           setLoadingSuggestions(false);
@@ -139,206 +323,389 @@ export default function LinkItemRowV2({
       isCancelled = true;
       window.clearTimeout(timeoutId);
     };
-  }, [addressQuery, isLocation]);
+  }, [draftValue, isLocationValue]);
 
-  function handleTypeChange(nextType) {
-    const next = String(nextType || "link").trim().toLowerCase();
+  function resetFieldState() {
+    setEditingField(null);
+    setDraftValue("");
+    setFieldError("");
+    setSuggestions([]);
+    setLoadingSuggestions(false);
+    setAutocompleteError("");
+    setLocationDraftPlaceId(String(link.placeId || ""));
+    lastSuccessfulQueryRef.current = "";
+  }
 
-    if (next === "whatsapp") {
-      onChange({
-        type: "whatsapp",
-        url: "",
-        address: "",
-        placeId: "",
-        showMap: false,
-        phone: link.phone || "",
-        message: WHATSAPP_DEFAULT_MESSAGE,
-      });
+  function startEditing(field) {
+    if (savingField || menuSaving) {
       return;
     }
 
-    if (next === "location") {
-      onChange({
-        type: "location",
-        url: "",
-        phone: "",
-        message: "",
-        address: link.address || "",
-        placeId: link.placeId || "",
-        showMap: link.showMap === true,
-      });
+    setMenuOpen(false);
+    setMenuError("");
+    setFieldError("");
+    setSuggestions([]);
+    setAutocompleteError("");
+    setLocationDraftPlaceId(String(link.placeId || ""));
+    lastSuccessfulQueryRef.current = "";
+    setEditingField(field);
+    setDraftValue(field === "title" ? String(link.title || "") : primaryValue);
+  }
+
+  function cancelEditing() {
+    if (savingField) {
       return;
     }
 
-    onChange({
-      type: next,
-      phone: "",
-      message: "",
-      address: "",
-      placeId: "",
-      showMap: false,
+    resetFieldState();
+  }
+
+  async function commitPatch(
+    patch,
+    { source = "field", field = editingField, closeMenu = false } = {},
+  ) {
+    if (!hasPatchChanges(link, patch)) {
+      if (source === "field") {
+        resetFieldState();
+      }
+
+      if (closeMenu) {
+        setMenuOpen(false);
+        setMenuError("");
+      }
+
+      return true;
+    }
+
+    try {
+      if (source === "field") {
+        setSavingField(field);
+        setFieldError("");
+      } else {
+        setMenuSaving(true);
+        setMenuError("");
+      }
+
+      await onCommit(patch);
+
+      if (source === "field") {
+        resetFieldState();
+      }
+
+      if (closeMenu) {
+        setMenuOpen(false);
+        setMenuError("");
+      }
+
+      return true;
+    } catch (error) {
+      const message = error.message || "Nao foi possivel salvar o link.";
+
+      if (source === "field") {
+        setFieldError(message);
+      } else {
+        setMenuError(message);
+      }
+
+      return false;
+    } finally {
+      if (source === "field") {
+        setSavingField(null);
+      } else {
+        setMenuSaving(false);
+      }
+    }
+  }
+
+  async function commitCurrentField(explicitPatch) {
+    if (!editingField) {
+      return;
+    }
+
+    const patch =
+      explicitPatch ||
+      buildFieldPatch(link, editingField, draftValue, locationDraftPlaceId);
+
+    await commitPatch(patch, {
+      source: "field",
+      field: editingField,
     });
   }
 
-  function handleSelectSuggestion(suggestion) {
+  async function handleSelectSuggestion(suggestion) {
     const description = String(suggestion?.description || "").trim();
     const placeId = String(suggestion?.placeId || "").trim();
-    setAddressQuery(description);
+
+    setDraftValue(description);
+    setLocationDraftPlaceId(placeId);
     setSuggestions([]);
     setAutocompleteError("");
     lastSuccessfulQueryRef.current = description;
-    onChange({
+
+    await commitCurrentField({
       address: description,
       placeId,
     });
   }
 
+  function handleFieldInputChange(event) {
+    const nextValue = event.target.value;
+    setDraftValue(nextValue);
+
+    if (isLocationValue) {
+      setLocationDraftPlaceId("");
+      setSuggestions([]);
+      setAutocompleteError("");
+      lastSuccessfulQueryRef.current = "";
+    }
+  }
+
+  function handleFieldKeyDown(event) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      cancelEditing();
+      return;
+    }
+
+    if (event.key === "Enter") {
+      event.preventDefault();
+      void commitCurrentField();
+    }
+  }
+
+  function handleFieldBlur() {
+    if (!editingField || savingField) {
+      return;
+    }
+
+    void commitCurrentField();
+  }
+
+  async function handleTypeChange(event) {
+    const nextType = event.target.value;
+    await commitPatch(createTypeChangePatch(link, nextType), {
+      source: "menu",
+      closeMenu: true,
+    });
+  }
+
+  async function handleShowMapChange(nextChecked) {
+    await commitPatch(
+      {
+        showMap: nextChecked,
+      },
+      {
+        source: "menu",
+      },
+    );
+  }
+
   return (
-    <article className="item-row">
-      <div className="item-row__header">
-        <strong>{link.title || "Link sem titulo"}</strong>
-        <div className="item-row__actions">
-          <Button variant="ghost" size="sm" onClick={onMoveUp}>
-            Subir
-          </Button>
-          <Button variant="ghost" size="sm" onClick={onMoveDown}>
-            Descer
-          </Button>
-          <Button variant="danger" size="sm" onClick={onDelete}>
-            Excluir
-          </Button>
+    <article
+      ref={setNodeRef}
+      className={`item-row item-row--sortable link-card${isDragging ? " is-dragging" : ""}`}
+      style={sortableStyle}
+    >
+      <button
+        type="button"
+        ref={setActivatorNodeRef}
+        className={`item-row__drag-handle${isInteractionLocked ? " is-disabled" : ""}`}
+        aria-label={`Reordenar ${link.title || "link"}`}
+        disabled={isInteractionLocked}
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical size={18} aria-hidden="true" />
+      </button>
+
+      <div className="item-row__content">
+        <div className="link-card__top">
+          <div className="link-card__copy">
+            <div className="link-card__field-row">
+              {editingField === "title" ? (
+                <div className="link-card__field-editor">
+                  <Input
+                    ref={inputRef}
+                    className="link-card__inline-input"
+                    value={draftValue}
+                    onChange={handleFieldInputChange}
+                    onKeyDown={handleFieldKeyDown}
+                    onBlur={handleFieldBlur}
+                    placeholder="Titulo"
+                    disabled={Boolean(savingField)}
+                  />
+                  {fieldError ? (
+                    <span className="link-card__field-error">{fieldError}</span>
+                  ) : null}
+                </div>
+              ) : (
+                <>
+                  <strong
+                    className={`link-card__field-value link-card__field-value--title${link.title ? "" : " is-placeholder"}`}
+                  >
+                    {link.title || "Titulo"}
+                  </strong>
+                  <button
+                    type="button"
+                    className="link-card__field-action"
+                    onClick={() => startEditing("title")}
+                    aria-label={`Editar titulo de ${link.title || "link"}`}
+                    disabled={Boolean(savingField || menuSaving)}
+                  >
+                    <Pencil size={14} aria-hidden="true" />
+                  </button>
+                </>
+              )}
+            </div>
+
+            <div className="link-card__field-row link-card__field-row--value">
+              {editingField === "value" ? (
+                <div className="link-card__field-editor">
+                  <Input
+                    ref={inputRef}
+                    className="link-card__inline-input"
+                    value={draftValue}
+                    onChange={handleFieldInputChange}
+                    onKeyDown={handleFieldKeyDown}
+                    onBlur={handleFieldBlur}
+                    placeholder={typeMeta.primaryPlaceholder}
+                    disabled={Boolean(savingField)}
+                  />
+                  {loadingSuggestions ? (
+                    <div className="item-row__helper">Buscando sugestoes...</div>
+                  ) : null}
+                  {autocompleteError ? (
+                    <div className="item-row__helper item-row__helper--error">
+                      {autocompleteError}
+                    </div>
+                  ) : null}
+                  {suggestions.length ? (
+                    <div className="item-row__suggestions" role="listbox">
+                      {suggestions.map((suggestion) => (
+                        <button
+                          key={suggestion.placeId || suggestion.description}
+                          type="button"
+                          className="item-row__suggestion"
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            void handleSelectSuggestion(suggestion);
+                          }}
+                          disabled={Boolean(savingField)}
+                        >
+                          <strong>{suggestion.mainText || suggestion.description}</strong>
+                          {suggestion.secondaryText ? (
+                            <span>{suggestion.secondaryText}</span>
+                          ) : (
+                            <span>{suggestion.description}</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                  {fieldError ? (
+                    <span className="link-card__field-error">{fieldError}</span>
+                  ) : null}
+                </div>
+              ) : (
+                <>
+                  <span
+                    className={`link-card__field-value${primaryValue ? "" : " is-placeholder"}`}
+                  >
+                    {primaryValue || typeMeta.primaryFieldLabel}
+                  </span>
+                  <button
+                    type="button"
+                    className="link-card__field-action"
+                    onClick={() => startEditing("value")}
+                    aria-label={`Editar ${typeMeta.primaryFieldLabel.toLowerCase()} de ${link.title || "link"}`}
+                    disabled={Boolean(savingField || menuSaving)}
+                  >
+                    <Pencil size={14} aria-hidden="true" />
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="link-card__actions">
+            <Switch
+              checked={Boolean(link.isActive)}
+              onChange={onToggle}
+              ariaLabel={`Alterar visibilidade de ${link.title || "link"}`}
+              disabled={Boolean(savingField || menuSaving)}
+            />
+            <button
+              type="button"
+              className="link-card__icon-action is-danger"
+              onClick={onDelete}
+              aria-label={`Excluir ${link.title || "link"}`}
+              disabled={Boolean(savingField || menuSaving)}
+            >
+              <Trash2 size={16} aria-hidden="true" />
+            </button>
+          </div>
         </div>
-      </div>
 
-      <div className="form-grid">
-        <label className="field">
-          <span>Titulo</span>
-          <Input
-            value={link.title || ""}
-            onChange={(event) => onChange("title", event.target.value)}
-          />
-        </label>
+        <div className="link-card__footer">
+          <div className="link-card__meta-menu" ref={menuRef}>
+            <button
+              type="button"
+              className={`link-card__meta-chip link-card__meta-button${menuOpen ? " is-open" : ""}`}
+              onClick={() => {
+                setMenuOpen((current) => !current);
+                setMenuError("");
+              }}
+              disabled={isInteractionLocked}
+            >
+              <span className="link-card__meta-label">
+                <Icon size={14} aria-hidden="true" />
+                {typeMeta.label}
+              </span>
+              <ChevronDown size={14} aria-hidden="true" />
+            </button>
 
-        <label className="field">
-          <span>Tipo</span>
-          <select
-            className="ui-select"
-            value={linkType}
-            onChange={(event) => handleTypeChange(event.target.value)}
-          >
-            {typeOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
+            {menuOpen ? (
+              <div className="link-card__popover">
+                <label className="field">
+                  <span>Tipo do link</span>
+                  <select
+                    className="ui-select"
+                    value={link.type || "link"}
+                    onChange={handleTypeChange}
+                    disabled={menuSaving}
+                  >
+                    {typeOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-        {isUrlType ? (
-          <label className="field field--full">
-            <span>{linkType === "shop-preview" ? "URL da loja" : "URL"}</span>
-            <Input
-              value={link.url || ""}
-              onChange={(event) => onChange("url", event.target.value)}
-              placeholder="https://..."
-            />
-          </label>
-        ) : null}
-
-        {isWhatsapp ? (
-          <label className="field field--full">
-            <span>Numero do WhatsApp</span>
-            <Input
-              value={link.phone || ""}
-              onChange={(event) => onChange("phone", event.target.value)}
-              placeholder="5511999999999"
-            />
-          </label>
-        ) : null}
-
-        {isLocation ? (
-          <label className="field field--full">
-            <span>Endereco</span>
-            <div className="item-row__autocomplete">
-              <Input
-                value={addressQuery}
-                onChange={(event) => {
-                  const nextValue = event.target.value;
-                  setAddressQuery(nextValue);
-                  setSuggestions([]);
-                  setAutocompleteError("");
-                  lastSuccessfulQueryRef.current = "";
-                  onChange({
-                    address: nextValue,
-                    placeId: "",
-                  });
-                }}
-                placeholder="Digite o endereco para ver sugestoes"
-              />
-
-              {loadingSuggestions ? (
-                <div className="item-row__helper">Buscando sugestoes...</div>
-              ) : null}
-
-              {autocompleteError ? (
-                <div className="item-row__helper item-row__helper--error">
-                  {autocompleteError}
-                </div>
-              ) : null}
-
-              {suggestions.length ? (
-                <div className="item-row__suggestions" role="listbox">
-                  {suggestions.map((suggestion) => (
-                    <button
-                      key={suggestion.placeId || suggestion.description}
-                      type="button"
-                      className="item-row__suggestion"
-                      onClick={() => handleSelectSuggestion(suggestion)}
-                    >
-                      <strong>{suggestion.mainText || suggestion.description}</strong>
-                      {suggestion.secondaryText ? (
-                        <span>{suggestion.secondaryText}</span>
-                      ) : (
-                        <span>{suggestion.description}</span>
-                      )}
-                    </button>
-                  ))}
-                </div>
+                {link.type === "location" ? (
+                  <div className="link-card__popover-switch">
+                    <Switch
+                      checked={Boolean(link.showMap)}
+                      onChange={(nextChecked) => {
+                        void handleShowMapChange(nextChecked);
+                      }}
+                      label="Mostrar mapa"
+                      disabled={menuSaving}
+                    />
+                  </div>
                 ) : null}
 
-              <Switch
-                checked={Boolean(link.showMap)}
-                onChange={(nextChecked) => onChange("showMap", nextChecked)}
-                label="Mostrar mapa"
-              />
-            </div>
-          </label>
-        ) : null}
-      </div>
+                {menuError ? (
+                  <span className="link-card__field-error">{menuError}</span>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
 
-      {isWhatsapp ? (
-        <div className="item-row__helper">
-          <strong>{getTypeLabel(linkType)}:</strong> o clique abrira o WhatsApp com a mensagem padrao.
-          {whatsappPreviewUrl ? ` URL gerada: ${whatsappPreviewUrl}` : ""}
+          {link.type === "location" && link.showMap ? (
+            <span className="link-card__meta-chip">Mapa ativo</span>
+          ) : null}
         </div>
-      ) : null}
-
-      {isLocation ? (
-        <div className="item-row__helper">
-          <strong>{getTypeLabel(linkType)}:</strong>{" "}
-          {link.showMap
-            ? "a pagina publica exibira o mapa e o CTA para abrir no Google Maps."
-            : "o clique abrira o Google Maps."}
-          {link.address
-            ? ` Endereco selecionado: ${link.address}.`
-            : " Digite e selecione um endereco sugerido."}
-          {locationPreviewUrl ? ` URL gerada: ${locationPreviewUrl}` : ""}
-        </div>
-      ) : null}
-
-      <div className="item-row__footer">
-        <Switch checked={Boolean(link.isActive)} onChange={onToggle} label="Ativo" />
-        <Button onClick={onSave}>Salvar link</Button>
       </div>
     </article>
   );

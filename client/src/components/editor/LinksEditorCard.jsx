@@ -1,3 +1,18 @@
+import { useMemo } from "react";
+import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import Button from "../ui/Button.jsx";
 import SectionCard from "./SectionCard.jsx";
 import LinkItemRow from "./LinkItemRowV2.jsx";
@@ -5,19 +20,38 @@ import LinkItemRow from "./LinkItemRowV2.jsx";
 export default function LinksEditorCard({
   links,
   onAdd,
-  onChange,
-  onSave,
+  onCommit,
   onDelete,
   onToggle,
-  onMove,
+  onReorder,
 }) {
-  function handleRowChange(linkId, fieldOrPatch, value) {
-    if (fieldOrPatch && typeof fieldOrPatch === "object") {
-      onChange(linkId, fieldOrPatch);
+  const linkIds = useMemo(() => links.map((link) => link.id), [links]);
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 6,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
+  function handleDragEnd(event) {
+    const { active, over } = event;
+
+    if (!active?.id || !over?.id || active.id === over.id) {
       return;
     }
 
-    onChange(linkId, fieldOrPatch, value);
+    const oldIndex = linkIds.indexOf(active.id);
+    const newIndex = linkIds.indexOf(over.id);
+
+    if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) {
+      return;
+    }
+
+    onReorder(arrayMove(linkIds, oldIndex, newIndex));
   }
 
   return (
@@ -26,26 +60,29 @@ export default function LinksEditorCard({
       description="Gerencie as ações principais exibidas na sua página."
       actions={<Button onClick={onAdd}>Adicionar link</Button>}
     >
-      <div className="stack">
-        {links.length ? (
-          links.map((link, index) => (
-            <LinkItemRow
-              key={link.id}
-              link={link}
-              onChange={(fieldOrPatch, value) =>
-                handleRowChange(link.id, fieldOrPatch, value)
-              }
-              onSave={() => onSave(link.id)}
-              onDelete={() => onDelete(link.id)}
-              onToggle={() => onToggle(link.id)}
-              onMoveUp={() => onMove(link.id, -1)}
-              onMoveDown={() => onMove(link.id, 1)}
-            />
-          ))
-        ) : (
+      {links.length ? (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext items={linkIds} strategy={verticalListSortingStrategy}>
+            <div className="stack">
+              {links.map((link) => (
+                <LinkItemRow
+                  key={link.id}
+                  link={link}
+                  onCommit={(payload) => onCommit(link.id, payload)}
+                  onDelete={() => onDelete(link.id)}
+                  onToggle={() => onToggle(link.id)}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      ) : (
           <div className="empty-state">Crie seu primeiro link para começar a preencher a página.</div>
         )}
-      </div>
     </SectionCard>
   );
 }

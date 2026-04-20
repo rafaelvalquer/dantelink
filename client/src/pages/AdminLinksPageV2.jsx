@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   createLink,
   createSecondaryLink,
@@ -18,6 +18,16 @@ import LinksEditorCard from "../components/editor/LinksEditorCard.jsx";
 import ProfileEditorCard from "../components/editor/ProfileEditorCardV2.jsx";
 import SecondaryLinksEditorCard from "../components/editor/SecondaryLinksEditorCard.jsx";
 import EditorShell from "../components/layout/EditorShell.jsx";
+
+const PRIMARY_LINK_TYPES = new Set([
+  "link",
+  "whatsapp",
+  "location",
+  "shop-preview",
+]);
+
+const WHATSAPP_DEFAULT_MESSAGE =
+  "Ola! Vim pela sua pagina publica e gostaria de mais informacoes.";
 
 function cloneItems(items = []) {
   return items.map((item) => ({ ...item }));
@@ -83,11 +93,46 @@ function swapById(items = [], id, direction) {
   return next.map((item) => item.id);
 }
 
-function reorderDraftItemsByIds(items = [], ids = []) {
-  return ids
-    .map((itemId) => items.find((item) => item.id === itemId))
-    .filter(Boolean)
-    .map((item, index) => ({ ...item, order: index }));
+function getOrderedIds(items = []) {
+  return items.map((item) => String(item.id));
+}
+
+function reorderDraftItemsPreservingContent(items = [], ids = []) {
+  const normalizedIds = ids.map((itemId) => String(itemId));
+  const draftMap = new Map(items.map((item) => [String(item.id), item]));
+  const selected = normalizedIds
+    .map((itemId) => draftMap.get(itemId))
+    .filter(Boolean);
+  const remaining = items.filter(
+    (item) => !normalizedIds.includes(String(item.id)),
+  );
+
+  return [...selected, ...remaining].map((item, index) => ({
+    ...item,
+    order: index,
+  }));
+}
+
+function hasSameIdsInOrder(items = [], ids = []) {
+  const currentIds = getOrderedIds(items);
+  const nextIds = ids.map((itemId) => String(itemId));
+
+  return (
+    currentIds.length === nextIds.length &&
+    currentIds.every((itemId, index) => itemId === nextIds[index])
+  );
+}
+
+function hasSameIdSet(items = [], ids = []) {
+  const currentIds = getOrderedIds(items);
+  const nextIds = ids.map((itemId) => String(itemId));
+
+  if (currentIds.length !== nextIds.length) {
+    return false;
+  }
+
+  const nextSet = new Set(nextIds);
+  return currentIds.every((itemId) => nextSet.has(itemId));
 }
 
 function mergeServerIdsPreservingDraftContent(
@@ -119,6 +164,77 @@ function mergeServerIdsPreservingDraftContent(
   });
 }
 
+function createEditableLink(link = {}) {
+  const rawType = String(link.type || "link").trim().toLowerCase();
+  const type = PRIMARY_LINK_TYPES.has(rawType) ? rawType : "link";
+
+  return {
+    ...link,
+    title: String(link.title || ""),
+    type,
+    url: String(link.url || ""),
+    phone: String(link.phone || ""),
+    message: String(link.message || ""),
+    address: String(link.address || ""),
+    placeId: String(link.placeId || ""),
+    showMap: link.showMap === true,
+    isActive: link.isActive !== false,
+  };
+}
+
+function buildSavableLinkPayload(link = {}) {
+  const draft = createEditableLink(link);
+  const isWhatsapp = draft.type === "whatsapp";
+  const isLocation = draft.type === "location";
+
+  return {
+    title: draft.title,
+    type: draft.type,
+    url: !isWhatsapp && !isLocation ? draft.url : "",
+    phone: isWhatsapp ? draft.phone : "",
+    message: isWhatsapp ? draft.message || WHATSAPP_DEFAULT_MESSAGE : "",
+    address: isLocation ? draft.address : "",
+    placeId: isLocation ? draft.placeId : "",
+    showMap: isLocation ? draft.showMap === true : false,
+    isActive: draft.isActive !== false,
+  };
+}
+
+function updatePrimaryLinkInDraft(items = [], id, patch = {}) {
+  return items.map((item, index) =>
+    String(item.id) !== String(id)
+      ? item
+      : {
+          ...item,
+          ...patch,
+          order: Number.isFinite(Number(item.order)) ? Number(item.order) : index,
+        },
+  );
+}
+
+function mergeSavedLinkIntoDraft(items = [], serverItems = [], id) {
+  const serverItem = (serverItems || []).find(
+    (item) => String(item.id) === String(id),
+  );
+
+  if (!serverItem) {
+    return items;
+  }
+
+  return updatePrimaryLinkInDraft(items, id, serverItem);
+}
+
+function nextItemRequestToken(tokenMap, id) {
+  const normalizedId = String(id);
+  const nextToken = Number(tokenMap.get(normalizedId) || 0) + 1;
+  tokenMap.set(normalizedId, nextToken);
+  return nextToken;
+}
+
+function isLatestItemRequestToken(tokenMap, id, token) {
+  return Number(tokenMap.get(String(id)) || 0) === Number(token);
+}
+
 export default function AdminLinksPageV2() {
   const [serverPage, setServerPage] = useState(null);
   const [profileDraft, setProfileDraft] = useState(createProfileDraft());
@@ -129,6 +245,12 @@ export default function AdminLinksPageV2() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+  const linksDraftRef = useRef([]);
+  const linkRequestTokensRef = useRef(new Map());
+
+  useEffect(() => {
+    linksDraftRef.current = linksDraft;
+  }, [linksDraft]);
 
   useEffect(() => {
     let active = true;
@@ -206,10 +328,6 @@ export default function AdminLinksPageV2() {
     }
   }
 
-  function updateLocalLink(id, fieldOrPatch, value) {
-    setLinksDraft((current) => updateDraftItem(current, id, fieldOrPatch, value));
-  }
-
   function updateLocalSecondaryLink(id, fieldOrPatch, value) {
     setSecondaryLinksDraft((current) =>
       updateDraftItem(current, id, fieldOrPatch, value),
@@ -235,20 +353,44 @@ export default function AdminLinksPageV2() {
     }
   }
 
-  async function handleSaveLink(id) {
+  async function handleCommitLink(id, payload) {
+    const previousLink = linksDraftRef.current.find(
+      (item) => String(item.id) === String(id),
+    );
+
+    if (!previousLink) return;
+
+    const nextLink = createEditableLink({
+      ...previousLink,
+      ...(payload && typeof payload === "object" ? payload : {}),
+    });
+    const savePayload = buildSavableLinkPayload(nextLink);
+    const requestToken = nextItemRequestToken(linkRequestTokensRef.current, id);
+
     try {
       setError("");
-      const link = linksDraft.find((item) => item.id === id);
-      if (!link) return;
+      setLinksDraft((current) => updatePrimaryLinkInDraft(current, id, nextLink));
+      const response = await saveLink(id, savePayload);
 
-      const response = await saveLink(id, link);
+      if (!isLatestItemRequestToken(linkRequestTokensRef.current, id, requestToken)) {
+        return;
+      }
+
       setServerPage(response.page);
       setLinksDraft((current) =>
-        mergeServerIdsPreservingDraftContent(response.page.links || [], current, [id]),
+        mergeSavedLinkIntoDraft(current, response.page.links || [], id),
       );
       setNotice("Link salvo.");
     } catch (actionError) {
+      if (!isLatestItemRequestToken(linkRequestTokensRef.current, id, requestToken)) {
+        return;
+      }
+
+      setLinksDraft((current) =>
+        updatePrimaryLinkInDraft(current, id, previousLink),
+      );
       setError(actionError.message);
+      throw actionError;
     }
   }
 
@@ -331,16 +473,42 @@ export default function AdminLinksPageV2() {
   }
 
   async function handleToggleLink(id) {
+    const previousLink = linksDraftRef.current.find(
+      (item) => String(item.id) === String(id),
+    );
+
+    if (!previousLink) {
+      return;
+    }
+
+    const nextLink = createEditableLink({
+      ...previousLink,
+      isActive: !previousLink.isActive,
+    });
+    const requestToken = nextItemRequestToken(linkRequestTokensRef.current, id);
+
     try {
       setError("");
-      setLinksDraft((current) => toggleDraftItem(current, id));
+      setLinksDraft((current) => updatePrimaryLinkInDraft(current, id, nextLink));
       const response = await toggleLink(id);
+
+      if (!isLatestItemRequestToken(linkRequestTokensRef.current, id, requestToken)) {
+        return;
+      }
+
       setServerPage(response.page);
       setLinksDraft((current) =>
-        mergeServerIdsPreservingDraftContent(response.page.links || [], current, [id]),
+        mergeSavedLinkIntoDraft(current, response.page.links || [], id),
       );
       setNotice("Visibilidade do link atualizada.");
     } catch (actionError) {
+      if (!isLatestItemRequestToken(linkRequestTokensRef.current, id, requestToken)) {
+        return;
+      }
+
+      setLinksDraft((current) =>
+        updatePrimaryLinkInDraft(current, id, previousLink),
+      );
       setError(actionError.message);
     }
   }
@@ -364,39 +532,71 @@ export default function AdminLinksPageV2() {
     }
   }
 
-  async function handleMoveLink(id, direction) {
-    const nextIds = swapById(linksDraft, id, direction);
+  async function handleReorderLinks(nextIds) {
+    const previousDraft = cloneItems(linksDraft);
+    const previousIds = getOrderedIds(previousDraft);
+
+    if (!Array.isArray(nextIds)) {
+      return;
+    }
+
+    const normalizedNextIds = nextIds.map((itemId) => String(itemId));
+
+    if (
+      normalizedNextIds.length !== previousIds.length ||
+      normalizedNextIds.every((itemId, index) => itemId === previousIds[index])
+    ) {
+      return;
+    }
 
     try {
       setError("");
-      setLinksDraft((current) => reorderDraftItemsByIds(current, nextIds));
-      const response = await reorderLinks(nextIds);
+      setLinksDraft(reorderDraftItemsPreservingContent(previousDraft, normalizedNextIds));
+      const response = await reorderLinks(normalizedNextIds);
       setServerPage(response.page);
-      setLinksDraft((current) =>
-        mergeServerIdsPreservingDraftContent(response.page.links || [], current),
-      );
+      setLinksDraft((current) => {
+        const serverIds = getOrderedIds(response.page.links || []);
+
+        if (!serverIds.length || hasSameIdSet(current, serverIds)) {
+          return current;
+        }
+
+        return cloneItems(response.page.links || []);
+      });
       setNotice("Links reordenados.");
     } catch (actionError) {
+      setLinksDraft(previousDraft);
       setError(actionError.message);
     }
   }
 
   async function handleMoveSecondaryLink(id, direction) {
-    const nextIds = swapById(secondaryLinksDraft, id, direction);
+    const previousDraft = cloneItems(secondaryLinksDraft);
+    const nextIds = swapById(previousDraft, id, direction);
 
     try {
+      if (hasSameIdsInOrder(previousDraft, nextIds)) {
+        return;
+      }
+
       setError("");
-      setSecondaryLinksDraft((current) => reorderDraftItemsByIds(current, nextIds));
+      setSecondaryLinksDraft(
+        reorderDraftItemsPreservingContent(previousDraft, nextIds),
+      );
       const response = await reorderSecondaryLinks(nextIds);
       setServerPage(response.page);
-      setSecondaryLinksDraft((current) =>
-        mergeServerIdsPreservingDraftContent(
-          response.page.secondaryLinks || [],
-          current,
-        ),
-      );
+      setSecondaryLinksDraft((current) => {
+        const serverIds = getOrderedIds(response.page.secondaryLinks || []);
+
+        if (!serverIds.length || hasSameIdSet(current, serverIds)) {
+          return current;
+        }
+
+        return cloneItems(response.page.secondaryLinks || []);
+      });
       setNotice("Links secundarios reordenados.");
     } catch (actionError) {
+      setSecondaryLinksDraft(previousDraft);
       setError(actionError.message);
     }
   }
@@ -419,11 +619,10 @@ export default function AdminLinksPageV2() {
           <LinksEditorCard
             links={linksDraft}
             onAdd={handleAddLink}
-            onChange={updateLocalLink}
-            onSave={handleSaveLink}
+            onCommit={handleCommitLink}
             onDelete={handleDeleteLink}
             onToggle={handleToggleLink}
-            onMove={handleMoveLink}
+            onReorder={handleReorderLinks}
           />
 
           <SecondaryLinksEditorCard
