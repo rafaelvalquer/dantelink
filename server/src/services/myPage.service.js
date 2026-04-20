@@ -4,7 +4,6 @@ import {
   createSecondaryLinkId,
 } from "../utils/ids.js";
 import {
-  applyOrderByIds,
   normalizeOrder,
   sortByOrder,
 } from "../utils/order.js";
@@ -400,6 +399,57 @@ function normalizeSecondaryLinks(links = []) {
       return true;
     })
     .map((link, index) => ({ ...link, order: index }));
+}
+
+function reorderExistingItemsPreservingIdentity(items = [], ids = [], label = "items") {
+  const currentItems = (items || []).map((item) => toPlainObject(item));
+  const requestedIds = [];
+  const requestedIdSet = new Set();
+
+  (ids || []).forEach((itemId) => {
+    const normalizedId = String(itemId || "").trim();
+    if (!normalizedId || requestedIdSet.has(normalizedId)) {
+      return;
+    }
+
+    requestedIds.push(normalizedId);
+    requestedIdSet.add(normalizedId);
+  });
+
+  const itemMap = new Map();
+  const missingIdItems = [];
+
+  currentItems.forEach((item) => {
+    const normalizedId = String(item?.id || "").trim();
+
+    if (!normalizedId) {
+      missingIdItems.push(item);
+      return;
+    }
+
+    if (!itemMap.has(normalizedId)) {
+      itemMap.set(normalizedId, item);
+    }
+  });
+
+  if (missingIdItems.length) {
+    console.warn(
+      `[my-page] reorder for ${label} encontrou item sem id estavel; nenhum novo id foi gerado durante a operacao.`,
+    );
+  }
+
+  const selected = requestedIds
+    .map((itemId) => itemMap.get(itemId))
+    .filter(Boolean);
+  const remaining = currentItems.filter((item) => {
+    const normalizedId = String(item?.id || "").trim();
+    return !normalizedId || !requestedIdSet.has(normalizedId);
+  });
+
+  return [...selected, ...sortByOrder(remaining)].map((item, index) => ({
+    ...item,
+    order: index,
+  }));
 }
 
 function normalizeTheme(theme = {}) {
@@ -818,12 +868,11 @@ export async function toggleLink(id) {
 export async function reorderLinks(ids = []) {
   const page = await getMainPageDocument();
 
-  page.links = applyOrderByIds(
-    (page.links || []).map((link) => toPlainObject(link)),
+  page.links = reorderExistingItemsPreservingIdentity(
+    page.links || [],
     ids,
+    "links",
   );
-
-  page.links = normalizeLinks(page.links);
   await page.save();
   return serializePage(page);
 }
@@ -920,12 +969,11 @@ export async function toggleSecondaryLink(id) {
 export async function reorderSecondaryLinks(ids = []) {
   const page = await getMainPageDocument();
 
-  page.secondaryLinks = applyOrderByIds(
-    (page.secondaryLinks || []).map((link) => toPlainObject(link)),
+  page.secondaryLinks = reorderExistingItemsPreservingIdentity(
+    page.secondaryLinks || [],
     ids,
+    "secondaryLinks",
   );
-
-  page.secondaryLinks = normalizeSecondaryLinks(page.secondaryLinks);
   await page.save();
   return serializePage(page);
 }
