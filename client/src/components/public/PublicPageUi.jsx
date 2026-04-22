@@ -400,19 +400,30 @@ export function PublicPageMiniPreview({
   const primary = Array.isArray(primaryLinks) ? primaryLinks.slice(0, buttonCount) : [];
   const social = Array.isArray(socialLinks) ? socialLinks.slice(0, socialCount) : [];
   const buttonLayoutClassName = getPrimaryLinksLayout(theme);
+  const showSocialOnTop = theme?.design?.secondaryLinksPosition === "top";
 
   return (
     <div className={cls("public-page-mini", className)} style={theme.rootStyle}>
       <PublicPageBackgroundOverlay theme={theme} className="public-page-mini__background" />
       <div className="public-page-mini__frame">
         <PublicPageCard theme={theme} className="public-page-mini__card">
-          <PublicPageHero
-            page={page}
-            theme={theme}
-            eyebrow={eyebrow}
-            description={description}
-            compact
-          />
+        <PublicPageHero
+          page={page}
+          theme={theme}
+          eyebrow={eyebrow}
+          description={description}
+          compact
+        />
+
+          {showSocial && showSocialOnTop && social.length ? (
+            <PublicPageSocialLinks
+              theme={theme}
+              links={social}
+              interactive={false}
+              compact
+              className="public-page-mini__socials public-page__hero-socials"
+            />
+          ) : null}
 
           {showButtons && primary.length ? (
             <div className={cls("public-page-mini__buttons", buttonLayoutClassName)}>
@@ -427,7 +438,7 @@ export function PublicPageMiniPreview({
             </div>
           ) : null}
 
-          {showSocial && social.length ? (
+          {showSocial && !showSocialOnTop && social.length ? (
             <PublicPageSocialLinks
               theme={theme}
               links={social}

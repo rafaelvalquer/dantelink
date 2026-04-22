@@ -35,6 +35,7 @@ function hasThemePayload(body = {}) {
     "secondaryLinksIconLayout",
     "secondaryLinksSize",
     "secondaryLinksAlign",
+    "secondaryLinksPosition",
     "animationPreset",
   ].some((key) => Object.hasOwn(body, key));
 }

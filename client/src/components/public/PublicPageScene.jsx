@@ -12,7 +12,7 @@ import {
   getPrimaryLinksLayout,
   getSecondaryLinksLayout,
 } from "./myPageTheme.js";
-import { PublicPageLocationCard } from "./PublicPageUi.jsx";
+import { PublicPageLocationCard, PublicPageSocialLinks } from "./PublicPageUi.jsx";
 
 function cls(...parts) {
   return parts.filter(Boolean).join(" ");
@@ -219,6 +219,7 @@ export default function PublicPageScene({
     (link) => link?.type === "location" && link?.showMap === true && link?.address,
   );
   const socialLinks = sortActive(page?.secondaryLinks || []);
+  const showSocialLinksOnTop = theme?.design?.secondaryLinksPosition === "top";
   const hasVisibleContent =
     primaryLinks.length || socialLinks.length || page?.shop?.isActive;
   const linksLayout = getPrimaryLinksLayout(theme);
@@ -367,9 +368,17 @@ export default function PublicPageScene({
                     <p className="public-page__hero-bio">
                       {page?.bio ||
                         "Comece a editar sua bio na area administrativa."}
-                    </p>
+                      </p>
                   </div>
                 </div>
+                {showSocialLinksOnTop && socialLinks.length ? (
+                  <PublicPageSocialLinks
+                    theme={theme}
+                    links={socialLinks}
+                    interactive={interactive}
+                    className="public-page__hero-socials"
+                  />
+                ) : null}
               </motion.section>
 
               {primaryLinks.length ? (
@@ -414,7 +423,7 @@ export default function PublicPageScene({
                 </motion.div>
               ) : null}
 
-              {socialLinks.length ? (
+              {!showSocialLinksOnTop && socialLinks.length ? (
                 <motion.section
                   className="public-page__social-shell"
                   style={theme.softSurfaceStyle}

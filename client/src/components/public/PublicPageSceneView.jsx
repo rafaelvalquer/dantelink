@@ -168,6 +168,7 @@ export default function PublicPageSceneView({
     (link) => link?.type === "location" && link?.showMap === true && link?.address,
   );
   const socialLinks = sortActive(page?.secondaryLinks || []);
+  const showSocialLinksOnTop = theme?.design?.secondaryLinksPosition === "top";
   const hasVisibleContent =
     primaryLinks.length || socialLinks.length || page?.shop?.isActive;
   const publicUrl = getPublicPageUrl(page, interactive, true);
@@ -285,6 +286,14 @@ export default function PublicPageSceneView({
                 animate={motionPreset.wrapper.animate}
               >
                 <PublicPageHero page={page} theme={theme} />
+                {showSocialLinksOnTop && socialLinks.length ? (
+                  <PublicPageSocialLinks
+                    theme={theme}
+                    links={socialLinks}
+                    interactive={interactive}
+                    className="public-page__hero-socials"
+                  />
+                ) : null}
               </motion.div>
 
               {primaryLinks.length ? (
@@ -332,7 +341,7 @@ export default function PublicPageSceneView({
                 </motion.div>
               ) : null}
 
-              {socialLinks.length ? (
+              {!showSocialLinksOnTop && socialLinks.length ? (
                 <motion.div
                   className="public-page__shell-block public-page-section-card public-page__social-shell"
                   variants={motionPreset.cardVariants}

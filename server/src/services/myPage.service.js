@@ -31,6 +31,7 @@ const THEME_DEFAULTS = {
   secondaryLinksIconLayout: "brand_badge",
   secondaryLinksSize: "medium",
   secondaryLinksAlign: "center",
+  secondaryLinksPosition: "bottom",
   animationPreset: "subtle",
   backgroundColor: "#e2e8f0",
   cardColor: "#ffffff",
@@ -61,6 +62,7 @@ const SECONDARY_LINK_PLATFORMS = new Set([
   "facebook",
   "youtube",
   "tiktok",
+  "email",
   "site",
 ]);
 const HANDLE_BASED_PLATFORMS = new Set(["instagram", "youtube", "tiktok"]);
@@ -75,6 +77,7 @@ const SECONDARY_PLATFORM_LABELS = {
   facebook: "Facebook",
   youtube: "YouTube",
   tiktok: "TikTok",
+  email: "E-mail",
   site: "Site",
 };
 
@@ -153,6 +156,9 @@ function inferSecondaryPlatform(link = {}) {
   if (sample.includes("facebook")) return "facebook";
   if (sample.includes("tiktok")) return "tiktok";
   if (sample.includes("youtube") || sample.includes("youtu.be")) return "youtube";
+  if (sample.includes("mailto:") || /\b[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b/i.test(sample)) {
+    return "email";
+  }
   return "site";
 }
 
@@ -193,6 +199,13 @@ function normalizeSecondaryHandle(value = "", platform = "") {
   return extracted.replace(/^@+/, "").replace(/\s+/g, "").replace(/\/+$/, "");
 }
 
+function normalizeEmailAddress(value = "") {
+  return String(value || "")
+    .trim()
+    .replace(/^mailto:/i, "")
+    .trim();
+}
+
 function buildSecondaryUrl(platform = "", handle = "", fallbackUrl = "") {
   const safeHandle = normalizeSecondaryHandle(handle, platform);
 
@@ -206,6 +219,11 @@ function buildSecondaryUrl(platform = "", handle = "", fallbackUrl = "") {
 
   if (platform === "youtube") {
     return safeHandle ? `https://www.youtube.com/@${safeHandle}` : "";
+  }
+
+  if (platform === "email") {
+    const normalizedEmail = normalizeEmailAddress(fallbackUrl);
+    return normalizedEmail ? `mailto:${normalizedEmail}` : "";
   }
 
   return String(fallbackUrl || "").trim();
@@ -356,7 +374,14 @@ function normalizeSecondaryLink(link = {}, orderFallback = 0) {
   const source = toPlainObject(link) || {};
   const platform = inferSecondaryPlatform(source);
   const handle = normalizeSecondaryHandle(source.handle || source.url || "", platform);
-  const url = buildSecondaryUrl(platform, handle, source.url);
+  const email = platform === "email"
+    ? normalizeEmailAddress(source.url || source.handle || "")
+    : "";
+  const url = buildSecondaryUrl(
+    platform,
+    handle,
+    platform === "email" ? email : source.url,
+  );
   const title = typeof source.title === "string" && source.title.trim()
     ? source.title.trim()
     : getSecondaryPlatformLabel(platform);
@@ -369,7 +394,7 @@ function normalizeSecondaryLink(link = {}, orderFallback = 0) {
     platform,
     title,
     url,
-    handle,
+    handle: platform === "email" ? "" : handle,
     isActive: source.isActive !== false,
     order: Number.isFinite(Number(source.order)) ? Number(source.order) : orderFallback,
   };
@@ -507,14 +532,19 @@ function normalizeTheme(theme = {}) {
       VALID_THEME_OPTIONS.buttonShadow.has(normalizedTheme.buttonShadow.trim())
         ? normalizedTheme.buttonShadow.trim()
         : THEME_DEFAULTS.buttonShadow,
-    buttonRadius:
-      typeof normalizedTheme.buttonRadius === "string" &&
-      VALID_THEME_OPTIONS.buttonRadius.has(normalizedTheme.buttonRadius.trim())
-        ? normalizedTheme.buttonRadius.trim()
-        : legacyRadius || THEME_DEFAULTS.buttonRadius,
-    cardColor:
-      typeof surfaceColor === "string" && surfaceColor.trim()
-        ? surfaceColor.trim()
+      buttonRadius:
+        typeof normalizedTheme.buttonRadius === "string" &&
+        VALID_THEME_OPTIONS.buttonRadius.has(normalizedTheme.buttonRadius.trim())
+          ? normalizedTheme.buttonRadius.trim()
+          : legacyRadius || THEME_DEFAULTS.buttonRadius,
+      secondaryLinksPosition:
+        normalizedTheme.secondaryLinksPosition === "top" ||
+        normalizedTheme.secondaryLinksPosition === "bottom"
+          ? normalizedTheme.secondaryLinksPosition
+          : THEME_DEFAULTS.secondaryLinksPosition,
+      cardColor:
+        typeof surfaceColor === "string" && surfaceColor.trim()
+          ? surfaceColor.trim()
         : THEME_DEFAULTS.surfaceColor,
     textColor:
       typeof pageTextColor === "string" && pageTextColor.trim()
@@ -645,12 +675,13 @@ function sanitizeThemePayload(payload = {}) {
     "buttonRadius",
     "primaryButtonsLayout",
     "secondaryLinksStyle",
-    "secondaryLinksIconLayout",
-    "secondaryLinksSize",
-    "secondaryLinksAlign",
-    "animationPreset",
-    "backgroundColor",
-    "cardColor",
+      "secondaryLinksIconLayout",
+      "secondaryLinksSize",
+      "secondaryLinksAlign",
+      "secondaryLinksPosition",
+      "animationPreset",
+      "backgroundColor",
+      "cardColor",
     "textColor",
   ]) {
     if (typeof payload[key] === "string") {

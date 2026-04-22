@@ -25,6 +25,7 @@ import {
   MY_PAGE_PRIMARY_BUTTON_LAYOUT_OPTIONS,
   MY_PAGE_SECONDARY_LINK_ALIGN_OPTIONS,
   MY_PAGE_SECONDARY_LINK_ICON_LAYOUT_OPTIONS,
+  MY_PAGE_SECONDARY_LINK_POSITION_OPTIONS,
   MY_PAGE_SECONDARY_LINK_SIZE_OPTIONS,
   MY_PAGE_SECONDARY_LINK_STYLE_OPTIONS,
   MY_PAGE_SURFACE_PATTERN_VARIANT_OPTIONS,
@@ -923,6 +924,15 @@ export default function DesignEditorCard({
             value={value.secondaryLinksAlign}
             options={MY_PAGE_SECONDARY_LINK_ALIGN_OPTIONS}
             onChange={(nextValue) => onChange("secondaryLinksAlign", nextValue)}
+          />
+        </div>
+
+        <div className="design-editor__group">
+          <div className="design-editor__group-label">Posicao dos icones</div>
+          <ChoiceButtons
+            value={value.secondaryLinksPosition}
+            options={MY_PAGE_SECONDARY_LINK_POSITION_OPTIONS}
+            onChange={(nextValue) => onChange("secondaryLinksPosition", nextValue)}
           />
         </div>
       </DesignSection>

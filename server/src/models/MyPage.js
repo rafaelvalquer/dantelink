@@ -27,7 +27,7 @@ const secondaryLinkSchema = new mongoose.Schema(
     id: { type: String, required: true, trim: true },
     platform: {
       type: String,
-      enum: ["instagram", "facebook", "youtube", "tiktok", "site"],
+      enum: ["instagram", "facebook", "youtube", "tiktok", "email", "site"],
       trim: true,
       default: "instagram",
     },
@@ -86,6 +86,7 @@ const myPageSchema = new mongoose.Schema(
       },
       secondaryLinksSize: { type: String, trim: true, default: "medium" },
       secondaryLinksAlign: { type: String, trim: true, default: "center" },
+      secondaryLinksPosition: { type: String, trim: true, default: "bottom" },
       animationPreset: { type: String, trim: true, default: "subtle" },
     },
     links: { type: [linkSchema], default: [] },

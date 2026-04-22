@@ -6,6 +6,7 @@ import {
   Globe,
   GripVertical,
   Link2,
+  Mail,
   Pencil,
   Trash2,
 } from "lucide-react";
@@ -17,6 +18,7 @@ const platformOptions = [
   { value: "facebook", label: "Facebook" },
   { value: "tiktok", label: "TikTok" },
   { value: "youtube", label: "YouTube" },
+  { value: "email", label: "E-mail" },
   { value: "site", label: "Site" },
 ];
 
@@ -45,6 +47,12 @@ const PLATFORM_META = {
     primaryFieldLabel: "Perfil",
     primaryPlaceholder: "@perfil",
   },
+  email: {
+    label: "E-mail",
+    Icon: Mail,
+    primaryFieldLabel: "E-mail",
+    primaryPlaceholder: "voce@dominio.com",
+  },
   site: {
     label: "Site",
     Icon: Globe,
@@ -55,6 +63,10 @@ const PLATFORM_META = {
 
 function normalizeHandle(value) {
   return String(value || "").trim().replace(/^@+/, "").replace(/\s+/g, "");
+}
+
+function normalizeEmailValue(value = "") {
+  return String(value || "").trim().replace(/^mailto:/i, "").trim();
 }
 
 function isHandlePlatform(platform) {
@@ -95,10 +107,22 @@ function buildSecondaryUrl(platform, handle, fallbackUrl = "") {
       : "";
   }
 
+  if (platform === "email") {
+    const normalizedEmail = String(fallbackUrl || "")
+      .trim()
+      .replace(/^mailto:/i, "")
+      .trim();
+    return normalizedEmail ? `mailto:${normalizedEmail}` : "";
+  }
+
   return String(fallbackUrl || "").trim();
 }
 
 function getPrimaryFieldValue(link = {}) {
+  if (String(link.platform || "").trim().toLowerCase() === "email") {
+    return normalizeEmailValue(link.url || "");
+  }
+
   if (isHandlePlatform(link.platform || "")) {
     return String(link.handle || "").trim();
   }
@@ -136,6 +160,17 @@ function buildFieldPatch(link = {}, field, value) {
     };
   }
 
+  if (String(link.platform || "").trim().toLowerCase() === "email") {
+    const normalizedEmail = String(value || "")
+      .trim()
+      .replace(/^mailto:/i, "")
+      .trim();
+    return {
+      handle: "",
+      url: buildSecondaryUrl("email", "", normalizedEmail),
+    };
+  }
+
   return {
     url: value,
   };
@@ -167,7 +202,18 @@ function createPlatformChangePatch(link = {}, nextPlatform) {
     platform: normalizedNextPlatform,
     title: currentTitle || getPlatformLabel(normalizedNextPlatform),
     handle: "",
-    url: currentUsesHandle ? "" : String(link.url || "").trim(),
+    url:
+      normalizedNextPlatform === "email"
+        ? buildSecondaryUrl(
+            "email",
+            "",
+            currentPlatform === "email"
+              ? normalizeEmailValue(link.url || "")
+              : "",
+          )
+        : currentUsesHandle
+          ? ""
+          : String(link.url || "").trim(),
   };
 }
 

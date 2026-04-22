@@ -5,6 +5,7 @@ import {
   Store,
 } from "lucide-react";
 import {
+  FaEnvelope,
   FaFacebookF,
   FaGlobe,
   FaInstagram,
@@ -39,6 +40,7 @@ export const MY_PAGE_THEME_DEFAULTS = {
   secondaryLinksIconLayout: "brand_badge",
   secondaryLinksSize: "medium",
   secondaryLinksAlign: "center",
+  secondaryLinksPosition: "bottom",
   animationPreset: "subtle",
   backgroundColor: "#e2e8f0",
   cardColor: "#ffffff",
@@ -776,6 +778,11 @@ export const MY_PAGE_SECONDARY_LINK_ALIGN_OPTIONS = [
   { value: "right", label: "Direita", description: "Empurra os chips para a direita." },
 ];
 
+export const MY_PAGE_SECONDARY_LINK_POSITION_OPTIONS = [
+  { value: "top", label: "Top", description: "Mostra as redes logo abaixo da bio." },
+  { value: "bottom", label: "Bottom", description: "Mantem as redes no rodape da pagina, como hoje." },
+];
+
 export const MY_PAGE_ANIMATION_PRESET_OPTIONS = [
   { value: "subtle", label: "Suave", description: "Entrada leve e refinada." },
   { value: "strong", label: "Marcante", description: "Camadas com mais deslocamento visual." },
@@ -1164,6 +1171,11 @@ export function normalizeMyPageTheme(rawTheme = {}) {
         : rawTheme.buttonStyle || presetTheme.buttonStyle,
       buttonRadius: rawTheme.buttonRadius || legacyRadius || presetTheme.buttonRadius,
     }),
+    secondaryLinksPosition:
+      rawTheme.secondaryLinksPosition === "top" ||
+      rawTheme.secondaryLinksPosition === "bottom"
+        ? rawTheme.secondaryLinksPosition
+        : presetTheme.secondaryLinksPosition || MY_PAGE_THEME_DEFAULTS.secondaryLinksPosition,
   };
 
   return {
@@ -1329,7 +1341,7 @@ export function getMyPageTheme(page = {}) {
 
 function getSocialPlatform(link = {}) {
   if (
-    ["instagram", "facebook", "tiktok", "youtube", "site"].includes(
+    ["instagram", "facebook", "tiktok", "youtube", "email", "site"].includes(
       String(link.platform || "").toLowerCase(),
     )
   ) {
@@ -1341,6 +1353,9 @@ function getSocialPlatform(link = {}) {
   if (sample.includes("facebook")) return "facebook";
   if (sample.includes("tiktok")) return "tiktok";
   if (sample.includes("youtube") || sample.includes("youtu.be")) return "youtube";
+  if (sample.includes("mailto:") || /\b[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b/i.test(sample)) {
+    return "email";
+  }
   return "site";
 }
 
@@ -1349,6 +1364,7 @@ const SOCIAL_PLATFORM_LABELS = {
   facebook: "Facebook",
   tiktok: "TikTok",
   youtube: "YouTube",
+  email: "E-mail",
   site: "Site",
 };
 
@@ -1404,6 +1420,14 @@ export function getMyPageSocialBrand(link = {}) {
         background: "linear-gradient(135deg, #ff4d4f 0%, #ff0033 100%)",
         color: "#ffffff",
       },
+    };
+  }
+
+  if (platform === "email") {
+    return {
+      platform,
+      Icon: FaEnvelope,
+      badgeStyle: null,
     };
   }
 

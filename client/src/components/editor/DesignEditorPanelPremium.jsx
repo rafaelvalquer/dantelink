@@ -25,6 +25,7 @@ import {
   MY_PAGE_PRIMARY_BUTTON_LAYOUT_OPTIONS,
   MY_PAGE_SECONDARY_LINK_ALIGN_OPTIONS,
   MY_PAGE_SECONDARY_LINK_ICON_LAYOUT_OPTIONS,
+  MY_PAGE_SECONDARY_LINK_POSITION_OPTIONS,
   MY_PAGE_SECONDARY_LINK_SIZE_OPTIONS,
   MY_PAGE_SECONDARY_LINK_STYLE_OPTIONS,
   MY_PAGE_SURFACE_PATTERN_VARIANT_OPTIONS,
@@ -791,6 +792,14 @@ function renderPanelContent({
               value={value.secondaryLinksAlign}
               options={MY_PAGE_SECONDARY_LINK_ALIGN_OPTIONS}
               onChange={(nextValue) => onChange("secondaryLinksAlign", nextValue)}
+            />
+          </div>
+          <div className="grid gap-3">
+            <GroupLabel>Posicao dos icones</GroupLabel>
+            <ChoiceButtons
+              value={value.secondaryLinksPosition}
+              options={MY_PAGE_SECONDARY_LINK_POSITION_OPTIONS}
+              onChange={(nextValue) => onChange("secondaryLinksPosition", nextValue)}
             />
           </div>
         </>

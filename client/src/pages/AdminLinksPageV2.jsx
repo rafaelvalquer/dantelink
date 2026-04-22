@@ -30,6 +30,7 @@ const SECONDARY_LINK_PLATFORMS = new Set([
   "facebook",
   "tiktok",
   "youtube",
+  "email",
   "site",
 ]);
 const SECONDARY_HANDLE_PLATFORMS = new Set([
@@ -256,6 +257,14 @@ function buildSecondaryLinkUrl(platform = "", handle = "", fallbackUrl = "") {
     return normalizedHandle
       ? `https://www.youtube.com/@${normalizedHandle}`
       : "";
+  }
+
+  if (normalizedPlatform === "email") {
+    const normalizedEmail = String(fallbackUrl || "")
+      .trim()
+      .replace(/^mailto:/i, "")
+      .trim();
+    return normalizedEmail ? `mailto:${normalizedEmail}` : "";
   }
 
   return String(fallbackUrl || "").trim();
