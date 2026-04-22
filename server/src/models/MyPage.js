@@ -4,7 +4,7 @@ import { normalizeSlug } from "../utils/slug.js";
 const linkSchema = new mongoose.Schema(
   {
     id: { type: String, required: true, trim: true },
-    title: { type: String, required: true, trim: true, default: "Novo link" },
+    title: { type: String, trim: true, default: "" },
     url: { type: String, trim: true, default: "" },
     phone: { type: String, trim: true, default: "" },
     message: { type: String, trim: true, default: "" },

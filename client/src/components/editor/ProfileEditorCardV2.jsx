@@ -5,6 +5,9 @@ import Input from "../ui/Input.jsx";
 import Textarea from "../ui/Textarea.jsx";
 import SectionCard from "./SectionCard.jsx";
 
+const TITLE_LIMIT = 30;
+const BIO_LIMIT = 160;
+
 function AvatarModal({
   open,
   currentAvatarUrl,
@@ -141,6 +144,135 @@ function AvatarModal({
   );
 }
 
+function ProfileDetailsModal({
+  open,
+  value,
+  onClose,
+  onChange,
+  onSave,
+  isSaving = false,
+}) {
+  const [draft, setDraft] = useState({
+    title: "",
+    slug: "",
+    bio: "",
+  });
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    setDraft({
+      title: String(value?.title || ""),
+      slug: String(value?.slug || ""),
+      bio: String(value?.bio || ""),
+    });
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape" && !isSaving) {
+        onClose();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, value?.title, value?.slug, value?.bio, isSaving, onClose]);
+
+  if (!open) return null;
+
+  function handleDraftChange(field, nextValue) {
+    setDraft((current) => ({
+      ...current,
+      [field]: nextValue,
+    }));
+  }
+
+  async function handleSubmit() {
+    const nextProfile = {
+      ...value,
+      title: draft.title,
+      slug: draft.slug,
+      bio: draft.bio,
+    };
+
+    onChange("title", nextProfile.title);
+    onChange("slug", nextProfile.slug);
+    onChange("bio", nextProfile.bio);
+    const didSave = await onSave(nextProfile);
+    if (didSave !== false) {
+      onClose();
+    }
+  }
+
+  return (
+    <div
+      className="profile-details-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="profile-details-modal-title"
+    >
+      <div className="profile-details-modal__backdrop" onClick={isSaving ? undefined : onClose} />
+      <div className="profile-details-modal__panel">
+        <div className="profile-details-modal__header">
+          <h3 id="profile-details-modal-title">Title and bio</h3>
+          <button
+            type="button"
+            className="profile-details-modal__close"
+            onClick={onClose}
+            aria-label="Fechar modal"
+            disabled={isSaving}
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="profile-details-modal__body">
+          <label className="field field--full">
+            <span>Title</span>
+            <Input
+              value={draft.title}
+              onChange={(event) => handleDraftChange("title", event.target.value)}
+              placeholder="@mutantwear"
+              maxLength={TITLE_LIMIT}
+            />
+            <span className="profile-details-modal__counter">
+              {draft.title.length} / {TITLE_LIMIT}
+            </span>
+          </label>
+
+          <label className="field field--full">
+            <span>Slug</span>
+            <Input
+              value={draft.slug}
+              onChange={(event) => handleDraftChange("slug", event.target.value)}
+              placeholder="mutantwear"
+            />
+          </label>
+
+          <label className="field field--full">
+            <span>Bio</span>
+            <Textarea
+              value={draft.bio}
+              onChange={(event) => handleDraftChange("bio", event.target.value)}
+              placeholder="Viva a Mutacao."
+              maxLength={BIO_LIMIT}
+              rows={5}
+            />
+            <span className="profile-details-modal__counter">
+              {draft.bio.length} / {BIO_LIMIT}
+            </span>
+          </label>
+        </div>
+
+        <div className="profile-details-modal__footer">
+          <Button className="profile-details-modal__save" onClick={handleSubmit} disabled={isSaving}>
+            {isSaving ? "Salvando..." : "Save"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ProfileEditorCardV2({
   value,
   onChange,
@@ -150,8 +282,14 @@ export default function ProfileEditorCardV2({
   isUploadingAvatar = false,
 }) {
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const avatarInitial =
     String(value.title || "M").trim().slice(0, 1).toUpperCase() || "M";
+  const visibleTitle = String(value.title || "").trim() || "@seuusuario";
+  const visibleSlug = String(value.slug || "").trim() || "seu-slug";
+  const visibleBio =
+    String(value.bio || "").trim() ||
+    "Conte para as pessoas do que se trata a sua pagina.";
 
   function handleApplyAvatarUrl(nextUrl) {
     onChange("avatarUrl", nextUrl);
@@ -170,14 +308,7 @@ export default function ProfileEditorCardV2({
 
   return (
     <>
-      <SectionCard
-        title="Perfil"
-        actions={
-          <Button onClick={onSave} disabled={isSaving}>
-            {isSaving ? "Salvando..." : "Salvar perfil"}
-          </Button>
-        }
-      >
+      <SectionCard title="Perfil">
         <div className="profile-card__layout">
           <button
             type="button"
@@ -196,34 +327,17 @@ export default function ProfileEditorCardV2({
             <span className="profile-avatar-trigger__label">Alterar avatar</span>
           </button>
 
-          <div className="form-grid">
-            <label className="field">
-              <span>Titulo</span>
-              <Input
-                value={value.title || ""}
-                onChange={(event) => onChange("title", event.target.value)}
-                placeholder="Mutantwear"
-              />
-            </label>
-
-            <label className="field">
-              <span>Slug</span>
-              <Input
-                value={value.slug || ""}
-                onChange={(event) => onChange("slug", event.target.value)}
-                placeholder="mutantwear"
-              />
-            </label>
-
-            <label className="field field--full">
-              <span>Bio</span>
-              <Textarea
-                value={value.bio || ""}
-                onChange={(event) => onChange("bio", event.target.value)}
-                placeholder="Conte para as pessoas do que se trata a sua pagina."
-              />
-            </label>
-          </div>
+          <button
+            type="button"
+            className="profile-card__summary"
+            onClick={() => setIsProfileModalOpen(true)}
+            aria-label="Editar titulo, slug e bio"
+          >
+            <span className="profile-card__summary-eyebrow">Perfil publico</span>
+            <span className="profile-card__summary-title">{visibleTitle}</span>
+            <span className="profile-card__summary-slug">/{visibleSlug}</span>
+            <span className="profile-card__summary-bio">{visibleBio}</span>
+          </button>
         </div>
       </SectionCard>
 
@@ -235,6 +349,15 @@ export default function ProfileEditorCardV2({
         onRemove={handleRemoveAvatar}
         onUpload={handleUploadAvatar}
         isUploading={isUploadingAvatar}
+      />
+
+      <ProfileDetailsModal
+        open={isProfileModalOpen}
+        value={value}
+        onClose={() => setIsProfileModalOpen(false)}
+        onChange={onChange}
+        onSave={onSave}
+        isSaving={isSaving}
       />
     </>
   );

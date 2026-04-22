@@ -4,7 +4,7 @@ import { Share2, Sparkles } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import {
   getMyPageButtonIcon,
-  getMyPageButtonMeta,
+  getMyPagePrimaryLinkLabel,
   getMyPageMotionPreset,
   getMyPageTheme,
   getPrimaryLinksLayout,
@@ -89,8 +89,7 @@ function ActionContainer({
 
 function PrimaryLinkCard({ link, interactive, theme, preview = false }) {
   const Icon = getMyPageButtonIcon(link);
-  const title = renderTitle(link?.title, "Novo link");
-  const meta = getMyPageButtonMeta(link);
+  const title = getMyPagePrimaryLinkLabel(link);
   const buttonProps = getPublicButtonProps(
     theme,
     "primary",
@@ -113,7 +112,6 @@ function PrimaryLinkCard({ link, interactive, theme, preview = false }) {
           <Icon className="public-page__cta-icon-svg" />
         </div>
         <div className="public-page__cta-copy">
-          <span className="public-page__cta-meta">{meta}</span>
           <strong>{title}</strong>
         </div>
       </div>

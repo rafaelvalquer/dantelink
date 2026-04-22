@@ -2,7 +2,7 @@ import { Link2 } from "lucide-react";
 import { getButtonProps, getButtonRadiusClassName } from "./buttonTheme.js";
 import {
   getMyPageButtonIcon,
-  getMyPageButtonMeta,
+  getMyPagePrimaryLinkLabel,
   getMyPageSocialLabel,
   getMyPageSocialBrand,
   getMyPageTheme,
@@ -363,7 +363,7 @@ function PreviewActionButton({ link, theme, compact = false }) {
     cls(compact && "is-preview"),
   );
   const Icon = getMyPageButtonIcon(link);
-  const title = String(link?.title || "Novo link").trim();
+  const title = getMyPagePrimaryLinkLabel(link);
 
   return (
     <div className={props.className} style={props.style}>
@@ -377,7 +377,6 @@ function PreviewActionButton({ link, theme, compact = false }) {
           <Icon className="public-page__cta-icon-svg" />
         </div>
         <div className="public-page__cta-copy">
-          <span className="public-page__cta-meta">{getMyPageButtonMeta(link)}</span>
           <strong>{title}</strong>
         </div>
       </div>

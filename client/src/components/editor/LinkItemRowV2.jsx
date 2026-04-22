@@ -168,6 +168,7 @@ export default function LinkItemRowV2({
   onCommit,
   onDelete,
   onToggle,
+  onMenuOpenChange,
 }) {
   const [editingField, setEditingField] = useState(null);
   const [draftValue, setDraftValue] = useState("");
@@ -260,6 +261,10 @@ export default function LinkItemRowV2({
       window.removeEventListener("mousedown", handleOutsideClick);
     };
   }, [menuOpen]);
+
+  useEffect(() => {
+    onMenuOpenChange?.(menuOpen);
+  }, [menuOpen, onMenuOpenChange]);
 
   useEffect(() => {
     if (!isLocationValue) {
@@ -503,7 +508,7 @@ export default function LinkItemRowV2({
   return (
     <article
       ref={setNodeRef}
-      className={`item-row item-row--sortable link-card${isDragging ? " is-dragging" : ""}`}
+      className={`item-row item-row--sortable link-card${isDragging ? " is-dragging" : ""}${menuOpen ? " is-menu-open" : ""}`}
       style={sortableStyle}
     >
       <button

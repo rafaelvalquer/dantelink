@@ -25,6 +25,18 @@ const PRIMARY_LINK_TYPES = new Set([
   "location",
   "shop-preview",
 ]);
+const SECONDARY_LINK_PLATFORMS = new Set([
+  "instagram",
+  "facebook",
+  "tiktok",
+  "youtube",
+  "site",
+]);
+const SECONDARY_HANDLE_PLATFORMS = new Set([
+  "instagram",
+  "tiktok",
+  "youtube",
+]);
 
 const WHATSAPP_DEFAULT_MESSAGE =
   "Ola! Vim pela sua pagina publica e gostaria de mais informacoes.";
@@ -64,35 +76,6 @@ function buildPreviewPage(serverPage, profileDraft, linksDraft, secondaryLinksDr
   };
 }
 
-function updateDraftItem(items = [], id, fieldOrPatch, value) {
-  return items.map((item) =>
-    item.id !== id
-      ? item
-      : fieldOrPatch && typeof fieldOrPatch === "object"
-        ? { ...item, ...fieldOrPatch }
-        : { ...item, [fieldOrPatch]: value },
-  );
-}
-
-function toggleDraftItem(items = [], id) {
-  return items.map((item) =>
-    item.id === id ? { ...item, isActive: !item.isActive } : item,
-  );
-}
-
-function swapById(items = [], id, direction) {
-  const index = items.findIndex((item) => item.id === id);
-  const targetIndex = index + direction;
-
-  if (index === -1 || targetIndex < 0 || targetIndex >= items.length) {
-    return items.map((item) => item.id);
-  }
-
-  const next = [...items];
-  [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
-  return next.map((item) => item.id);
-}
-
 function getOrderedIds(items = []) {
   return items.map((item) => String(item.id));
 }
@@ -111,16 +94,6 @@ function reorderDraftItemsPreservingContent(items = [], ids = []) {
     ...item,
     order: index,
   }));
-}
-
-function hasSameIdsInOrder(items = [], ids = []) {
-  const currentIds = getOrderedIds(items);
-  const nextIds = ids.map((itemId) => String(itemId));
-
-  return (
-    currentIds.length === nextIds.length &&
-    currentIds.every((itemId, index) => itemId === nextIds[index])
-  );
 }
 
 function hasSameIdSet(items = [], ids = []) {
@@ -235,6 +208,99 @@ function isLatestItemRequestToken(tokenMap, id, token) {
   return Number(tokenMap.get(String(id)) || 0) === Number(token);
 }
 
+function normalizeSecondaryHandle(value = "") {
+  return String(value || "").trim().replace(/^@+/, "").replace(/\s+/g, "");
+}
+
+function isSecondaryHandlePlatform(platform = "") {
+  return SECONDARY_HANDLE_PLATFORMS.has(
+    String(platform || "").trim().toLowerCase(),
+  );
+}
+
+function createEditableSecondaryLink(link = {}) {
+  const rawPlatform = String(link.platform || "instagram")
+    .trim()
+    .toLowerCase();
+  const platform = SECONDARY_LINK_PLATFORMS.has(rawPlatform)
+    ? rawPlatform
+    : "instagram";
+
+  return {
+    ...link,
+    platform,
+    title: String(link.title || ""),
+    handle: String(link.handle || ""),
+    url: String(link.url || ""),
+    isActive: link.isActive !== false,
+  };
+}
+
+function buildSecondaryLinkUrl(platform = "", handle = "", fallbackUrl = "") {
+  const normalizedPlatform = String(platform || "").trim().toLowerCase();
+  const normalizedHandle = normalizeSecondaryHandle(handle);
+
+  if (normalizedPlatform === "instagram") {
+    return normalizedHandle
+      ? `https://www.instagram.com/${normalizedHandle}/`
+      : "";
+  }
+
+  if (normalizedPlatform === "tiktok") {
+    return normalizedHandle
+      ? `https://www.tiktok.com/@${normalizedHandle}`
+      : "";
+  }
+
+  if (normalizedPlatform === "youtube") {
+    return normalizedHandle
+      ? `https://www.youtube.com/@${normalizedHandle}`
+      : "";
+  }
+
+  return String(fallbackUrl || "").trim();
+}
+
+function buildSavableSecondaryLinkPayload(link = {}) {
+  const draft = createEditableSecondaryLink(link);
+  const usesHandle = isSecondaryHandlePlatform(draft.platform);
+  const handle = usesHandle ? normalizeSecondaryHandle(draft.handle) : "";
+
+  return {
+    platform: draft.platform,
+    title: draft.title,
+    handle,
+    url: usesHandle
+      ? buildSecondaryLinkUrl(draft.platform, handle)
+      : String(draft.url || "").trim(),
+    isActive: draft.isActive !== false,
+  };
+}
+
+function updateSecondaryLinkInDraft(items = [], id, patch = {}) {
+  return items.map((item, index) =>
+    String(item.id) !== String(id)
+      ? item
+      : {
+          ...item,
+          ...patch,
+          order: Number.isFinite(Number(item.order)) ? Number(item.order) : index,
+        },
+  );
+}
+
+function mergeSavedSecondaryLinkIntoDraft(items = [], serverItems = [], id) {
+  const serverItem = (serverItems || []).find(
+    (item) => String(item.id) === String(id),
+  );
+
+  if (!serverItem) {
+    return items;
+  }
+
+  return updateSecondaryLinkInDraft(items, id, serverItem);
+}
+
 export default function AdminLinksPageV2() {
   const [serverPage, setServerPage] = useState(null);
   const [profileDraft, setProfileDraft] = useState(createProfileDraft());
@@ -246,11 +312,17 @@ export default function AdminLinksPageV2() {
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const linksDraftRef = useRef([]);
+  const secondaryLinksDraftRef = useRef([]);
   const linkRequestTokensRef = useRef(new Map());
+  const secondaryLinkRequestTokensRef = useRef(new Map());
 
   useEffect(() => {
     linksDraftRef.current = linksDraft;
   }, [linksDraft]);
+
+  useEffect(() => {
+    secondaryLinksDraftRef.current = secondaryLinksDraft;
+  }, [secondaryLinksDraft]);
 
   useEffect(() => {
     let active = true;
@@ -296,16 +368,18 @@ export default function AdminLinksPageV2() {
     }));
   }
 
-  async function handleSaveProfile() {
+  async function handleSaveProfile(nextProfile = profileDraft) {
     try {
       setSavingProfile(true);
       setError("");
-      const response = await saveMyPageProfile(profileDraft);
+      const response = await saveMyPageProfile(nextProfile);
       setServerPage(response.page);
       setProfileDraft(createProfileDraft(response.page));
       setNotice("Perfil salvo.");
+      return true;
     } catch (saveError) {
       setError(saveError.message);
+      return false;
     } finally {
       setSavingProfile(false);
     }
@@ -328,17 +402,11 @@ export default function AdminLinksPageV2() {
     }
   }
 
-  function updateLocalSecondaryLink(id, fieldOrPatch, value) {
-    setSecondaryLinksDraft((current) =>
-      updateDraftItem(current, id, fieldOrPatch, value),
-    );
-  }
-
   async function handleAddLink() {
     try {
       setError("");
       const response = await createLink({
-        title: "Novo link",
+        title: "",
         url: "",
         isActive: true,
         type: "link",
@@ -412,27 +480,6 @@ export default function AdminLinksPageV2() {
         ),
       );
       setNotice("Link secundario adicionado.");
-    } catch (actionError) {
-      setError(actionError.message);
-    }
-  }
-
-  async function handleSaveSecondaryLink(id) {
-    try {
-      setError("");
-      const link = secondaryLinksDraft.find((item) => item.id === id);
-      if (!link) return;
-
-      const response = await saveSecondaryLink(id, link);
-      setServerPage(response.page);
-      setSecondaryLinksDraft((current) =>
-        mergeServerIdsPreservingDraftContent(
-          response.page.secondaryLinks || [],
-          current,
-          [id],
-        ),
-      );
-      setNotice("Link secundario salvo.");
     } catch (actionError) {
       setError(actionError.message);
     }
@@ -514,20 +561,63 @@ export default function AdminLinksPageV2() {
   }
 
   async function handleToggleSecondaryLink(id) {
+    const previousLink = secondaryLinksDraftRef.current.find(
+      (item) => String(item.id) === String(id),
+    );
+
+    if (!previousLink) {
+      return;
+    }
+
+    const nextLink = createEditableSecondaryLink({
+      ...previousLink,
+      isActive: !previousLink.isActive,
+    });
+    const requestToken = nextItemRequestToken(
+      secondaryLinkRequestTokensRef.current,
+      id,
+    );
+
     try {
       setError("");
-      setSecondaryLinksDraft((current) => toggleDraftItem(current, id));
+      setSecondaryLinksDraft((current) =>
+        updateSecondaryLinkInDraft(current, id, nextLink),
+      );
       const response = await toggleSecondaryLink(id);
+
+      if (
+        !isLatestItemRequestToken(
+          secondaryLinkRequestTokensRef.current,
+          id,
+          requestToken,
+        )
+      ) {
+        return;
+      }
+
       setServerPage(response.page);
       setSecondaryLinksDraft((current) =>
-        mergeServerIdsPreservingDraftContent(
-          response.page.secondaryLinks || [],
+        mergeSavedSecondaryLinkIntoDraft(
           current,
-          [id],
+          response.page.secondaryLinks || [],
+          id,
         ),
       );
       setNotice("Visibilidade do link secundario atualizada.");
     } catch (actionError) {
+      if (
+        !isLatestItemRequestToken(
+          secondaryLinkRequestTokensRef.current,
+          id,
+          requestToken,
+        )
+      ) {
+        return;
+      }
+
+      setSecondaryLinksDraft((current) =>
+        updateSecondaryLinkInDraft(current, id, previousLink),
+      );
       setError(actionError.message);
     }
   }
@@ -570,20 +660,91 @@ export default function AdminLinksPageV2() {
     }
   }
 
-  async function handleMoveSecondaryLink(id, direction) {
-    const previousDraft = cloneItems(secondaryLinksDraft);
-    const nextIds = swapById(previousDraft, id, direction);
+  async function handleCommitSecondaryLink(id, payload) {
+    const previousLink = secondaryLinksDraftRef.current.find(
+      (item) => String(item.id) === String(id),
+    );
+
+    if (!previousLink) return;
+
+    const nextLink = createEditableSecondaryLink({
+      ...previousLink,
+      ...(payload && typeof payload === "object" ? payload : {}),
+    });
+    const savePayload = buildSavableSecondaryLinkPayload(nextLink);
+    const requestToken = nextItemRequestToken(
+      secondaryLinkRequestTokensRef.current,
+      id,
+    );
 
     try {
-      if (hasSameIdsInOrder(previousDraft, nextIds)) {
+      setError("");
+      setSecondaryLinksDraft((current) =>
+        updateSecondaryLinkInDraft(current, id, nextLink),
+      );
+      const response = await saveSecondaryLink(id, savePayload);
+
+      if (
+        !isLatestItemRequestToken(
+          secondaryLinkRequestTokensRef.current,
+          id,
+          requestToken,
+        )
+      ) {
         return;
       }
 
+      setServerPage(response.page);
+      setSecondaryLinksDraft((current) =>
+        mergeSavedSecondaryLinkIntoDraft(
+          current,
+          response.page.secondaryLinks || [],
+          id,
+        ),
+      );
+      setNotice("Link secundario salvo.");
+    } catch (actionError) {
+      if (
+        !isLatestItemRequestToken(
+          secondaryLinkRequestTokensRef.current,
+          id,
+          requestToken,
+        )
+      ) {
+        return;
+      }
+
+      setSecondaryLinksDraft((current) =>
+        updateSecondaryLinkInDraft(current, id, previousLink),
+      );
+      setError(actionError.message);
+      throw actionError;
+    }
+  }
+
+  async function handleReorderSecondaryLinks(nextIds) {
+    const previousDraft = cloneItems(secondaryLinksDraft);
+    const previousIds = getOrderedIds(previousDraft);
+
+    if (!Array.isArray(nextIds)) {
+      return;
+    }
+
+    const normalizedNextIds = nextIds.map((itemId) => String(itemId));
+
+    if (
+      normalizedNextIds.length !== previousIds.length ||
+      normalizedNextIds.every((itemId, index) => itemId === previousIds[index])
+    ) {
+      return;
+    }
+
+    try {
       setError("");
       setSecondaryLinksDraft(
-        reorderDraftItemsPreservingContent(previousDraft, nextIds),
+        reorderDraftItemsPreservingContent(previousDraft, normalizedNextIds),
       );
-      const response = await reorderSecondaryLinks(nextIds);
+      const response = await reorderSecondaryLinks(normalizedNextIds);
       setServerPage(response.page);
       setSecondaryLinksDraft((current) => {
         const serverIds = getOrderedIds(response.page.secondaryLinks || []);
@@ -628,11 +789,10 @@ export default function AdminLinksPageV2() {
           <SecondaryLinksEditorCard
             links={secondaryLinksDraft}
             onAdd={handleAddSecondaryLink}
-            onChange={updateLocalSecondaryLink}
-            onSave={handleSaveSecondaryLink}
+            onCommit={handleCommitSecondaryLink}
             onDelete={handleDeleteSecondaryLink}
             onToggle={handleToggleSecondaryLink}
-            onMove={handleMoveSecondaryLink}
+            onReorder={handleReorderSecondaryLinks}
           />
         </div>
       )}

@@ -1429,6 +1429,16 @@ export function getMyPageButtonMeta(link = {}) {
   return "Link";
 }
 
+export function getMyPagePrimaryLinkLabel(link = {}) {
+  const title = String(link?.title || "").trim();
+  if (title) return title;
+
+  if (link?.type === "whatsapp") return "WhatsApp";
+  if (link?.type === "location") return "Localizacao";
+  if (link?.type === "shop-preview") return "Previa da loja";
+  return "Link";
+}
+
 export function getPrimaryLinksLayout(theme) {
   if (theme?.design?.primaryButtonsLayout === "minimal") {
     return "public-page__buttons public-page__buttons--minimal";

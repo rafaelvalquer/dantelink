@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   closestCenter,
   DndContext,
@@ -25,6 +25,7 @@ export default function LinksEditorCard({
   onToggle,
   onReorder,
 }) {
+  const [openMenuLinkId, setOpenMenuLinkId] = useState(null);
   const linkIds = useMemo(() => links.map((link) => link.id), [links]);
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -59,6 +60,7 @@ export default function LinksEditorCard({
       title="Links"
       description="Gerencie as ações principais exibidas na sua página."
       actions={<Button onClick={onAdd}>Adicionar link</Button>}
+      isOverlayActive={Boolean(openMenuLinkId)}
     >
       {links.length ? (
         <DndContext
@@ -75,6 +77,11 @@ export default function LinksEditorCard({
                   onCommit={(payload) => onCommit(link.id, payload)}
                   onDelete={() => onDelete(link.id)}
                   onToggle={() => onToggle(link.id)}
+                  onMenuOpenChange={(open) => {
+                    setOpenMenuLinkId((current) =>
+                      open ? link.id : current === link.id ? null : current,
+                    );
+                  }}
                 />
               ))}
             </div>

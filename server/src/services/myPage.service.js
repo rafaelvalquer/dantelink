@@ -303,9 +303,8 @@ function normalizeLink(link = {}, orderFallback = 0) {
   const rawType =
     typeof source.type === "string" ? source.type.trim().toLowerCase() : "link";
   const type = isPrimaryLinkType(rawType) ? rawType : "link";
-  const title = typeof source.title === "string" && source.title.trim()
-    ? source.title.trim()
-    : "Novo link";
+  const title =
+    typeof source.title === "string" ? source.title.trim() : "";
   const phone =
     type === "whatsapp" ? normalizePhoneNumber(source.phone) : "";
   const message =
@@ -789,7 +788,7 @@ export async function createLink(payload = {}) {
 
   page.links.push(normalizeLink({
     id: createLinkId(),
-    title: data.title || "Novo link",
+    title: data.title || "",
     url: data.url || "",
     phone: data.phone || "",
     message: data.message || "",

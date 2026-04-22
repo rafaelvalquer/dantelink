@@ -2,10 +2,11 @@ export default function SectionCard({
   title,
   description,
   actions,
+  isOverlayActive = false,
   children,
 }) {
   return (
-    <section className="section-card">
+    <section className={`section-card${isOverlayActive ? " section-card--overlay-active" : ""}`}>
       <header className="section-card__header">
         <div>
           <h2>{title}</h2>

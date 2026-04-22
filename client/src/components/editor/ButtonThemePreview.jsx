@@ -1,5 +1,8 @@
 import { getButtonPreviewProps } from "../public/buttonTheme.js";
-import { getMyPageButtonIcon, getMyPageButtonMeta } from "../public/myPageTheme.js";
+import {
+  getMyPageButtonIcon,
+  getMyPagePrimaryLinkLabel,
+} from "../public/myPageTheme.js";
 
 function cls(...parts) {
   return parts.filter(Boolean).join(" ");
@@ -26,8 +29,7 @@ export default function ButtonThemePreview({
               <Icon size={14} />
             </div>
             <div className="design-button-preview__copy">
-              <strong>{link.title}</strong>
-              <small>{getMyPageButtonMeta(link)}</small>
+              <strong>{getMyPagePrimaryLinkLabel(link)}</strong>
             </div>
           </div>
         );

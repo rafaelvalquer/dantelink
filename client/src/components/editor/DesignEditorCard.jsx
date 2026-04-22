@@ -32,7 +32,7 @@ import {
   MY_PAGE_THEME_PRESET_OPTIONS,
   createMyPageThemePreviewPage,
   getMyPageButtonIcon,
-  getMyPageButtonMeta,
+  getMyPagePrimaryLinkLabel,
   getMyPagePreviewPrimaryLinks,
   getMyPagePreviewSocialLinks,
   getMyPageSocialBrand,
@@ -317,8 +317,7 @@ function ButtonPreview({ theme, links }) {
                 <Icon size={14} />
                 </div>
                 <div className="design-button-preview__copy">
-                  <strong>{link.title}</strong>
-                  <small>{getMyPageButtonMeta(link)}</small>
+                  <strong>{getMyPagePrimaryLinkLabel(link)}</strong>
                 </div>
               </div>
             );

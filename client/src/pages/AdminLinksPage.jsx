@@ -166,7 +166,7 @@ function AdminLinksPageLegacy() {
     try {
       setError("");
       const response = await createLink({
-        title: "Novo link",
+        title: "",
         url: "",
         isActive: true,
         type: "link",
