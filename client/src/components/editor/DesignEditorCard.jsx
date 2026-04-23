@@ -18,6 +18,7 @@ import {
   MY_PAGE_BACKGROUND_PATTERN_VARIANT_OPTIONS,
   MY_PAGE_BACKGROUND_STYLE_OPTIONS,
   MY_PAGE_BRAND_LAYOUT_OPTIONS,
+  MY_PAGE_PRIMARY_BUTTON_CONTENT_ALIGN_OPTIONS,
   MY_PAGE_BUTTON_RADIUS_OPTIONS,
   MY_PAGE_BUTTON_SHADOW_OPTIONS,
   MY_PAGE_BUTTON_STYLE_OPTIONS,
@@ -115,6 +116,13 @@ function normalizeColor(value, fallback) {
   if (/^#[0-9a-f]{6}$/i.test(sample)) return sample.toLowerCase();
   if (/^[0-9a-f]{6}$/i.test(sample)) return `#${sample.toLowerCase()}`;
   return fallback;
+}
+
+function getContentAlignClassName(theme) {
+  const align = theme?.design?.primaryButtonContentAlign;
+  if (align === "left" || align === "right") return "is-content-left";
+  if (align === "center") return "is-content-center";
+  return "";
 }
 
 function DesignSection({ eyebrow, title, description, actions, children }) {
@@ -317,9 +325,15 @@ function ButtonPreview({ theme, links }) {
               <div className="design-button-preview__icon" style={theme.secondaryButtonStyle}>
                 <Icon size={14} />
                 </div>
-                <div className="design-button-preview__copy">
-                  <strong>{getMyPagePrimaryLinkLabel(link)}</strong>
-                </div>
+              <div
+                className={cls(
+                  "design-button-preview__copy",
+                  getContentAlignClassName(theme),
+                )}
+              >
+                <strong>{getMyPagePrimaryLinkLabel(link)}</strong>
+              </div>
+              <div className="design-button-preview__balance" aria-hidden="true" />
               </div>
             );
         })}
@@ -822,6 +836,14 @@ export default function DesignEditorCard({
               />
             ))}
           </OptionGrid>
+        </div>
+        <div className="design-editor__group">
+          <div className="design-editor__group-label">Posicao do texto</div>
+          <ChoiceButtons
+            value={value.primaryButtonContentAlign}
+            options={MY_PAGE_PRIMARY_BUTTON_CONTENT_ALIGN_OPTIONS}
+            onChange={(nextValue) => onChange("primaryButtonContentAlign", nextValue)}
+          />
         </div>
 
         <div className="design-editor__group">

@@ -1,8 +1,9 @@
 import { Navigate, createBrowserRouter } from "react-router-dom";
 import AdminDesignPage from "../pages/AdminDesignPage.jsx";
 import AdminLinksPage from "../pages/AdminLinksPageV2.jsx";
-import AdminShopPage from "../pages/AdminShopPage.jsx";
+import AdminShopProductsPage from "../pages/AdminShopProductsPage.jsx";
 import PublicMyPage from "../pages/PublicMyPage.jsx";
+import PublicShopPage from "../pages/PublicShopPage.jsx";
 
 export const router = createBrowserRouter([
   {
@@ -15,11 +16,15 @@ export const router = createBrowserRouter([
   },
   {
     path: "/admin/shop",
-    element: <AdminShopPage />,
+    element: <AdminShopProductsPage />,
   },
   {
     path: "/admin/design",
     element: <AdminDesignPage />,
+  },
+  {
+    path: "/:slug/shop",
+    element: <PublicShopPage />,
   },
   {
     path: "/:slug",

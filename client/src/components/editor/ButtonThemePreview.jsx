@@ -8,6 +8,13 @@ function cls(...parts) {
   return parts.filter(Boolean).join(" ");
 }
 
+function getContentAlignClassName(theme) {
+  return theme?.design?.primaryButtonContentAlign === "left" ||
+    theme?.design?.primaryButtonContentAlign === "right"
+    ? "is-content-left"
+    : "is-content-center";
+}
+
 export default function ButtonThemePreview({
   theme,
   links = [],
@@ -15,6 +22,7 @@ export default function ButtonThemePreview({
   className = "",
 }) {
   const items = Array.isArray(links) ? links.slice(0, 2) : [];
+  const contentAlignClassName = getContentAlignClassName(theme);
 
   return (
     <div className={cls("design-button-preview", className)}>
@@ -28,9 +36,10 @@ export default function ButtonThemePreview({
             <div className="design-button-preview__icon" style={iconStyle}>
               <Icon size={14} />
             </div>
-            <div className="design-button-preview__copy">
+            <div className={cls("design-button-preview__copy", contentAlignClassName)}>
               <strong>{getMyPagePrimaryLinkLabel(link)}</strong>
             </div>
+            <div className="design-button-preview__balance" aria-hidden="true" />
           </div>
         );
       })}

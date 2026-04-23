@@ -14,6 +14,13 @@ function cls(...parts) {
   return parts.filter(Boolean).join(" ");
 }
 
+function getContentAlignClassName(theme) {
+  return theme?.design?.primaryButtonContentAlign === "left" ||
+    theme?.design?.primaryButtonContentAlign === "right"
+    ? "is-content-left"
+    : "is-content-center";
+}
+
 function resolveMyPageMediaUrl(value) {
   const sample = String(value || "").trim();
   return sample || "";
@@ -364,25 +371,27 @@ function PreviewActionButton({ link, theme, compact = false }) {
   );
   const Icon = getMyPageButtonIcon(link);
   const title = getMyPagePrimaryLinkLabel(link);
+  const contentAlignClassName = getContentAlignClassName(theme);
 
   return (
-    <div className={props.className} style={props.style}>
-      <div className="public-page__cta-main">
-        <div
-          className={cls(
-            "public-page__cta-icon",
-          )}
-          style={theme.secondaryButtonStyle}
-        >
-          <Icon className="public-page__cta-icon-svg" />
-        </div>
-        <div className="public-page__cta-copy">
-          <strong>{title}</strong>
+      <div className={props.className} style={props.style}>
+        <div className="public-page__cta-main">
+          <div
+            className={cls(
+              "public-page__cta-icon",
+            )}
+            style={theme.secondaryButtonStyle}
+          >
+            <Icon className="public-page__cta-icon-svg" />
+          </div>
+          <div className={cls("public-page__cta-copy", contentAlignClassName)}>
+            <strong>{title}</strong>
+          </div>
+          <div className="public-page__cta-balance" aria-hidden="true" />
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
 export function PublicPageMiniPreview({
   page,

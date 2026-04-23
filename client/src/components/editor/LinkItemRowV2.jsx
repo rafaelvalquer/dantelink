@@ -31,24 +31,28 @@ const LINK_TYPE_META = {
     Icon: Link2,
     primaryFieldLabel: "URL",
     primaryPlaceholder: "https://...",
+    usesPrimaryField: true,
   },
   whatsapp: {
     label: "WhatsApp",
     Icon: MessageCircle,
     primaryFieldLabel: "Numero do WhatsApp",
     primaryPlaceholder: "5511999999999",
+    usesPrimaryField: true,
   },
   location: {
     label: "Localizacao",
     Icon: MapPin,
     primaryFieldLabel: "Endereco",
     primaryPlaceholder: "Digite o endereco para ver sugestoes",
+    usesPrimaryField: true,
   },
   "shop-preview": {
     label: "Previa da loja",
     Icon: ShoppingBag,
-    primaryFieldLabel: "URL da loja",
-    primaryPlaceholder: "https://...",
+    primaryFieldLabel: "Preview da loja",
+    primaryPlaceholder: "",
+    usesPrimaryField: false,
   },
 };
 
@@ -59,7 +63,7 @@ function getTypeMeta(type = "") {
 
 function isUrlType(type = "") {
   const normalizedType = String(type || "").trim().toLowerCase();
-  return normalizedType === "link" || normalizedType === "shop-preview";
+  return normalizedType === "link";
 }
 
 function getPrimaryFieldValue(link = {}) {
@@ -74,6 +78,43 @@ function getPrimaryFieldValue(link = {}) {
   }
 
   return String(link.url || "").trim();
+}
+
+function sortActiveShopProducts(products = []) {
+  return [...(products || [])]
+    .filter((product) => product?.isActive)
+    .sort((left, right) => Number(left?.order ?? 0) - Number(right?.order ?? 0));
+}
+
+function ShopPreviewGrid({ products = [] }) {
+  const previewItems = sortActiveShopProducts(products).slice(0, 4);
+  const cells = previewItems.length
+    ? previewItems
+    : Array.from({ length: 4 }, (_, index) => ({ id: `placeholder-${index}` }));
+
+  return (
+    <div className="link-card__shop-preview">
+      <div className="link-card__shop-preview-grid">
+        {cells.map((product, index) => (
+          <div key={product.id || index} className="link-card__shop-preview-cell">
+            {product.imageUrl ? (
+              <img src={product.imageUrl} alt={product.title || "Produto da loja"} />
+            ) : (
+              <div className="link-card__shop-preview-placeholder">
+                <ShoppingBag size={18} aria-hidden="true" />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="link-card__shop-preview-copy">
+        <strong>Ver loja completa</strong>
+        <span>
+          {previewItems.length} {previewItems.length === 1 ? "produto" : "produtos"}
+        </span>
+      </div>
+    </div>
+  );
 }
 
 function buildEditableLinkSnapshot(link = {}) {
@@ -151,6 +192,18 @@ function createTypeChangePatch(link = {}, nextType) {
     };
   }
 
+  if (normalizedNextType === "shop-preview") {
+    return {
+      type: "shop-preview",
+      url: "",
+      phone: "",
+      message: "",
+      address: "",
+      placeId: "",
+      showMap: false,
+    };
+  }
+
   return {
     type: normalizedNextType,
     url: isUrlType(currentType) ? String(link.url || "") : "",
@@ -165,6 +218,7 @@ function createTypeChangePatch(link = {}, nextType) {
 
 export default function LinkItemRowV2({
   link,
+  shopProducts = [],
   onCommit,
   onDelete,
   onToggle,
@@ -203,6 +257,7 @@ export default function LinkItemRowV2({
   const typeMeta = getTypeMeta(link.type);
   const primaryValue = getPrimaryFieldValue(link);
   const Icon = typeMeta.Icon;
+  const isShopPreview = link.type === "shop-preview";
   const isEditingValue = editingField === "value";
   const isLocationValue = isEditingValue && link.type === "location";
   const sortableStyle = useMemo(
@@ -343,6 +398,10 @@ export default function LinkItemRowV2({
 
   function startEditing(field) {
     if (savingField || menuSaving) {
+      return;
+    }
+
+    if (field === "value" && isShopPreview) {
       return;
     }
 
@@ -564,7 +623,9 @@ export default function LinkItemRowV2({
             </div>
 
             <div className="link-card__field-row link-card__field-row--value">
-              {editingField === "value" ? (
+              {isShopPreview ? (
+                <ShopPreviewGrid products={shopProducts} />
+              ) : editingField === "value" ? (
                 <div className="link-card__field-editor">
                   <Input
                     ref={inputRef}
@@ -686,6 +747,12 @@ export default function LinkItemRowV2({
                     ))}
                   </select>
                 </label>
+
+                {link.type === "shop-preview" ? (
+                  <div className="item-row__helper">
+                    A Previa da loja usa automaticamente as imagens dos produtos ativos e leva para o catalogo publico.
+                  </div>
+                ) : null}
 
                 {link.type === "location" ? (
                   <div className="link-card__popover-switch">

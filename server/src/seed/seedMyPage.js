@@ -33,6 +33,7 @@ const seedData = {
     title: "Ver loja completa",
     description: "0 produtos",
     productsCount: 0,
+    products: [],
   },
 };
 

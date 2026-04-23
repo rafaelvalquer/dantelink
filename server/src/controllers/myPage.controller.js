@@ -31,6 +31,7 @@ function hasThemePayload(body = {}) {
     "buttonShadow",
     "buttonRadius",
     "primaryButtonsLayout",
+    "primaryButtonContentAlign",
     "secondaryLinksStyle",
     "secondaryLinksIconLayout",
     "secondaryLinksSize",

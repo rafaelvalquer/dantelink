@@ -18,6 +18,13 @@ function cls(...parts) {
   return parts.filter(Boolean).join(" ");
 }
 
+function getContentAlignClassName(theme) {
+  return theme?.design?.primaryButtonContentAlign === "left" ||
+    theme?.design?.primaryButtonContentAlign === "right"
+    ? "is-content-left"
+    : "is-content-center";
+}
+
 function sortActive(items = []) {
   return [...items]
     .filter((item) => item?.isActive)
@@ -105,6 +112,7 @@ function HeroAvatar({ page }) {
 function PrimaryLinkCard({ link, interactive, theme, preview = false }) {
   const Icon = getMyPageButtonIcon(link);
   const title = getMyPagePrimaryLinkLabel(link);
+  const contentAlignClassName = getContentAlignClassName(theme);
 
   return (
     <ActionContainer
@@ -113,22 +121,23 @@ function PrimaryLinkCard({ link, interactive, theme, preview = false }) {
       className={cls("public-page__cta", preview ? "is-preview" : "")}
       style={theme.primaryButtonStyle}
       ariaLabel={title}
-    >
-      <div className="public-page__cta-main">
-        <div
-          className="public-page__cta-icon"
-          style={theme.secondaryButtonStyle}
-        >
-          <Icon className="public-page__cta-icon-svg" />
+      >
+        <div className="public-page__cta-main">
+          <div
+            className="public-page__cta-icon"
+            style={theme.secondaryButtonStyle}
+          >
+            <Icon className="public-page__cta-icon-svg" />
+          </div>
+          <div className={cls("public-page__cta-copy", contentAlignClassName)}>
+            <strong>{title}</strong>
+          </div>
+          <div className="public-page__cta-balance" aria-hidden="true" />
         </div>
-        <div className="public-page__cta-copy">
-          <strong>{title}</strong>
-        </div>
-      </div>
-      <span className="public-page__cta-arrow">
-        {interactive ? "Abrir" : "Preview"}
-      </span>
-    </ActionContainer>
+        <span className="public-page__cta-arrow">
+          {interactive ? "Abrir" : "Preview"}
+        </span>
+      </ActionContainer>
   );
 }
 
@@ -495,8 +504,8 @@ export default function PublicPageScene({
               size={132}
               level="M"
               includeMargin={false}
-              bgColor="transparent"
-              fgColor={theme.design.titleTextColor}
+              bgColor="#ffffff"
+              fgColor="#111827"
             />
           </div>
           <span className="public-page__aside-url">{publicPath}</span>

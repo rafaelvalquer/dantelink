@@ -1,12 +1,14 @@
 import MyPage from "../models/MyPage.js";
 import {
   createLinkId,
+  createProductId,
   createSecondaryLinkId,
 } from "../utils/ids.js";
 import {
   normalizeOrder,
   sortByOrder,
 } from "../utils/order.js";
+import { importShopProductFromUrl } from "./shopImport.service.js";
 import { normalizeSlug } from "../utils/slug.js";
 
 const THEME_DEFAULTS = {
@@ -27,6 +29,7 @@ const THEME_DEFAULTS = {
   buttonShadow: "none",
   buttonRadius: "round",
   primaryButtonsLayout: "stack",
+  primaryButtonContentAlign: "center",
   secondaryLinksStyle: "icon_text",
   secondaryLinksIconLayout: "brand_badge",
   secondaryLinksSize: "medium",
@@ -49,6 +52,7 @@ const VALID_THEME_OPTIONS = {
   buttonStyle: new Set(["solid", "soft", "outline", "glass", "metallic"]),
   buttonShadow: new Set(["none", "soft", "strong", "hard"]),
   buttonRadius: new Set(["square", "round", "pill"]),
+  primaryButtonContentAlign: new Set(["center", "left"]),
 };
 
 const PRIMARY_LINK_TYPES = new Set([
@@ -66,6 +70,12 @@ const SECONDARY_LINK_PLATFORMS = new Set([
   "site",
 ]);
 const HANDLE_BASED_PLATFORMS = new Set(["instagram", "youtube", "tiktok"]);
+const SHOP_IMPORT_MODES = new Set([
+  "manual",
+  "mercadolivre",
+  "json-ld",
+  "open-graph",
+]);
 const WHATSAPP_DEFAULT_MESSAGE =
   "Ola! Vim pela sua pagina publica e gostaria de mais informacoes.";
 const NOMINATIM_BASE_URL = "https://nominatim.openstreetmap.org/search";
@@ -79,6 +89,13 @@ const SECONDARY_PLATFORM_LABELS = {
   tiktok: "TikTok",
   email: "E-mail",
   site: "Site",
+};
+const SHOP_DEFAULTS = {
+  isActive: true,
+  title: "Ver loja completa",
+  description: "0 produtos",
+  productsCount: 0,
+  products: [],
 };
 
 const DEFAULT_PAGE = {
@@ -99,12 +116,7 @@ const DEFAULT_PAGE = {
       handle: "use.mutant",
     },
   ],
-  shop: {
-    isActive: true,
-    title: "Ver loja completa",
-    description: "0 produtos",
-    productsCount: 0,
-  },
+  shop: { ...SHOP_DEFAULTS },
 };
 
 function createHttpError(status, message, code, details) {
@@ -346,6 +358,8 @@ function normalizeLink(link = {}, orderFallback = 0) {
     url = buildWhatsAppUrl(phone, message);
   } else if (type === "location") {
     url = buildLocationUrl(address, placeId);
+  } else if (type === "shop-preview") {
+    url = "";
   }
 
   return {
@@ -423,6 +437,79 @@ function normalizeSecondaryLinks(links = []) {
       return true;
     })
     .map((link, index) => ({ ...link, order: index }));
+}
+
+function normalizeShopCurrency(value = "") {
+  const sample = String(value || "BRL").trim().toUpperCase();
+  if (!sample) return "BRL";
+  if (sample === "R$") return "BRL";
+  return sample.slice(0, 8);
+}
+
+function normalizeShopPrice(value) {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function normalizeShopProduct(product = {}, orderFallback = 0) {
+  const source = toPlainObject(product) || {};
+  const importMode = SHOP_IMPORT_MODES.has(String(source.importMode || "").trim().toLowerCase())
+    ? String(source.importMode).trim().toLowerCase()
+    : "manual";
+
+  return {
+    id:
+      typeof source.id === "string" && source.id.trim()
+        ? source.id.trim()
+        : createProductId(),
+    sourceUrl:
+      typeof source.sourceUrl === "string" ? source.sourceUrl.trim() : "",
+    title:
+      typeof source.title === "string" ? source.title.trim() : "",
+    price: normalizeShopPrice(source.price),
+    currency: normalizeShopCurrency(source.currency),
+    imageUrl:
+      typeof source.imageUrl === "string" ? source.imageUrl.trim() : "",
+    isActive: source.isActive !== false,
+    order: Number.isFinite(Number(source.order)) ? Number(source.order) : orderFallback,
+    importMode,
+  };
+}
+
+function normalizeShopProducts(products = []) {
+  return normalizeOrder(products)
+    .map((product, index) => normalizeShopProduct(product, index))
+    .map((product, index) => ({
+      ...product,
+      order: index,
+    }));
+}
+
+function normalizeShop(shop = {}) {
+  const source = toPlainObject(shop) || {};
+  const products = normalizeShopProducts(source.products || []);
+  const activeProductsCount = products.filter((product) => product.isActive).length;
+  const description =
+    typeof source.description === "string" && source.description.trim()
+      ? source.description.trim()
+      : `${activeProductsCount} produto${activeProductsCount === 1 ? "" : "s"}`;
+
+  return {
+    ...SHOP_DEFAULTS,
+    ...source,
+    isActive: source.isActive !== false,
+    title:
+      typeof source.title === "string" && source.title.trim()
+        ? source.title.trim()
+        : SHOP_DEFAULTS.title,
+    description,
+    productsCount: activeProductsCount,
+    products,
+  };
 }
 
 function reorderExistingItemsPreservingIdentity(items = [], ids = [], label = "items") {
@@ -532,14 +619,24 @@ function normalizeTheme(theme = {}) {
       VALID_THEME_OPTIONS.buttonShadow.has(normalizedTheme.buttonShadow.trim())
         ? normalizedTheme.buttonShadow.trim()
         : THEME_DEFAULTS.buttonShadow,
-      buttonRadius:
-        typeof normalizedTheme.buttonRadius === "string" &&
-        VALID_THEME_OPTIONS.buttonRadius.has(normalizedTheme.buttonRadius.trim())
-          ? normalizedTheme.buttonRadius.trim()
-          : legacyRadius || THEME_DEFAULTS.buttonRadius,
-      secondaryLinksPosition:
-        normalizedTheme.secondaryLinksPosition === "top" ||
-        normalizedTheme.secondaryLinksPosition === "bottom"
+    buttonRadius:
+      typeof normalizedTheme.buttonRadius === "string" &&
+      VALID_THEME_OPTIONS.buttonRadius.has(normalizedTheme.buttonRadius.trim())
+        ? normalizedTheme.buttonRadius.trim()
+        : legacyRadius || THEME_DEFAULTS.buttonRadius,
+    primaryButtonContentAlign:
+      typeof normalizedTheme.primaryButtonContentAlign === "string" &&
+      (normalizedTheme.primaryButtonContentAlign.trim() === "right" ||
+        VALID_THEME_OPTIONS.primaryButtonContentAlign.has(
+          normalizedTheme.primaryButtonContentAlign.trim(),
+        ))
+        ? normalizedTheme.primaryButtonContentAlign.trim() === "right"
+          ? "left"
+          : normalizedTheme.primaryButtonContentAlign.trim()
+        : THEME_DEFAULTS.primaryButtonContentAlign,
+    secondaryLinksPosition:
+      normalizedTheme.secondaryLinksPosition === "top" ||
+      normalizedTheme.secondaryLinksPosition === "bottom"
           ? normalizedTheme.secondaryLinksPosition
           : THEME_DEFAULTS.secondaryLinksPosition,
       cardColor:
@@ -561,6 +658,7 @@ function serializePage(pageDocument) {
     theme: normalizeTheme(page.theme || {}),
     links: normalizeLinks(page.links || []),
     secondaryLinks: normalizeSecondaryLinks(page.secondaryLinks || []),
+    shop: normalizeShop(page.shop || {}),
   };
 }
 
@@ -596,6 +694,7 @@ function getNormalizedLinkSets(page = {}) {
       ...currentSecondaryLinks,
       ...legacySocialLinks,
     ]),
+    shop: normalizeShop(page.shop || {}),
   };
 }
 
@@ -607,11 +706,16 @@ function applyDocumentNormalization(page) {
   );
   const nextLinks = JSON.stringify(next.links);
   const nextSecondaryLinks = JSON.stringify(next.secondaryLinks);
+  const currentShop = JSON.stringify(toPlainObject(page.shop || {}));
+  const nextShop = JSON.stringify(next.shop);
   const changed =
-    currentLinks !== nextLinks || currentSecondaryLinks !== nextSecondaryLinks;
+    currentLinks !== nextLinks
+    || currentSecondaryLinks !== nextSecondaryLinks
+    || currentShop !== nextShop;
 
   page.links = next.links;
   page.secondaryLinks = next.secondaryLinks;
+  page.shop = next.shop;
 
   return changed;
 }
@@ -641,6 +745,19 @@ function findLinkIndex(page, id) {
 function findSecondaryLinkIndex(page, id) {
   return (page.secondaryLinks || []).findIndex(
     (link) => String(link.id) === String(id),
+  );
+}
+
+function findOtherShopPreviewLink(page, excludeId) {
+  return (page.links || []).find((link) => {
+    const sameId = excludeId && String(link.id) === String(excludeId);
+    return !sameId && String(link?.type || "").trim().toLowerCase() === "shop-preview";
+  });
+}
+
+function findShopProductIndex(page, id) {
+  return (page.shop?.products || []).findIndex(
+    (product) => String(product.id) === String(id),
   );
 }
 
@@ -674,6 +791,7 @@ function sanitizeThemePayload(payload = {}) {
     "buttonShadow",
     "buttonRadius",
     "primaryButtonsLayout",
+    "primaryButtonContentAlign",
     "secondaryLinksStyle",
       "secondaryLinksIconLayout",
       "secondaryLinksSize",
@@ -762,13 +880,66 @@ function sanitizeShopPayload(payload = {}) {
       typeof payload.description === "string"
         ? payload.description.trim()
         : undefined,
-    productsCount:
-      typeof payload.productsCount === "number"
-        ? payload.productsCount
-        : Number.isFinite(Number(payload.productsCount))
-          ? Number(payload.productsCount)
-          : undefined,
   };
+}
+
+function sanitizeShopProductPayload(payload = {}) {
+  const importMode =
+    typeof payload.importMode === "string"
+      ? payload.importMode.trim().toLowerCase()
+      : undefined;
+
+  return {
+    sourceUrl:
+      typeof payload.sourceUrl === "string"
+        ? payload.sourceUrl.trim()
+        : typeof payload.url === "string"
+          ? payload.url.trim()
+          : undefined,
+    title: typeof payload.title === "string" ? payload.title.trim() : undefined,
+    price:
+      typeof payload.price === "number"
+        ? payload.price
+        : payload.price === null || payload.price === ""
+          ? null
+          : Number.isFinite(Number(payload.price))
+            ? Number(payload.price)
+            : undefined,
+    currency:
+      typeof payload.currency === "string"
+        ? normalizeShopCurrency(payload.currency)
+        : undefined,
+    imageUrl:
+      typeof payload.imageUrl === "string" ? payload.imageUrl.trim() : undefined,
+    isActive:
+      typeof payload.isActive === "boolean" ? payload.isActive : undefined,
+    importMode: SHOP_IMPORT_MODES.has(importMode) ? importMode : undefined,
+  };
+}
+
+function validateShopProductPayload(payload = {}, { requireSourceUrl = true } = {}) {
+  if (!payload.title) {
+    throw createHttpError(400, "Informe o titulo do produto.", "SHOP_PRODUCT_TITLE_REQUIRED");
+  }
+
+  if (requireSourceUrl && !payload.sourceUrl) {
+    throw createHttpError(400, "Informe a URL do produto.", "SHOP_PRODUCT_URL_REQUIRED");
+  }
+}
+
+function ensureSingleShopPreviewLink(page, nextType, excludeId) {
+  if (String(nextType || "").trim().toLowerCase() !== "shop-preview") {
+    return;
+  }
+
+  const existingShopPreview = findOtherShopPreviewLink(page, excludeId);
+  if (existingShopPreview) {
+    throw createHttpError(
+      409,
+      "A pagina ja possui uma Previa da loja. Edite o item existente para continuar.",
+      "SHOP_PREVIEW_ALREADY_EXISTS",
+    );
+  }
 }
 
 export async function getMyPage() {
@@ -816,6 +987,7 @@ export async function updateTheme(payload = {}) {
 export async function createLink(payload = {}) {
   const page = await getMainPageDocument();
   const data = sanitizeLinkPayload(payload);
+  ensureSingleShopPreviewLink(page, data.type);
 
   page.links.push(normalizeLink({
     id: createLinkId(),
@@ -846,6 +1018,7 @@ export async function updateLink(id, payload = {}) {
 
   const currentLink = toPlainObject(page.links[linkIndex]);
   const updates = sanitizeLinkPayload(payload);
+  ensureSingleShopPreviewLink(page, updates.type ?? currentLink.type, id);
 
   page.links[linkIndex] = normalizeLink(
     {
@@ -1012,12 +1185,146 @@ export async function updateShop(payload = {}) {
   const page = await getMainPageDocument();
   const updates = sanitizeShopPayload(payload);
 
-  page.shop = {
+  page.shop = normalizeShop({
     ...toPlainObject(page.shop),
     ...Object.fromEntries(
       Object.entries(updates).filter(([, value]) => value !== undefined),
     ),
+  });
+
+  await page.save();
+  return serializePage(page);
+}
+
+export async function importShopProductPreview(sourceUrl = "") {
+  return importShopProductFromUrl(sourceUrl);
+}
+
+export async function createShopProduct(payload = {}) {
+  const page = await getMainPageDocument();
+  const data = sanitizeShopProductPayload(payload);
+
+  validateShopProductPayload(data, { requireSourceUrl: true });
+
+  const currentShop = normalizeShop(page.shop || {});
+  const nextProducts = [
+    ...currentShop.products,
+    normalizeShopProduct({
+      id: createProductId(),
+      sourceUrl: data.sourceUrl,
+      title: data.title,
+      price: data.price ?? null,
+      currency: data.currency || "BRL",
+      imageUrl: data.imageUrl || "",
+      isActive: data.isActive ?? true,
+      importMode: data.importMode || "manual",
+      order: currentShop.products.length,
+    }, currentShop.products.length),
+  ];
+
+  page.shop = normalizeShop({
+    ...currentShop,
+    products: nextProducts,
+  });
+
+  await page.save();
+  return serializePage(page);
+}
+
+export async function updateShopProduct(id, payload = {}) {
+  const page = await getMainPageDocument();
+  const currentShop = normalizeShop(page.shop || {});
+  const productIndex = findShopProductIndex({ shop: currentShop }, id);
+
+  if (productIndex === -1) {
+    throw createHttpError(404, "Produto nao encontrado.", "SHOP_PRODUCT_NOT_FOUND");
+  }
+
+  const currentProduct = toPlainObject(currentShop.products[productIndex]);
+  const updates = sanitizeShopProductPayload(payload);
+  const nextProduct = {
+    ...currentProduct,
+    ...Object.fromEntries(
+      Object.entries(updates).filter(([, value]) => value !== undefined),
+    ),
   };
+
+  validateShopProductPayload(nextProduct, { requireSourceUrl: true });
+
+  const nextProducts = currentShop.products.map((product, index) =>
+    index === productIndex
+      ? normalizeShopProduct(nextProduct, currentProduct.order ?? productIndex)
+      : toPlainObject(product),
+  );
+
+  page.shop = normalizeShop({
+    ...currentShop,
+    products: nextProducts,
+  });
+
+  await page.save();
+  return serializePage(page);
+}
+
+export async function deleteShopProduct(id) {
+  const page = await getMainPageDocument();
+  const currentShop = normalizeShop(page.shop || {});
+  const nextProducts = currentShop.products.filter(
+    (product) => String(product.id) !== String(id),
+  );
+
+  if (nextProducts.length === currentShop.products.length) {
+    throw createHttpError(404, "Produto nao encontrado.", "SHOP_PRODUCT_NOT_FOUND");
+  }
+
+  page.shop = normalizeShop({
+    ...currentShop,
+    products: nextProducts,
+  });
+
+  await page.save();
+  return serializePage(page);
+}
+
+export async function toggleShopProduct(id) {
+  const page = await getMainPageDocument();
+  const currentShop = normalizeShop(page.shop || {});
+  const productIndex = findShopProductIndex({ shop: currentShop }, id);
+
+  if (productIndex === -1) {
+    throw createHttpError(404, "Produto nao encontrado.", "SHOP_PRODUCT_NOT_FOUND");
+  }
+
+  const nextProducts = currentShop.products.map((product, index) =>
+    index !== productIndex
+      ? toPlainObject(product)
+      : {
+          ...toPlainObject(product),
+          isActive: !product.isActive,
+        },
+  );
+
+  page.shop = normalizeShop({
+    ...currentShop,
+    products: nextProducts,
+  });
+
+  await page.save();
+  return serializePage(page);
+}
+
+export async function reorderShopProducts(ids = []) {
+  const page = await getMainPageDocument();
+  const currentShop = normalizeShop(page.shop || {});
+
+  page.shop = normalizeShop({
+    ...currentShop,
+    products: reorderExistingItemsPreservingIdentity(
+      currentShop.products || [],
+      ids,
+      "shopProducts",
+    ),
+  });
 
   await page.save();
   return serializePage(page);
@@ -1081,6 +1388,9 @@ export async function getPublicMyPageBySlug(slug) {
   await persistNormalizedPage(page);
 
   const publicPage = serializePage(page);
+  const activeShopProducts = sortByOrder(publicPage.shop?.products || []).filter(
+    (product) => product.isActive,
+  );
 
   return {
     title: publicPage.title,
@@ -1092,6 +1402,12 @@ export async function getPublicMyPageBySlug(slug) {
     secondaryLinks: sortByOrder(publicPage.secondaryLinks || []).filter(
       (link) => link.isActive,
     ),
-    shop: publicPage.shop?.isActive ? publicPage.shop : null,
+    shop: publicPage.shop
+      ? {
+          ...publicPage.shop,
+          products: activeShopProducts,
+          productsCount: activeShopProducts.length,
+        }
+      : null,
   };
 }

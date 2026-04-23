@@ -19,6 +19,8 @@ import {
   MY_PAGE_BACKGROUND_PATTERN_VARIANT_OPTIONS,
   MY_PAGE_BACKGROUND_STYLE_OPTIONS,
   MY_PAGE_BRAND_LAYOUT_OPTIONS,
+  MY_PAGE_PRIMARY_BUTTON_CONTENT_ALIGN_OPTIONS,
+  MY_PAGE_PRIMARY_BUTTON_LAYOUT_OPTIONS,
   MY_PAGE_BUTTON_RADIUS_OPTIONS,
   MY_PAGE_BUTTON_STYLE_OPTIONS,
   MY_PAGE_FONT_PRESET_OPTIONS,
@@ -625,6 +627,34 @@ function renderPanelContent({
     case "botao":
       return (
         <>
+          <div className="design-editor__group">
+            <div className="design-editor__group-label">Layout</div>
+            <OptionGrid columns="3">
+              {MY_PAGE_PRIMARY_BUTTON_LAYOUT_OPTIONS.map((option) => (
+                <OptionCard
+                  key={option.value}
+                  selected={value.primaryButtonsLayout === option.value}
+                  title={option.label}
+                  description={option.description}
+                  onClick={() => onChange("primaryButtonsLayout", option.value)}
+                  preview={
+                    <ButtonPreview
+                      theme={getOptionTheme("primaryButtonsLayout", option.value)}
+                      links={previewPrimaryLinks}
+                    />
+                  }
+                />
+              ))}
+            </OptionGrid>
+          </div>
+          <div className="design-editor__group">
+            <div className="design-editor__group-label">Posicao do texto</div>
+            <ChoiceButtons
+              value={value.primaryButtonContentAlign}
+              options={MY_PAGE_PRIMARY_BUTTON_CONTENT_ALIGN_OPTIONS}
+              onChange={(nextValue) => onChange("primaryButtonContentAlign", nextValue)}
+            />
+          </div>
           <div className="design-editor__group">
             <div className="design-editor__group-label">Estilo</div>
             <OptionGrid columns="5">

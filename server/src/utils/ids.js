@@ -13,3 +13,7 @@ export function createLinkId() {
 export function createSecondaryLinkId() {
   return createId("secondary_link");
 }
+
+export function createProductId() {
+  return createId("product");
+}

@@ -160,11 +160,12 @@ function buildSavableLinkPayload(link = {}) {
   const draft = createEditableLink(link);
   const isWhatsapp = draft.type === "whatsapp";
   const isLocation = draft.type === "location";
+  const isShopPreview = draft.type === "shop-preview";
 
   return {
     title: draft.title,
     type: draft.type,
-    url: !isWhatsapp && !isLocation ? draft.url : "",
+    url: !isWhatsapp && !isLocation && !isShopPreview ? draft.url : "",
     phone: isWhatsapp ? draft.phone : "",
     message: isWhatsapp ? draft.message || WHATSAPP_DEFAULT_MESSAGE : "",
     address: isLocation ? draft.address : "",
@@ -441,6 +442,20 @@ export default function AdminLinksPageV2() {
       ...previousLink,
       ...(payload && typeof payload === "object" ? payload : {}),
     });
+    const hasAnotherShopPreview = linksDraftRef.current.some(
+      (item) =>
+        String(item.id) !== String(id)
+        && String(item.type || "").trim().toLowerCase() === "shop-preview",
+    );
+
+    if (nextLink.type === "shop-preview" && hasAnotherShopPreview) {
+      const duplicateError = new Error(
+        "A pagina ja possui uma Previa da loja. Edite o item existente para continuar.",
+      );
+      setError(duplicateError.message);
+      throw duplicateError;
+    }
+
     const savePayload = buildSavableLinkPayload(nextLink);
     const requestToken = nextItemRequestToken(linkRequestTokensRef.current, id);
 
@@ -788,6 +803,7 @@ export default function AdminLinksPageV2() {
 
           <LinksEditorCard
             links={linksDraft}
+            shopProducts={serverPage?.shop?.products || []}
             onAdd={handleAddLink}
             onCommit={handleCommitLink}
             onDelete={handleDeleteLink}

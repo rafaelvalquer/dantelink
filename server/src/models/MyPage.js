@@ -40,6 +40,25 @@ const secondaryLinkSchema = new mongoose.Schema(
   { _id: false },
 );
 
+const shopProductSchema = new mongoose.Schema(
+  {
+    id: { type: String, required: true, trim: true },
+    sourceUrl: { type: String, trim: true, default: "" },
+    title: { type: String, trim: true, default: "" },
+    price: { type: Number, default: null },
+    currency: { type: String, trim: true, default: "BRL" },
+    imageUrl: { type: String, trim: true, default: "" },
+    isActive: { type: Boolean, default: true },
+    order: { type: Number, default: 0 },
+    importMode: {
+      type: String,
+      enum: ["manual", "mercadolivre", "json-ld", "open-graph"],
+      default: "manual",
+    },
+  },
+  { _id: false },
+);
+
 const myPageSchema = new mongoose.Schema(
   {
     title: { type: String, trim: true, default: "Mutantwear" },
@@ -78,6 +97,11 @@ const myPageSchema = new mongoose.Schema(
       buttonShadow: { type: String, trim: true, default: "none" },
       buttonRadius: { type: String, trim: true, default: "round" },
       primaryButtonsLayout: { type: String, trim: true, default: "stack" },
+      primaryButtonContentAlign: {
+        type: String,
+        trim: true,
+        default: "center",
+      },
       secondaryLinksStyle: { type: String, trim: true, default: "icon_text" },
       secondaryLinksIconLayout: {
         type: String,
@@ -96,6 +120,7 @@ const myPageSchema = new mongoose.Schema(
       title: { type: String, trim: true, default: "Ver loja completa" },
       description: { type: String, trim: true, default: "0 produtos" },
       productsCount: { type: Number, default: 0 },
+      products: { type: [shopProductSchema], default: [] },
     },
   },
   {

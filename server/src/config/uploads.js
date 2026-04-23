@@ -7,7 +7,9 @@ const __dirname = path.dirname(__filename);
 
 export const uploadsRoot = path.resolve(__dirname, "../../uploads");
 export const avatarUploadsDir = path.join(uploadsRoot, "avatars");
+export const productUploadsDir = path.join(uploadsRoot, "products");
 
 export function ensureUploadsDir() {
   fs.mkdirSync(avatarUploadsDir, { recursive: true });
+  fs.mkdirSync(productUploadsDir, { recursive: true });
 }

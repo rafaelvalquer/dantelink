@@ -16,9 +16,22 @@ import {
   PublicPageScreen,
   PublicPageSocialLinks,
 } from "./PublicPageUi.jsx";
+import {
+  getShopPreviewLink,
+  getShopPath,
+  resolvePrimaryLinkHref,
+  sortActiveProducts,
+} from "./shopHelpers.js";
 
 function cls(...parts) {
   return parts.filter(Boolean).join(" ");
+}
+
+function getContentAlignClassName(theme) {
+  return theme?.design?.primaryButtonContentAlign === "left" ||
+    theme?.design?.primaryButtonContentAlign === "right"
+    ? "is-content-left"
+    : "is-content-center";
 }
 
 function sortActive(items = []) {
@@ -65,14 +78,16 @@ function ActionContainer({
   children,
   ariaLabel,
 }) {
+  const isExternal = /^https?:\/\//i.test(String(href || ""));
+
   if (interactive && href) {
     return (
       <a
         className={className}
         style={style}
         href={href}
-        target="_blank"
-        rel="noreferrer"
+        target={isExternal ? "_blank" : undefined}
+        rel={isExternal ? "noreferrer" : undefined}
         aria-label={ariaLabel}
       >
         {children}
@@ -87,9 +102,10 @@ function ActionContainer({
   );
 }
 
-function PrimaryLinkCard({ link, interactive, theme, preview = false }) {
+function PrimaryLinkCard({ link, interactive, page, theme, preview = false }) {
   const Icon = getMyPageButtonIcon(link);
   const title = getMyPagePrimaryLinkLabel(link);
+  const contentAlignClassName = getContentAlignClassName(theme);
   const buttonProps = getPublicButtonProps(
     theme,
     "primary",
@@ -99,56 +115,94 @@ function PrimaryLinkCard({ link, interactive, theme, preview = false }) {
   return (
     <ActionContainer
       interactive={interactive}
-      href={link?.url}
+      href={resolvePrimaryLinkHref(link, page)}
       className={buttonProps.className}
       style={buttonProps.style}
       ariaLabel={title}
-    >
-      <div className="public-page__cta-main">
-        <div
-          className="public-page__cta-icon"
-          style={theme.secondaryButtonStyle}
-        >
-          <Icon className="public-page__cta-icon-svg" />
+      >
+        <div className="public-page__cta-main">
+          <div
+            className="public-page__cta-icon"
+            style={theme.secondaryButtonStyle}
+          >
+            <Icon className="public-page__cta-icon-svg" />
+          </div>
+          <div className={cls("public-page__cta-copy", contentAlignClassName)}>
+            <strong>{title}</strong>
+          </div>
+          <div className="public-page__cta-balance" aria-hidden="true" />
         </div>
-        <div className="public-page__cta-copy">
-          <strong>{title}</strong>
+      </ActionContainer>
+    );
+  }
+
+function ShopCard({ page, shop, theme, interactive }) {
+  const previewProducts = sortActiveProducts(shop?.products || []).slice(0, 4);
+  const mosaicItems = previewProducts.length
+    ? previewProducts
+    : Array.from({ length: 4 }, (_, index) => ({ id: `empty-${index}` }));
+
+  return (
+    <section className="public-page-section-card public-page__shop public-page__shop--preview">
+      <ActionContainer
+        interactive={interactive}
+        href={getShopPath(page)}
+        className="public-page__shop-mosaic"
+        style={theme.surfaceStyle}
+        ariaLabel="Ver loja completa"
+      >
+        <div className="public-page__shop-mosaic-grid">
+          {mosaicItems.map((product, index) => (
+            <div key={product.id || index} className="public-page__shop-mosaic-cell">
+              {product.imageUrl ? (
+                <img src={product.imageUrl} alt={product.title || "Produto da loja"} />
+              ) : (
+                <div className="public-page__shop-mosaic-placeholder">
+                  <Sparkles size={18} />
+                </div>
+              )}
+            </div>
+          ))}
         </div>
-      </div>
-    </ActionContainer>
+      </ActionContainer>
+      <ActionContainer
+        interactive={interactive}
+        href={getShopPath(page)}
+        className="public-page__shop-preview-cta"
+        style={theme.bodyStyle}
+        ariaLabel="Ver loja completa"
+      >
+        <strong>Ver loja completa</strong>
+        <span>
+          {Number(shop?.productsCount || 0)}{" "}
+          {Number(shop?.productsCount || 0) === 1 ? "produto" : "produtos"}
+        </span>
+      </ActionContainer>
+    </section>
   );
 }
 
-function ShopCard({ shop, theme }) {
+function ShopModeToggle({ page, isShopActive = false }) {
+  const shopPath = getShopPath(page);
+  const linksPath = `/${page?.slug || ""}`;
+
   return (
-    <section className="public-page-section-card public-page__shop">
-      <div className="public-page-section-card__header public-page__section-header">
-        <div className="public-page-section-card__title public-page__section-title">
-          <div
-            className="public-page-section-card__icon public-page__section-icon"
-            style={theme.primaryButtonStyle}
-          >
-            <Sparkles className="public-page-section-card__icon-svg public-page__section-icon-svg" />
-          </div>
-          <div className="public-page-section-card__copy">
-            <span className="public-page-section-card__eyebrow public-page__section-eyebrow">
-              Shop
-            </span>
-            <h2 style={theme.titleStyle}>{renderTitle(shop?.title, "Loja")}</h2>
-          </div>
-        </div>
-        <span className="public-page-section-card__count public-page__section-counter">
-          {Number(shop?.productsCount || 0)} produtos
-        </span>
-      </div>
-      <p
-        className="public-page-section-card__description public-page__shop-copy"
-        style={theme.bodyStyle}
+    <div className="public-page__shop-toggle" aria-label="Navegacao da pagina">
+      <a
+        href={linksPath}
+        className={cls("public-page__shop-toggle-option", !isShopActive && "is-active")}
+        aria-current={!isShopActive ? "page" : undefined}
       >
-        {shop?.description ||
-          "Configure este bloco de loja no painel administrativo."}
-      </p>
-    </section>
+        Links
+      </a>
+      <a
+        href={shopPath}
+        className={cls("public-page__shop-toggle-option", isShopActive && "is-active")}
+        aria-current={isShopActive ? "page" : undefined}
+      >
+        Shop
+      </a>
+    </div>
   );
 }
 
@@ -163,14 +217,19 @@ export default function PublicPageSceneView({
   const shouldReduceMotion = useReducedMotion();
   const motionPreset = getMyPageMotionPreset(theme, shouldReduceMotion);
   const activeLinks = sortActive(page?.links || []);
-  const primaryLinks = activeLinks;
-  const locationMapLinks = primaryLinks.filter(
+  const shopPreviewLink = getShopPreviewLink(activeLinks);
+  const orderedPrimaryItems = activeLinks;
+  const activeShopProducts = sortActiveProducts(page?.shop?.products || []);
+  const locationMapLinks = orderedPrimaryItems.filter(
     (link) => link?.type === "location" && link?.showMap === true && link?.address,
   );
   const socialLinks = sortActive(page?.secondaryLinks || []);
   const showSocialLinksOnTop = theme?.design?.secondaryLinksPosition === "top";
   const hasVisibleContent =
-    primaryLinks.length || socialLinks.length || page?.shop?.isActive;
+    orderedPrimaryItems.length ||
+    socialLinks.length ||
+    Boolean(shopPreviewLink) ||
+    activeShopProducts.length;
   const publicUrl = getPublicPageUrl(page, interactive, true);
   const publicPath = getPublicPageUrl(page, interactive, false);
   const [shareFeedback, setShareFeedback] = useState("");
@@ -286,6 +345,7 @@ export default function PublicPageSceneView({
                 animate={motionPreset.wrapper.animate}
               >
                 <PublicPageHero page={page} theme={theme} />
+                {shopPreviewLink ? <ShopModeToggle page={page} /> : null}
                 {showSocialLinksOnTop && socialLinks.length ? (
                   <PublicPageSocialLinks
                     theme={theme}
@@ -296,7 +356,7 @@ export default function PublicPageSceneView({
                 ) : null}
               </motion.div>
 
-              {primaryLinks.length ? (
+              {orderedPrimaryItems.length ? (
                 <motion.div
                   className={cls(
                     "public-page__shell-block",
@@ -306,17 +366,27 @@ export default function PublicPageSceneView({
                   animate={motionPreset.wrapper.animate}
                   variants={motionPreset.containerVariants}
                 >
-                  {primaryLinks.map((link) => (
+                  {orderedPrimaryItems.map((link) => (
                     <motion.div
                       key={link.id}
                       variants={motionPreset.itemVariants}
                     >
-                      <PrimaryLinkCard
-                        link={link}
-                        interactive={interactive}
-                        theme={theme}
-                        preview={previewMode}
-                      />
+                      {link?.type === "shop-preview" ? (
+                        <ShopCard
+                          page={page}
+                          shop={page.shop}
+                          theme={theme}
+                          interactive={interactive}
+                        />
+                      ) : (
+                        <PrimaryLinkCard
+                          link={link}
+                          interactive={interactive}
+                          page={page}
+                          theme={theme}
+                          preview={previewMode}
+                        />
+                      )}
                     </motion.div>
                   ))}
                 </motion.div>
@@ -356,17 +426,6 @@ export default function PublicPageSceneView({
                 </motion.div>
               ) : null}
 
-              {page?.shop?.isActive ? (
-                <motion.div
-                  className="public-page__shell-block public-page__shell-subsection"
-                  variants={motionPreset.cardVariants}
-                  initial={motionPreset.wrapper.initial}
-                  animate={motionPreset.wrapper.animate}
-                >
-                  <ShopCard shop={page.shop} theme={theme} />
-                </motion.div>
-              ) : null}
-
               {!hasVisibleContent ? (
                 <motion.div
                   className="public-page__shell-block public-page__empty public-page__empty--standalone"
@@ -398,8 +457,8 @@ export default function PublicPageSceneView({
                 size={132}
                 level="M"
                 includeMargin={false}
-                bgColor="transparent"
-                fgColor={theme.design.titleTextColor}
+                bgColor="#ffffff"
+                fgColor="#111827"
               />
             </div>
             <span className="public-page__aside-url">{publicPath}</span>

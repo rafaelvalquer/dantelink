@@ -19,6 +19,7 @@ import LinkItemRow from "./LinkItemRowV2.jsx";
 
 export default function LinksEditorCard({
   links,
+  shopProducts = [],
   onAdd,
   onCommit,
   onDelete,
@@ -74,6 +75,7 @@ export default function LinksEditorCard({
                 <LinkItemRow
                   key={link.id}
                   link={link}
+                  shopProducts={shopProducts}
                   onCommit={(payload) => onCommit(link.id, payload)}
                   onDelete={() => onDelete(link.id)}
                   onToggle={() => onToggle(link.id)}

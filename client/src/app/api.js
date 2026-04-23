@@ -46,6 +46,24 @@ export async function uploadMyPageAvatar(file) {
   return data;
 }
 
+async function uploadFile(path, file) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    body: formData,
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data?.error || `Falha no upload com status ${response.status}`);
+  }
+
+  return data;
+}
+
 export function saveMyPageTheme(theme) {
   return request("PUT", "/my-page", { theme });
 }
@@ -104,4 +122,32 @@ export function reorderSecondaryLinks(ids) {
 
 export function saveShop(payload) {
   return request("PUT", "/my-page/shop", payload);
+}
+
+export function importShopProduct(sourceUrl) {
+  return request("POST", "/my-page/shop/products/import", { sourceUrl });
+}
+
+export function createShopProduct(payload) {
+  return request("POST", "/my-page/shop/products", payload);
+}
+
+export function saveShopProduct(id, payload) {
+  return request("PUT", `/my-page/shop/products/${id}`, payload);
+}
+
+export function removeShopProduct(id) {
+  return request("DELETE", `/my-page/shop/products/${id}`);
+}
+
+export function toggleShopProduct(id) {
+  return request("PATCH", `/my-page/shop/products/${id}/toggle`);
+}
+
+export function reorderShopProducts(ids) {
+  return request("PATCH", "/my-page/shop/products/reorder", { ids });
+}
+
+export function uploadShopProductImage(file) {
+  return uploadFile("/my-page/shop/products/image", file);
 }

@@ -36,6 +36,7 @@ export const MY_PAGE_THEME_DEFAULTS = {
   pageTextColor: "#64748b",
   titleTextColor: "#0f172a",
   primaryButtonsLayout: "stack",
+  primaryButtonContentAlign: "center",
   secondaryLinksStyle: "icon_text",
   secondaryLinksIconLayout: "brand_badge",
   secondaryLinksSize: "medium",
@@ -756,6 +757,11 @@ export const MY_PAGE_PRIMARY_BUTTON_LAYOUT_OPTIONS = [
   { value: "minimal", label: "Minimal", description: "Mais leve, editorial e objetivo." },
 ];
 
+export const MY_PAGE_PRIMARY_BUTTON_CONTENT_ALIGN_OPTIONS = [
+  { value: "center", label: "Centralizado", description: "Texto mais equilibrado no meio do card." },
+  { value: "left", label: "A esquerda", description: "Texto alinhado ao inicio do card com leitura mais natural." },
+];
+
 export const MY_PAGE_SECONDARY_LINK_STYLE_OPTIONS = [
   { value: "text", label: "Texto" },
   { value: "icon", label: "Icone" },
@@ -1176,6 +1182,11 @@ export function normalizeMyPageTheme(rawTheme = {}) {
       rawTheme.secondaryLinksPosition === "bottom"
         ? rawTheme.secondaryLinksPosition
         : presetTheme.secondaryLinksPosition || MY_PAGE_THEME_DEFAULTS.secondaryLinksPosition,
+    primaryButtonContentAlign:
+      rawTheme.primaryButtonContentAlign === "left" ||
+      rawTheme.primaryButtonContentAlign === "right"
+        ? "left"
+        : MY_PAGE_THEME_DEFAULTS.primaryButtonContentAlign,
   };
 
   return {

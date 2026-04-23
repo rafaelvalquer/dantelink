@@ -18,6 +18,7 @@ import {
   MY_PAGE_BACKGROUND_PATTERN_VARIANT_OPTIONS,
   MY_PAGE_BACKGROUND_STYLE_OPTIONS,
   MY_PAGE_BRAND_LAYOUT_OPTIONS,
+  MY_PAGE_PRIMARY_BUTTON_CONTENT_ALIGN_OPTIONS,
   MY_PAGE_BUTTON_RADIUS_OPTIONS,
   MY_PAGE_BUTTON_SHADOW_OPTIONS,
   MY_PAGE_BUTTON_STYLE_OPTIONS,
@@ -647,11 +648,11 @@ function renderPanelContent({
     case "botao":
       return (
         <>
-          <div className="grid gap-4">
-            <GroupLabel>Layout</GroupLabel>
-            <OptionGrid columns="3">
-              {MY_PAGE_PRIMARY_BUTTON_LAYOUT_OPTIONS.map((option) => (
-                <OptionCard
+        <div className="grid gap-4">
+          <GroupLabel>Layout</GroupLabel>
+          <OptionGrid columns="3">
+            {MY_PAGE_PRIMARY_BUTTON_LAYOUT_OPTIONS.map((option) => (
+              <OptionCard
                   key={option.value}
                   selected={value.primaryButtonsLayout === option.value}
                   title={option.label}
@@ -667,6 +668,14 @@ function renderPanelContent({
                 />
               ))}
             </OptionGrid>
+          </div>
+          <div className="grid gap-3">
+            <GroupLabel>Posicao do texto</GroupLabel>
+            <ChoiceButtons
+              value={value.primaryButtonContentAlign}
+              options={MY_PAGE_PRIMARY_BUTTON_CONTENT_ALIGN_OPTIONS}
+              onChange={(nextValue) => onChange("primaryButtonContentAlign", nextValue)}
+            />
           </div>
           <div className="grid gap-4">
             <GroupLabel>Estilo</GroupLabel>
