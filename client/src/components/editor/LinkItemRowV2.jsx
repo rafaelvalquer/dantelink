@@ -237,6 +237,7 @@ export default function LinkItemRowV2({
   onDelete,
   onToggle,
   onMenuOpenChange,
+  isHighlighted = false,
 }) {
   const [editingField, setEditingField] = useState(null);
   const [draftValue, setDraftValue] = useState("");
@@ -255,6 +256,7 @@ export default function LinkItemRowV2({
   const lastSuccessfulQueryRef = useRef("");
   const inputRef = useRef(null);
   const menuRef = useRef(null);
+  const rowRef = useRef(null);
   const isInteractionLocked = Boolean(editingField || savingField || menuSaving);
   const {
     attributes,
@@ -334,6 +336,22 @@ export default function LinkItemRowV2({
   useEffect(() => {
     onMenuOpenChange?.(menuOpen);
   }, [menuOpen, onMenuOpenChange]);
+
+  useEffect(() => {
+    if (!isHighlighted) {
+      return;
+    }
+
+    rowRef.current?.scrollIntoView({
+      block: "center",
+      behavior: "smooth",
+    });
+  }, [isHighlighted]);
+
+  function setRefs(node) {
+    rowRef.current = node;
+    setNodeRef(node);
+  }
 
   useEffect(() => {
     if (!isLocationValue) {
@@ -580,8 +598,8 @@ export default function LinkItemRowV2({
 
   return (
     <article
-      ref={setNodeRef}
-      className={`item-row item-row--sortable link-card${isDragging ? " is-dragging" : ""}${menuOpen ? " is-menu-open" : ""}`}
+      ref={setRefs}
+      className={`item-row item-row--sortable link-card${isDragging ? " is-dragging" : ""}${menuOpen ? " is-menu-open" : ""}${isHighlighted ? " is-highlighted" : ""}`}
       style={sortableStyle}
     >
       <button
@@ -768,19 +786,6 @@ export default function LinkItemRowV2({
                   </div>
                 ) : null}
 
-                {link.type === "location" ? (
-                  <div className="link-card__popover-switch">
-                    <Switch
-                      checked={Boolean(link.showMap)}
-                      onChange={(nextChecked) => {
-                        void handleShowMapChange(nextChecked);
-                      }}
-                      label="Mostrar mapa"
-                      disabled={menuSaving}
-                    />
-                  </div>
-                ) : null}
-
                 {menuError ? (
                   <span className="link-card__field-error">{menuError}</span>
                 ) : null}
@@ -788,8 +793,18 @@ export default function LinkItemRowV2({
             ) : null}
           </div>
 
-          {link.type === "location" && link.showMap ? (
-            <span className="link-card__meta-chip">Mapa ativo</span>
+          {link.type === "location" ? (
+            <div className="link-card__map-toggle">
+              <Switch
+                checked={Boolean(link.showMap)}
+                onChange={(nextChecked) => {
+                  void handleShowMapChange(nextChecked);
+                }}
+                label="Mostrar mapa"
+                className="link-card__map-toggle-switch"
+                disabled={Boolean(menuSaving || savingField)}
+              />
+            </div>
           ) : null}
         </div>
       </div>

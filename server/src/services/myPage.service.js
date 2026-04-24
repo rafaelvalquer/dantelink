@@ -65,12 +65,25 @@ const SECONDARY_LINK_PLATFORMS = new Set([
   "instagram",
   "facebook",
   "linkedin",
+  "x",
+  "threads",
   "youtube",
   "tiktok",
+  "telegram",
+  "discord",
   "email",
+  "phone",
   "site",
+  "calendly",
 ]);
-const HANDLE_BASED_PLATFORMS = new Set(["instagram", "youtube", "tiktok"]);
+const HANDLE_BASED_PLATFORMS = new Set([
+  "instagram",
+  "youtube",
+  "tiktok",
+  "x",
+  "threads",
+  "telegram",
+]);
 const SHOP_IMPORT_MODES = new Set([
   "manual",
   "mercadolivre",
@@ -87,10 +100,16 @@ const SECONDARY_PLATFORM_LABELS = {
   instagram: "Instagram",
   facebook: "Facebook",
   linkedin: "LinkedIn",
+  x: "X / Twitter",
+  threads: "Threads",
   youtube: "YouTube",
   tiktok: "TikTok",
+  telegram: "Telegram",
+  discord: "Discord",
   email: "E-mail",
+  phone: "Telefone",
   site: "Site",
+  calendly: "Calendly",
 };
 const SHOP_DEFAULTS = {
   isActive: true,
@@ -169,11 +188,17 @@ function inferSecondaryPlatform(link = {}) {
   if (sample.includes("instagram")) return "instagram";
   if (sample.includes("facebook")) return "facebook";
   if (sample.includes("linkedin")) return "linkedin";
+  if (sample.includes("threads.net") || sample.includes("threads")) return "threads";
+  if (sample.includes("x.com") || sample.includes("twitter.com")) return "x";
   if (sample.includes("tiktok")) return "tiktok";
+  if (sample.includes("t.me") || sample.includes("telegram")) return "telegram";
+  if (sample.includes("discord.gg") || sample.includes("discord.com")) return "discord";
   if (sample.includes("youtube") || sample.includes("youtu.be")) return "youtube";
+  if (sample.includes("calendly")) return "calendly";
   if (sample.includes("mailto:") || /\b[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b/i.test(sample)) {
     return "email";
   }
+  if (sample.includes("tel:")) return "phone";
   return "site";
 }
 
@@ -196,6 +221,21 @@ function extractHandleFromUrl(url = "", platform = "") {
   if (platform === "youtube") {
     const match = clean.match(/youtube\.com\/@([^/?#]+)/i);
     return match ? match[1] : clean.split("/@").pop()?.split("/")[0] || "";
+  }
+
+  if (platform === "x") {
+    const match = clean.match(/(?:x|twitter)\.com\/([^/?#]+)/i);
+    return match ? match[1] : clean.split("/").pop() || "";
+  }
+
+  if (platform === "threads") {
+    const match = clean.match(/threads\.net\/@([^/?#]+)/i);
+    return match ? match[1] : clean.split("/@").pop()?.split("/")[0] || "";
+  }
+
+  if (platform === "telegram") {
+    const match = clean.match(/(?:t\.me|telegram\.me)\/([^/?#]+)/i);
+    return match ? match[1] : clean.split("/").pop() || "";
   }
 
   return "";
@@ -221,6 +261,13 @@ function normalizeEmailAddress(value = "") {
     .trim();
 }
 
+function normalizePhoneLinkValue(value = "") {
+  return String(value || "")
+    .trim()
+    .replace(/^tel:/i, "")
+    .replace(/\D+/g, "");
+}
+
 function buildSecondaryUrl(platform = "", handle = "", fallbackUrl = "") {
   const safeHandle = normalizeSecondaryHandle(handle, platform);
 
@@ -236,9 +283,26 @@ function buildSecondaryUrl(platform = "", handle = "", fallbackUrl = "") {
     return safeHandle ? `https://www.youtube.com/@${safeHandle}` : "";
   }
 
+  if (platform === "x") {
+    return safeHandle ? `https://x.com/${safeHandle}` : "";
+  }
+
+  if (platform === "threads") {
+    return safeHandle ? `https://www.threads.net/@${safeHandle}` : "";
+  }
+
+  if (platform === "telegram") {
+    return safeHandle ? `https://t.me/${safeHandle}` : "";
+  }
+
   if (platform === "email") {
     const normalizedEmail = normalizeEmailAddress(fallbackUrl);
     return normalizedEmail ? `mailto:${normalizedEmail}` : "";
+  }
+
+  if (platform === "phone") {
+    const normalizedPhone = normalizePhoneLinkValue(fallbackUrl);
+    return normalizedPhone ? `tel:${normalizedPhone}` : "";
   }
 
   return String(fallbackUrl || "").trim();
@@ -394,10 +458,13 @@ function normalizeSecondaryLink(link = {}, orderFallback = 0) {
   const email = platform === "email"
     ? normalizeEmailAddress(source.url || source.handle || "")
     : "";
+  const phone = platform === "phone"
+    ? normalizePhoneLinkValue(source.url || source.handle || "")
+    : "";
   const url = buildSecondaryUrl(
     platform,
     handle,
-    platform === "email" ? email : source.url,
+    platform === "email" ? email : platform === "phone" ? phone : source.url,
   );
   const title = typeof source.title === "string" && source.title.trim()
     ? source.title.trim()
@@ -411,7 +478,7 @@ function normalizeSecondaryLink(link = {}, orderFallback = 0) {
     platform,
     title,
     url,
-    handle: platform === "email" ? "" : handle,
+    handle: platform === "email" || platform === "phone" ? "" : handle,
     isActive: source.isActive !== false,
     order: Number.isFinite(Number(source.order)) ? Number(source.order) : orderFallback,
   };

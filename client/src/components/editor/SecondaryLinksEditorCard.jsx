@@ -24,6 +24,7 @@ export default function SecondaryLinksEditorCard({
   onDelete,
   onToggle,
   onReorder,
+  highlightedId = "",
 }) {
   const [openMenuLinkId, setOpenMenuLinkId] = useState(null);
   const linkIds = useMemo(() => links.map((link) => link.id), [links]);
@@ -77,6 +78,7 @@ export default function SecondaryLinksEditorCard({
                   onCommit={(payload) => onCommit(link.id, payload)}
                   onDelete={() => onDelete(link.id)}
                   onToggle={() => onToggle(link.id)}
+                  isHighlighted={String(highlightedId) === String(link.id)}
                   onMenuOpenChange={(open) => {
                     setOpenMenuLinkId((current) =>
                       open ? link.id : current === link.id ? null : current,

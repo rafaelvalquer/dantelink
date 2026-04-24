@@ -10,10 +10,16 @@ import {
   FaGlobe,
   FaInstagram,
   FaLinkedinIn,
+  FaDiscord,
+  FaPhone,
+  FaTelegram,
+  FaThreads,
   FaTiktok,
   FaWhatsapp,
+  FaXTwitter,
   FaYoutube,
 } from "react-icons/fa6";
+import { SiCalendly } from "react-icons/si";
 import {
   buildPrimaryButtonStyle,
   buildSecondaryButtonStyle,
@@ -1353,7 +1359,21 @@ export function getMyPageTheme(page = {}) {
 
 function getSocialPlatform(link = {}) {
   if (
-    ["instagram", "facebook", "tiktok", "youtube", "email", "site"].includes(
+    [
+      "instagram",
+      "facebook",
+      "linkedin",
+      "x",
+      "threads",
+      "tiktok",
+      "youtube",
+      "telegram",
+      "discord",
+      "email",
+      "phone",
+      "site",
+      "calendly",
+    ].includes(
       String(link.platform || "").toLowerCase(),
     )
   ) {
@@ -1363,22 +1383,35 @@ function getSocialPlatform(link = {}) {
   const sample = `${link.title || ""} ${link.url || ""}`.toLowerCase();
   if (sample.includes("instagram")) return "instagram";
   if (sample.includes("facebook")) return "facebook";
+  if (sample.includes("linkedin")) return "linkedin";
+  if (sample.includes("threads.net") || sample.includes("threads")) return "threads";
+  if (sample.includes("x.com") || sample.includes("twitter.com")) return "x";
   if (sample.includes("tiktok")) return "tiktok";
+  if (sample.includes("t.me") || sample.includes("telegram")) return "telegram";
+  if (sample.includes("discord.gg") || sample.includes("discord.com")) return "discord";
   if (sample.includes("youtube") || sample.includes("youtu.be")) return "youtube";
+  if (sample.includes("calendly")) return "calendly";
   if (sample.includes("mailto:") || /\b[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b/i.test(sample)) {
     return "email";
   }
+  if (sample.includes("tel:")) return "phone";
   return "site";
 }
 
 const SOCIAL_PLATFORM_LABELS = {
   instagram: "Instagram",
   facebook: "Facebook",
+  linkedin: "LinkedIn",
+  x: "X / Twitter",
+  threads: "Threads",
   tiktok: "TikTok",
   youtube: "YouTube",
+  telegram: "Telegram",
+  discord: "Discord",
   email: "E-mail",
+  phone: "Telefone",
   site: "Site",
-  linkedin: "LinkedIn",
+  calendly: "Calendly",
 };
 
 export function getMyPageSocialLabel(link = {}) {
@@ -1425,6 +1458,28 @@ export function getMyPageSocialBrand(link = {}) {
     };
   }
 
+  if (platform === "x") {
+    return {
+      platform,
+      Icon: FaXTwitter,
+      badgeStyle: {
+        background: "linear-gradient(135deg, #111827 0%, #000000 100%)",
+        color: "#ffffff",
+      },
+    };
+  }
+
+  if (platform === "threads") {
+    return {
+      platform,
+      Icon: FaThreads,
+      badgeStyle: {
+        background: "linear-gradient(135deg, #27272a 0%, #09090b 100%)",
+        color: "#ffffff",
+      },
+    };
+  }
+
   if (platform === "tiktok") {
     return {
       platform,
@@ -1447,6 +1502,28 @@ export function getMyPageSocialBrand(link = {}) {
     };
   }
 
+  if (platform === "telegram") {
+    return {
+      platform,
+      Icon: FaTelegram,
+      badgeStyle: {
+        background: "linear-gradient(135deg, #67e8f9 0%, #229ed9 100%)",
+        color: "#ffffff",
+      },
+    };
+  }
+
+  if (platform === "discord") {
+    return {
+      platform,
+      Icon: FaDiscord,
+      badgeStyle: {
+        background: "linear-gradient(135deg, #a5b4fc 0%, #5865f2 100%)",
+        color: "#ffffff",
+      },
+    };
+  }
+
   if (platform === "email") {
     return {
       platform,
@@ -1455,8 +1532,30 @@ export function getMyPageSocialBrand(link = {}) {
     };
   }
 
+  if (platform === "phone") {
+    return {
+      platform,
+      Icon: FaPhone,
+      badgeStyle: {
+        background: "linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)",
+        color: "#15803d",
+      },
+    };
+  }
+
+  if (platform === "calendly") {
+    return {
+      platform,
+      Icon: SiCalendly,
+      badgeStyle: {
+        background: "linear-gradient(135deg, #bae6fd 0%, #006bff 100%)",
+        color: "#ffffff",
+      },
+    };
+  }
+
   return {
-    platform,
+      platform,
     Icon: FaGlobe,
     badgeStyle: null,
   };

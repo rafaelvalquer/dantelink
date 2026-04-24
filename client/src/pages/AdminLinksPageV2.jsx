@@ -14,6 +14,18 @@ import {
   toggleSecondaryLink,
   uploadMyPageAvatar,
 } from "../app/api.js";
+import AddLinkPickerModal from "../components/editor/AddLinkPickerModal.jsx";
+import {
+  SECONDARY_LINK_PICKER_OPTIONS,
+  buildPrimaryLinkCreatePayload,
+  buildSecondaryLinkCreatePayload,
+  buildSecondaryLinkUrl as buildSecondaryLinkUrlFromCatalog,
+  getPrimaryLinkPickerOptions,
+  isSecondaryHandlePlatform as isSecondaryHandlePlatformFromCatalog,
+  normalizeSecondaryEmail as normalizeSecondaryEmailValue,
+  normalizeSecondaryHandle as normalizeSecondaryHandleValue,
+  normalizeSecondaryPhone as normalizeSecondaryPhoneValue,
+} from "../components/editor/linkPickerCatalog.js";
 import LinksEditorCard from "../components/editor/LinksEditorCard.jsx";
 import ProfileEditorCard from "../components/editor/ProfileEditorCardV2.jsx";
 import SecondaryLinksEditorCard from "../components/editor/SecondaryLinksEditorCard.jsx";
@@ -29,15 +41,16 @@ const SECONDARY_LINK_PLATFORMS = new Set([
   "instagram",
   "facebook",
   "linkedin",
+  "x",
+  "threads",
   "tiktok",
   "youtube",
+  "telegram",
+  "discord",
   "email",
+  "phone",
   "site",
-]);
-const SECONDARY_HANDLE_PLATFORMS = new Set([
-  "instagram",
-  "tiktok",
-  "youtube",
+  "calendly",
 ]);
 
 const WHATSAPP_DEFAULT_MESSAGE =
@@ -211,12 +224,12 @@ function isLatestItemRequestToken(tokenMap, id, token) {
   return Number(tokenMap.get(String(id)) || 0) === Number(token);
 }
 
-function normalizeSecondaryHandle(value = "") {
-  return String(value || "").trim().replace(/^@+/, "").replace(/\s+/g, "");
+function normalizeSecondaryHandle(value = "", platform = "") {
+  return normalizeSecondaryHandleValue(value, platform);
 }
 
 function isSecondaryHandlePlatform(platform = "") {
-  return SECONDARY_HANDLE_PLATFORMS.has(
+  return isSecondaryHandlePlatformFromCatalog(
     String(platform || "").trim().toLowerCase(),
   );
 }
@@ -240,42 +253,15 @@ function createEditableSecondaryLink(link = {}) {
 }
 
 function buildSecondaryLinkUrl(platform = "", handle = "", fallbackUrl = "") {
-  const normalizedPlatform = String(platform || "").trim().toLowerCase();
-  const normalizedHandle = normalizeSecondaryHandle(handle);
-
-  if (normalizedPlatform === "instagram") {
-    return normalizedHandle
-      ? `https://www.instagram.com/${normalizedHandle}/`
-      : "";
-  }
-
-  if (normalizedPlatform === "tiktok") {
-    return normalizedHandle
-      ? `https://www.tiktok.com/@${normalizedHandle}`
-      : "";
-  }
-
-  if (normalizedPlatform === "youtube") {
-    return normalizedHandle
-      ? `https://www.youtube.com/@${normalizedHandle}`
-      : "";
-  }
-
-  if (normalizedPlatform === "email") {
-    const normalizedEmail = String(fallbackUrl || "")
-      .trim()
-      .replace(/^mailto:/i, "")
-      .trim();
-    return normalizedEmail ? `mailto:${normalizedEmail}` : "";
-  }
-
-  return String(fallbackUrl || "").trim();
+  return buildSecondaryLinkUrlFromCatalog(platform, handle, fallbackUrl);
 }
 
 function buildSavableSecondaryLinkPayload(link = {}) {
   const draft = createEditableSecondaryLink(link);
   const usesHandle = isSecondaryHandlePlatform(draft.platform);
-  const handle = usesHandle ? normalizeSecondaryHandle(draft.handle) : "";
+  const handle = usesHandle ? normalizeSecondaryHandle(draft.handle, draft.platform) : "";
+  const isEmail = draft.platform === "email";
+  const isPhone = draft.platform === "phone";
 
   return {
     platform: draft.platform,
@@ -283,7 +269,11 @@ function buildSavableSecondaryLinkPayload(link = {}) {
     handle,
     url: usesHandle
       ? buildSecondaryLinkUrl(draft.platform, handle)
-      : String(draft.url || "").trim(),
+      : isEmail
+        ? buildSecondaryLinkUrl("email", "", normalizeSecondaryEmailValue(draft.url || ""))
+        : isPhone
+          ? buildSecondaryLinkUrl("phone", "", normalizeSecondaryPhoneValue(draft.url || ""))
+          : String(draft.url || "").trim(),
     isActive: draft.isActive !== false,
   };
 }
@@ -322,10 +312,16 @@ export default function AdminLinksPageV2() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+  const [addModalScope, setAddModalScope] = useState("");
+  const [addModalError, setAddModalError] = useState("");
+  const [creatingOptionId, setCreatingOptionId] = useState("");
+  const [highlightedPrimaryLinkId, setHighlightedPrimaryLinkId] = useState("");
+  const [highlightedSecondaryLinkId, setHighlightedSecondaryLinkId] = useState("");
   const linksDraftRef = useRef([]);
   const secondaryLinksDraftRef = useRef([]);
   const linkRequestTokensRef = useRef(new Map());
   const secondaryLinkRequestTokensRef = useRef(new Map());
+  const highlightTimeoutRef = useRef(null);
 
   useEffect(() => {
     linksDraftRef.current = linksDraft;
@@ -371,6 +367,26 @@ export default function AdminLinksPageV2() {
     () => buildPreviewPage(serverPage, profileDraft, linksDraft, secondaryLinksDraft),
     [serverPage, profileDraft, linksDraft, secondaryLinksDraft],
   );
+  const hasShopPreview = useMemo(
+    () =>
+      linksDraft.some(
+        (item) => String(item.type || "").trim().toLowerCase() === "shop-preview",
+      ),
+    [linksDraft],
+  );
+  const primaryPickerOptions = useMemo(
+    () => getPrimaryLinkPickerOptions({ hasShopPreview }),
+    [hasShopPreview],
+  );
+
+  useEffect(
+    () => () => {
+      if (highlightTimeoutRef.current) {
+        window.clearTimeout(highlightTimeoutRef.current);
+      }
+    },
+    [],
+  );
 
   function handleProfileChange(field, value) {
     setProfileDraft((current) => ({
@@ -413,22 +429,75 @@ export default function AdminLinksPageV2() {
     }
   }
 
-  async function handleAddLink() {
+  function closeAddModal() {
+    if (creatingOptionId) {
+      return;
+    }
+
+    setAddModalScope("");
+    setAddModalError("");
+  }
+
+  function flashNewItem(scope, id) {
+    const normalizedId = String(id || "");
+    if (!normalizedId) return;
+
+    if (scope === "primary") {
+      setHighlightedPrimaryLinkId(normalizedId);
+      setHighlightedSecondaryLinkId("");
+    } else {
+      setHighlightedSecondaryLinkId(normalizedId);
+      setHighlightedPrimaryLinkId("");
+    }
+
+    if (highlightTimeoutRef.current) {
+      window.clearTimeout(highlightTimeoutRef.current);
+    }
+
+    highlightTimeoutRef.current = window.setTimeout(() => {
+      setHighlightedPrimaryLinkId("");
+      setHighlightedSecondaryLinkId("");
+      highlightTimeoutRef.current = null;
+    }, 2400);
+  }
+
+  function findCreatedItem(serverItems = [], previousIds = new Set()) {
+    return (serverItems || []).find((item) => !previousIds.has(String(item.id)));
+  }
+
+  async function handleAddLink(option) {
     try {
       setError("");
-      const response = await createLink({
-        title: "",
-        url: "",
-        isActive: true,
-        type: "link",
-      });
+      setAddModalError("");
+      const selectedType = String(option?.id || "link").trim().toLowerCase();
+
+      if (selectedType === "shop-preview" && hasShopPreview) {
+        const duplicateError = new Error(
+          "A pagina ja possui uma Previa da loja. Edite o item existente para continuar.",
+        );
+        setAddModalError(duplicateError.message);
+        setError(duplicateError.message);
+        return;
+      }
+
+      setCreatingOptionId(selectedType);
+      const previousIds = new Set(linksDraftRef.current.map((item) => String(item.id)));
+      const response = await createLink(buildPrimaryLinkCreatePayload(selectedType));
       setServerPage(response.page);
       setLinksDraft((current) =>
         mergeServerIdsPreservingDraftContent(response.page.links || [], current),
       );
-      setNotice("Link adicionado.");
+      const createdItem = findCreatedItem(response.page.links || [], previousIds);
+      if (createdItem?.id) {
+        flashNewItem("primary", createdItem.id);
+      }
+      setAddModalScope("");
+      setNotice(`${option?.label || "Link"} adicionado.`);
     } catch (actionError) {
+      setAddModalError(actionError.message);
       setError(actionError.message);
+    } finally {
+      setCreatingOptionId("");
     }
   }
 
@@ -487,16 +556,20 @@ export default function AdminLinksPageV2() {
     }
   }
 
-  async function handleAddSecondaryLink() {
+  async function handleAddSecondaryLink(option) {
     try {
       setError("");
-      const response = await createSecondaryLink({
-        platform: "instagram",
-        title: "Instagram",
-        url: "",
-        handle: "",
-        isActive: true,
-      });
+      setAddModalError("");
+      const selectedPlatform = String(option?.platform || option?.id || "instagram")
+        .trim()
+        .toLowerCase();
+      setCreatingOptionId(selectedPlatform);
+      const previousIds = new Set(
+        secondaryLinksDraftRef.current.map((item) => String(item.id)),
+      );
+      const response = await createSecondaryLink(
+        buildSecondaryLinkCreatePayload(selectedPlatform),
+      );
       setServerPage(response.page);
       setSecondaryLinksDraft((current) =>
         mergeServerIdsPreservingDraftContent(
@@ -504,9 +577,20 @@ export default function AdminLinksPageV2() {
           current,
         ),
       );
-      setNotice("Link secundario adicionado.");
+      const createdItem = findCreatedItem(
+        response.page.secondaryLinks || [],
+        previousIds,
+      );
+      if (createdItem?.id) {
+        flashNewItem("secondary", createdItem.id);
+      }
+      setAddModalScope("");
+      setNotice(`${option?.label || "Link secundario"} adicionado.`);
     } catch (actionError) {
+      setAddModalError(actionError.message);
       setError(actionError.message);
+    } finally {
+      setCreatingOptionId("");
     }
   }
 
@@ -805,23 +889,48 @@ export default function AdminLinksPageV2() {
           <LinksEditorCard
             links={linksDraft}
             shopProducts={serverPage?.shop?.products || []}
-            onAdd={handleAddLink}
+            onAdd={() => {
+              setAddModalError("");
+              setAddModalScope("primary");
+            }}
             onCommit={handleCommitLink}
             onDelete={handleDeleteLink}
             onToggle={handleToggleLink}
             onReorder={handleReorderLinks}
+            highlightedId={highlightedPrimaryLinkId}
           />
 
           <SecondaryLinksEditorCard
             links={secondaryLinksDraft}
-            onAdd={handleAddSecondaryLink}
+            onAdd={() => {
+              setAddModalError("");
+              setAddModalScope("secondary");
+            }}
             onCommit={handleCommitSecondaryLink}
             onDelete={handleDeleteSecondaryLink}
             onToggle={handleToggleSecondaryLink}
             onReorder={handleReorderSecondaryLinks}
+            highlightedId={highlightedSecondaryLinkId}
           />
         </div>
       )}
+
+      <AddLinkPickerModal
+        open={Boolean(addModalScope)}
+        scope={addModalScope || "primary"}
+        options={addModalScope === "secondary" ? SECONDARY_LINK_PICKER_OPTIONS : primaryPickerOptions}
+        busyOptionId={creatingOptionId}
+        error={addModalError}
+        onClose={closeAddModal}
+        onSelect={(option) => {
+          if (addModalScope === "secondary") {
+            void handleAddSecondaryLink(option);
+            return;
+          }
+
+          void handleAddLink(option);
+        }}
+      />
     </EditorShell>
   );
 }

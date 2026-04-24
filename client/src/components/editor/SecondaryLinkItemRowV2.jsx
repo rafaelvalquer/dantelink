@@ -3,139 +3,23 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
   ChevronDown,
-  Globe,
   GripVertical,
-  Link2,
-  Mail,
   Pencil,
   Trash2,
 } from "lucide-react";
 import Input from "../ui/Input.jsx";
 import Switch from "../ui/Switch.jsx";
-
-const platformOptions = [
-  { value: "instagram", label: "Instagram" },
-  { value: "facebook", label: "Facebook" },
-  { value: "linkedin", label: "LinkedIn" },
-  { value: "tiktok", label: "TikTok" },
-  { value: "youtube", label: "YouTube" },
-  { value: "email", label: "E-mail" },
-  { value: "site", label: "Site" },
-];
-
-const PLATFORM_META = {
-  instagram: {
-    label: "Instagram",
-    Icon: Link2,
-    primaryFieldLabel: "Perfil",
-    primaryPlaceholder: "@perfil",
-  },
-  facebook: {
-    label: "Facebook",
-    Icon: Link2,
-    primaryFieldLabel: "URL",
-    primaryPlaceholder: "https://...",
-  },
-  linkedin: {
-    label: "LinkedIn",
-    Icon: Link2,
-    primaryFieldLabel: "URL",
-    primaryPlaceholder: "https://www.linkedin.com/in/...",
-  },
-  tiktok: {
-    label: "TikTok",
-    Icon: Link2,
-    primaryFieldLabel: "Perfil",
-    primaryPlaceholder: "@perfil",
-  },
-  youtube: {
-    label: "YouTube",
-    Icon: Link2,
-    primaryFieldLabel: "Perfil",
-    primaryPlaceholder: "@perfil",
-  },
-  email: {
-    label: "E-mail",
-    Icon: Mail,
-    primaryFieldLabel: "E-mail",
-    primaryPlaceholder: "voce@dominio.com",
-  },
-  site: {
-    label: "Site",
-    Icon: Globe,
-    primaryFieldLabel: "URL",
-    primaryPlaceholder: "https://...",
-  },
-};
-
-function normalizeHandle(value) {
-  return String(value || "").trim().replace(/^@+/, "").replace(/\s+/g, "");
-}
-
-function normalizeEmailValue(value = "") {
-  return String(value || "").trim().replace(/^mailto:/i, "").trim();
-}
-
-function isHandlePlatform(platform) {
-  return (
-    platform === "instagram" ||
-    platform === "youtube" ||
-    platform === "tiktok"
-  );
-}
-
-function getPlatformMeta(platform = "") {
-  const normalizedPlatform = String(platform || "").trim().toLowerCase();
-  return PLATFORM_META[normalizedPlatform] || PLATFORM_META.instagram;
-}
-
-function getPlatformLabel(platform = "") {
-  return getPlatformMeta(platform).label;
-}
-
-function buildSecondaryUrl(platform, handle, fallbackUrl = "") {
-  const normalizedHandle = normalizeHandle(handle);
-
-  if (platform === "instagram") {
-    return normalizedHandle
-      ? `https://www.instagram.com/${normalizedHandle}/`
-      : "";
-  }
-
-  if (platform === "tiktok") {
-    return normalizedHandle
-      ? `https://www.tiktok.com/@${normalizedHandle}`
-      : "";
-  }
-
-  if (platform === "youtube") {
-    return normalizedHandle
-      ? `https://www.youtube.com/@${normalizedHandle}`
-      : "";
-  }
-
-  if (platform === "email") {
-    const normalizedEmail = String(fallbackUrl || "")
-      .trim()
-      .replace(/^mailto:/i, "")
-      .trim();
-    return normalizedEmail ? `mailto:${normalizedEmail}` : "";
-  }
-
-  return String(fallbackUrl || "").trim();
-}
-
-function getPrimaryFieldValue(link = {}) {
-  if (String(link.platform || "").trim().toLowerCase() === "email") {
-    return normalizeEmailValue(link.url || "");
-  }
-
-  if (isHandlePlatform(link.platform || "")) {
-    return String(link.handle || "").trim();
-  }
-
-  return String(link.url || "").trim();
-}
+import {
+  SECONDARY_PLATFORM_OPTIONS,
+  buildSecondaryLinkUrl,
+  getSecondaryPlatformLabel,
+  getSecondaryPlatformMeta,
+  getSecondaryPrimaryFieldValue,
+  isSecondaryHandlePlatform,
+  normalizeSecondaryEmail,
+  normalizeSecondaryHandle,
+  normalizeSecondaryPhone,
+} from "./linkPickerCatalog.js";
 
 function buildEditableSecondaryLinkSnapshot(link = {}) {
   return JSON.stringify({
@@ -159,22 +43,27 @@ function buildFieldPatch(link = {}, field, value) {
     return { title: value };
   }
 
-  if (isHandlePlatform(link.platform || "")) {
-    const nextHandle = normalizeHandle(value);
+  if (isSecondaryHandlePlatform(link.platform || "")) {
+    const nextHandle = normalizeSecondaryHandle(value, link.platform || "");
     return {
       handle: nextHandle,
-      url: buildSecondaryUrl(link.platform, nextHandle),
+      url: buildSecondaryLinkUrl(link.platform, nextHandle),
     };
   }
 
   if (String(link.platform || "").trim().toLowerCase() === "email") {
-    const normalizedEmail = String(value || "")
-      .trim()
-      .replace(/^mailto:/i, "")
-      .trim();
+    const normalizedEmail = normalizeSecondaryEmail(value);
     return {
       handle: "",
-      url: buildSecondaryUrl("email", "", normalizedEmail),
+      url: buildSecondaryLinkUrl("email", "", normalizedEmail),
+    };
+  }
+
+  if (String(link.platform || "").trim().toLowerCase() === "phone") {
+    const normalizedPhone = normalizeSecondaryPhone(value);
+    return {
+      handle: "",
+      url: buildSecondaryLinkUrl("phone", "", normalizedPhone),
     };
   }
 
@@ -190,35 +79,47 @@ function createPlatformChangePatch(link = {}, nextPlatform) {
   const currentPlatform = String(link.platform || "instagram")
     .trim()
     .toLowerCase();
-  const nextUsesHandle = isHandlePlatform(normalizedNextPlatform);
-  const currentUsesHandle = isHandlePlatform(currentPlatform);
+  const nextUsesHandle = isSecondaryHandlePlatform(normalizedNextPlatform);
+  const currentUsesHandle = isSecondaryHandlePlatform(currentPlatform);
   const currentTitle = String(link.title || "").trim();
 
   if (nextUsesHandle) {
-    const nextHandle = currentUsesHandle ? normalizeHandle(link.handle) : "";
+    const nextHandle = currentUsesHandle
+      ? normalizeSecondaryHandle(link.handle, currentPlatform)
+      : "";
 
     return {
       platform: normalizedNextPlatform,
-      title: currentTitle || getPlatformLabel(normalizedNextPlatform),
+      title: currentTitle || getSecondaryPlatformLabel(normalizedNextPlatform),
       handle: nextHandle,
-      url: buildSecondaryUrl(normalizedNextPlatform, nextHandle),
+      url: buildSecondaryLinkUrl(normalizedNextPlatform, nextHandle),
     };
   }
 
   return {
     platform: normalizedNextPlatform,
-    title: currentTitle || getPlatformLabel(normalizedNextPlatform),
+    title: currentTitle || getSecondaryPlatformLabel(normalizedNextPlatform),
     handle: "",
     url:
       normalizedNextPlatform === "email"
-        ? buildSecondaryUrl(
+        ? buildSecondaryLinkUrl(
             "email",
             "",
             currentPlatform === "email"
-              ? normalizeEmailValue(link.url || "")
+              ? normalizeSecondaryEmail(link.url || "")
               : "",
           )
+        : normalizedNextPlatform === "phone"
+          ? buildSecondaryLinkUrl(
+              "phone",
+              "",
+              currentPlatform === "phone"
+                ? normalizeSecondaryPhone(link.url || "")
+                : "",
+            )
         : currentUsesHandle
+          || currentPlatform === "email"
+          || currentPlatform === "phone"
           ? ""
           : String(link.url || "").trim(),
   };
@@ -230,6 +131,7 @@ export default function SecondaryLinkItemRowV2({
   onDelete,
   onToggle,
   onMenuOpenChange,
+  isHighlighted = false,
 }) {
   const [editingField, setEditingField] = useState(null);
   const [draftValue, setDraftValue] = useState("");
@@ -240,6 +142,7 @@ export default function SecondaryLinkItemRowV2({
   const [menuError, setMenuError] = useState("");
   const inputRef = useRef(null);
   const menuRef = useRef(null);
+  const rowRef = useRef(null);
   const isInteractionLocked = Boolean(editingField || savingField || menuSaving);
   const {
     attributes,
@@ -253,8 +156,8 @@ export default function SecondaryLinkItemRowV2({
     id: link.id,
     disabled: isInteractionLocked,
   });
-  const platformMeta = getPlatformMeta(link.platform);
-  const primaryValue = getPrimaryFieldValue(link);
+  const platformMeta = getSecondaryPlatformMeta(link.platform);
+  const primaryValue = getSecondaryPrimaryFieldValue(link);
   const Icon = platformMeta.Icon;
   const sortableStyle = useMemo(
     () => ({
@@ -311,6 +214,22 @@ export default function SecondaryLinkItemRowV2({
   useEffect(() => {
     onMenuOpenChange?.(menuOpen);
   }, [menuOpen, onMenuOpenChange]);
+
+  useEffect(() => {
+    if (!isHighlighted) {
+      return;
+    }
+
+    rowRef.current?.scrollIntoView({
+      block: "center",
+      behavior: "smooth",
+    });
+  }, [isHighlighted]);
+
+  function setRefs(node) {
+    rowRef.current = node;
+    setNodeRef(node);
+  }
 
   function resetFieldState() {
     setEditingField(null);
@@ -437,8 +356,8 @@ export default function SecondaryLinkItemRowV2({
 
   return (
     <article
-      ref={setNodeRef}
-      className={`item-row item-row--sortable link-card${isDragging ? " is-dragging" : ""}${menuOpen ? " is-menu-open" : ""}`}
+      ref={setRefs}
+      className={`item-row item-row--sortable link-card${isDragging ? " is-dragging" : ""}${menuOpen ? " is-menu-open" : ""}${isHighlighted ? " is-highlighted" : ""}`}
       style={sortableStyle}
     >
       <button
@@ -484,7 +403,7 @@ export default function SecondaryLinkItemRowV2({
                     type="button"
                     className="link-card__field-action"
                     onClick={() => startEditing("title")}
-                    aria-label={`Editar rotulo de ${link.title || getPlatformLabel(link.platform)}`}
+                    aria-label={`Editar rotulo de ${link.title || getSecondaryPlatformLabel(link.platform)}`}
                     disabled={Boolean(savingField || menuSaving)}
                   >
                     <Pencil size={14} aria-hidden="true" />
@@ -521,7 +440,7 @@ export default function SecondaryLinkItemRowV2({
                     type="button"
                     className="link-card__field-action"
                     onClick={() => startEditing("value")}
-                    aria-label={`Editar ${platformMeta.primaryFieldLabel.toLowerCase()} de ${link.title || getPlatformLabel(link.platform)}`}
+                    aria-label={`Editar ${platformMeta.primaryFieldLabel.toLowerCase()} de ${link.title || getSecondaryPlatformLabel(link.platform)}`}
                     disabled={Boolean(savingField || menuSaving)}
                   >
                     <Pencil size={14} aria-hidden="true" />
@@ -535,14 +454,14 @@ export default function SecondaryLinkItemRowV2({
             <Switch
               checked={Boolean(link.isActive)}
               onChange={onToggle}
-              ariaLabel={`Alterar visibilidade de ${link.title || getPlatformLabel(link.platform)}`}
+              ariaLabel={`Alterar visibilidade de ${link.title || getSecondaryPlatformLabel(link.platform)}`}
               disabled={Boolean(savingField || menuSaving)}
             />
             <button
               type="button"
               className="link-card__icon-action is-danger"
               onClick={onDelete}
-              aria-label={`Excluir ${link.title || getPlatformLabel(link.platform)}`}
+              aria-label={`Excluir ${link.title || getSecondaryPlatformLabel(link.platform)}`}
               disabled={Boolean(savingField || menuSaving)}
             >
               <Trash2 size={16} aria-hidden="true" />
@@ -578,7 +497,7 @@ export default function SecondaryLinkItemRowV2({
                     onChange={handlePlatformChange}
                     disabled={menuSaving}
                   >
-                    {platformOptions.map((option) => (
+                    {SECONDARY_PLATFORM_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
                         {option.label}
                       </option>

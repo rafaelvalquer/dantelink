@@ -105,6 +105,8 @@ function ActionContainer({
 function PrimaryLinkCard({ link, interactive, page, theme, preview = false }) {
   const Icon = getMyPageButtonIcon(link);
   const title = getMyPagePrimaryLinkLabel(link);
+  const locationSubtitle =
+    link?.type === "location" ? String(link?.address || "").trim() : "";
   const contentAlignClassName = getContentAlignClassName(theme);
   const buttonProps = getPublicButtonProps(
     theme,
@@ -129,6 +131,9 @@ function PrimaryLinkCard({ link, interactive, page, theme, preview = false }) {
           </div>
           <div className={cls("public-page__cta-copy", contentAlignClassName)}>
             <strong>{title}</strong>
+            {locationSubtitle ? (
+              <span className="public-page__cta-subtitle">{locationSubtitle}</span>
+            ) : null}
           </div>
           <div className="public-page__cta-balance" aria-hidden="true" />
         </div>

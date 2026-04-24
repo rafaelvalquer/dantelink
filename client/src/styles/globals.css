@@ -2525,6 +2525,14 @@ a {
   opacity: 0.8;
 }
 
+.public-page__cta-subtitle {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .public-page__cta-arrow {
   font-size: 12px;
   font-weight: 700;
