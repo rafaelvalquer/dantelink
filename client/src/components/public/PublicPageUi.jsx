@@ -131,20 +131,29 @@ export function PublicPageAvatar({
 
   return (
     <div
-      className={cls("public-page__hero-avatar-wrap", compact && "is-compact")}
+      className={cls(
+        "public-page__hero-avatar-wrap",
+        theme?.usesSpotlightLayout && "is-spotlight",
+        compact && "is-compact",
+      )}
       style={theme.chromeButtonStyle}
     >
       {avatarSrc ? (
         <img
           src={avatarSrc}
           alt={page?.title || "Minha pagina"}
-          className={cls("public-page__hero-avatar", compact && "is-compact")}
+          className={cls(
+            "public-page__hero-avatar",
+            theme?.usesSpotlightLayout && "is-spotlight",
+            compact && "is-compact",
+          )}
         />
       ) : (
         <div
           className={cls(
             "public-page__hero-avatar",
             "public-page__hero-avatar--placeholder",
+            theme?.usesSpotlightLayout && "is-spotlight",
             compact && "is-compact",
           )}
           style={theme.primaryButtonStyle}
@@ -174,6 +183,7 @@ export function PublicPageHero({
       className={cls(
         "public-page__hero-shell",
         theme?.usesHeroLayout && "is-hero-layout",
+        theme?.usesSpotlightLayout && "is-spotlight",
         compact && "is-compact",
       )}
     >
@@ -181,10 +191,22 @@ export function PublicPageHero({
         <div className="public-page__hero-media" style={theme.heroMediaStyle} />
       ) : null}
 
-      <div className={cls("public-page__hero", compact && "is-compact")}>
+      <div
+        className={cls(
+          "public-page__hero",
+          theme?.usesSpotlightLayout && "is-spotlight",
+          compact && "is-compact",
+        )}
+      >
         <PublicPageAvatar page={page} theme={theme} compact={compact} />
 
-        <div className={cls("public-page__hero-copy", compact && "is-compact")}>
+        <div
+          className={cls(
+            "public-page__hero-copy",
+            theme?.usesSpotlightLayout && "is-spotlight",
+            compact && "is-compact",
+          )}
+        >
           {shouldShowEyebrow ? (
             <span className="public-page__hero-eyebrow" style={theme.accentTextStyle}>
               {eyebrow}
@@ -380,7 +402,7 @@ function PreviewActionButton({ link, theme, compact = false }) {
             className={cls(
               "public-page__cta-icon",
             )}
-            style={theme.secondaryButtonStyle}
+            style={theme.primaryIconBadgeStyle}
           >
             <Icon className="public-page__cta-icon-svg" />
           </div>

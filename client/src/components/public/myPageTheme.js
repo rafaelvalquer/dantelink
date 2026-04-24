@@ -44,6 +44,7 @@ export const MY_PAGE_THEME_DEFAULTS = {
   titleTextColor: "#0f172a",
   primaryButtonsLayout: "stack",
   primaryButtonContentAlign: "center",
+  primaryIconBadgeStyle: "theme",
   secondaryLinksStyle: "icon_text",
   secondaryLinksIconLayout: "brand_badge",
   secondaryLinksSize: "medium",
@@ -109,21 +110,59 @@ const THEME_PRESET_DEFINITIONS = [
       surfaceStyle: "glass",
       surfacePatternVariant: "grid",
       surfaceColor: "#0f172a",
-      buttonColor: "#14b8a6",
-      buttonTextColor: "#ecfeff",
+      buttonColor: "#19bfb0",
+      buttonTextColor: "#f5fffe",
       pageTextColor: "#9fb0c8",
       titleTextColor: "#f8fafc",
       fontPreset: "manrope",
-      buttonStyle: "solid",
-      buttonShadow: "strong",
+      buttonStyle: "soft",
+      buttonShadow: "soft",
       buttonRadius: "round",
       primaryButtonsLayout: "cards",
+      primaryIconBadgeStyle: "neutral",
       secondaryLinksStyle: "icon_text",
       secondaryLinksIconLayout: "brand_badge",
       secondaryLinksSize: "medium",
       secondaryLinksAlign: "center",
       animationPreset: "strong",
       backgroundColor: "#09111f",
+    },
+  },
+  {
+    value: "braciera_noir",
+    label: "Noir Minimal",
+    description: "Preto minimalista com logo dominante e clima premium.",
+    previewVariant: "noir",
+    previewArtwork: "noir",
+    previewLabel: "Noir Minimal",
+    previewTitle: "Minha Pagina",
+    previewCtaLabel: "Ver layout",
+    theme: {
+      themePreset: "braciera_noir",
+      brandLayout: "spotlight",
+      backgroundStyle: "fill",
+      backgroundGradientDirection: "linear_down",
+      backgroundPatternVariant: "dots",
+      surfaceStyle: "solid",
+      surfacePatternVariant: "grid",
+      surfaceColor: "#050505",
+      buttonColor: "#363636",
+      buttonTextColor: "#f5f5f5",
+      pageTextColor: "#b8b8b8",
+      titleTextColor: "#ffffff",
+      fontPreset: "manrope",
+      buttonStyle: "soft",
+      buttonShadow: "none",
+      buttonRadius: "round",
+      primaryButtonsLayout: "stack",
+      primaryButtonContentAlign: "center",
+      secondaryLinksStyle: "icon",
+      secondaryLinksIconLayout: "plain",
+      secondaryLinksSize: "small",
+      secondaryLinksAlign: "center",
+      secondaryLinksPosition: "bottom",
+      animationPreset: "subtle",
+      backgroundColor: "#000000",
     },
   },
   {
@@ -424,15 +463,16 @@ const THEME_PRESET_DEFINITIONS = [
       surfaceStyle: "solid",
       surfacePatternVariant: "lines",
       surfaceColor: "#111111",
-      buttonColor: "#a3e635",
+      buttonColor: "#8fd12f",
       buttonTextColor: "#111111",
       pageTextColor: "#d4d4d8",
       titleTextColor: "#fafafa",
       fontPreset: "manrope",
-      buttonStyle: "solid",
-      buttonShadow: "hard",
+      buttonStyle: "soft",
+      buttonShadow: "strong",
       buttonRadius: "pill",
       primaryButtonsLayout: "cards",
+      primaryIconBadgeStyle: "neutral",
       secondaryLinksStyle: "icon",
       secondaryLinksIconLayout: "plain",
       secondaryLinksSize: "small",
@@ -702,6 +742,11 @@ export const MY_PAGE_BRAND_LAYOUT_OPTIONS = [
     value: "hero",
     label: "Hero",
     description: "Usa o avatar como destaque de capa.",
+  },
+  {
+    value: "spotlight",
+    label: "Spotlight",
+    description: "Logo grande e centralizado com clima premium.",
   },
 ];
 
@@ -1194,6 +1239,8 @@ export function normalizeMyPageTheme(rawTheme = {}) {
       rawTheme.primaryButtonContentAlign === "right"
         ? "left"
         : MY_PAGE_THEME_DEFAULTS.primaryButtonContentAlign,
+    primaryIconBadgeStyle:
+      rawTheme.primaryIconBadgeStyle === "neutral" ? "neutral" : "theme",
   };
 
   return {
@@ -1243,18 +1290,34 @@ export function getMyPageTheme(page = {}) {
   const primaryButtonStyle = buildPrimaryButtonStyle(design);
   const secondaryButtonStyle = buildSecondaryButtonStyle(design);
   const usesHeroLayout = design.brandLayout === "hero" && Boolean(page?.avatarUrl);
+  const usesSpotlightLayout = design.brandLayout === "spotlight";
   const darkSurface = isDarkColor(design.surfaceColor);
   const chromeColor = mixColors(
     design.surfaceColor,
     "#ffffff",
     darkSurface ? 0.22 : 0.72,
   );
+  const neutralIconBase = mixColors(design.surfaceColor, "#000000", darkSurface ? 0.42 : 0.72);
+  const primaryIconBadgeStyle =
+    design.primaryIconBadgeStyle === "neutral"
+      ? {
+          background: `linear-gradient(180deg, ${alphaColor(mixColors(neutralIconBase, "#ffffff", 0.06), 0.94)} 0%, ${alphaColor(neutralIconBase, 0.98)} 100%)`,
+          border: `1px solid ${alphaColor(mixColors(design.titleTextColor, "#ffffff", 0.12), 0.18)}`,
+          color: design.titleTextColor,
+          boxShadow: `0 16px 32px -24px ${alphaColor("#000000", 0.62)}`,
+          fontFamily,
+        }
+      : {
+          ...secondaryButtonStyle,
+          fontFamily,
+        };
 
   return {
     design,
     fontFamily,
     headingFontFamily,
     usesHeroLayout,
+    usesSpotlightLayout,
     buttonIconRadiusClassName:
       BUTTON_ICON_RADIUS_CLASSNAMES[design.buttonRadius] ||
       BUTTON_ICON_RADIUS_CLASSNAMES.round,
@@ -1343,6 +1406,7 @@ export function getMyPageTheme(page = {}) {
       ...primaryButtonStyle,
       fontFamily,
     },
+    primaryIconBadgeStyle,
     secondaryButtonStyle: {
       ...secondaryButtonStyle,
       fontFamily,

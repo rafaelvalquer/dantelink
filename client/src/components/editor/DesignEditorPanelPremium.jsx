@@ -254,7 +254,13 @@ function BrandPreview({ page, theme, mode, primaryLinks }) {
       theme={theme}
       primaryLinks={primaryLinks}
       eyebrow="Avatar ou Hero"
-      description={mode === "hero" ? "Imagem destacada com sobreposicao." : "Avatar e copy em foco."}
+      description={
+        mode === "hero"
+          ? "Imagem destacada com sobreposicao."
+          : mode === "spotlight"
+            ? "Logo grande e centralizado."
+            : "Avatar e copy em foco."
+      }
       showButtons={false}
       showSocial={false}
     />

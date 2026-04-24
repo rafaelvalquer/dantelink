@@ -230,26 +230,43 @@ function BrandPreview({ page, theme, mode }) {
         <div className="design-mini-page__hero-cover" style={theme.heroMediaStyle} />
       ) : null}
       <div className="design-mini-page__surface" style={theme.surfaceStyle}>
-        <div className="design-mini-page__hero">
+        <div className={cls("design-mini-page__hero", mode === "spotlight" && "is-spotlight")}>
           {mode === "hero" ? null : (
-            <div className="design-mini-page__avatar-shell">
+            <div
+              className={cls(
+                "design-mini-page__avatar-shell",
+                mode === "spotlight" && "is-spotlight",
+              )}
+            >
               {page?.avatarUrl ? (
                 <img
-                  className="design-mini-page__avatar"
+                  className={cls("design-mini-page__avatar", mode === "spotlight" && "is-spotlight")}
                   src={page.avatarUrl}
                   alt={page?.title || "Minha Pagina"}
                 />
               ) : (
-                <div className="design-mini-page__avatar design-mini-page__avatar--placeholder">
+                <div
+                  className={cls(
+                    "design-mini-page__avatar",
+                    "design-mini-page__avatar--placeholder",
+                    mode === "spotlight" && "is-spotlight",
+                  )}
+                >
                   {String(page?.title || "M").slice(0, 1)}
                 </div>
               )}
             </div>
           )}
-          <div className="design-mini-page__copy">
+          <div className={cls("design-mini-page__copy", mode === "spotlight" && "is-spotlight")}>
             <span style={theme.accentTextStyle}>Avatar ou Hero</span>
             <strong style={theme.titleStyle}>{page?.title || "Minha Pagina"}</strong>
-            <small>{mode === "hero" ? "Imagem no fundo." : "Avatar redondo."}</small>
+            <small>
+              {mode === "hero"
+                ? "Imagem no fundo."
+                : mode === "spotlight"
+                  ? "Logo grande e centralizado."
+                  : "Avatar redondo."}
+            </small>
           </div>
         </div>
       </div>

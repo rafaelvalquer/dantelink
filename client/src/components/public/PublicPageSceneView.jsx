@@ -125,7 +125,7 @@ function PrimaryLinkCard({ link, interactive, page, theme, preview = false }) {
         <div className="public-page__cta-main">
           <div
             className="public-page__cta-icon"
-            style={theme.secondaryButtonStyle}
+            style={theme.primaryIconBadgeStyle}
           >
             <Icon className="public-page__cta-icon-svg" />
           </div>
