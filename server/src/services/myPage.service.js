@@ -64,6 +64,7 @@ const PRIMARY_LINK_TYPES = new Set([
 const SECONDARY_LINK_PLATFORMS = new Set([
   "instagram",
   "facebook",
+  "linkedin",
   "youtube",
   "tiktok",
   "email",
@@ -85,6 +86,7 @@ let lastNominatimRequestAt = 0;
 const SECONDARY_PLATFORM_LABELS = {
   instagram: "Instagram",
   facebook: "Facebook",
+  linkedin: "LinkedIn",
   youtube: "YouTube",
   tiktok: "TikTok",
   email: "E-mail",
@@ -166,6 +168,7 @@ function inferSecondaryPlatform(link = {}) {
   const sample = `${link.title || ""} ${link.url || ""}`.toLowerCase();
   if (sample.includes("instagram")) return "instagram";
   if (sample.includes("facebook")) return "facebook";
+  if (sample.includes("linkedin")) return "linkedin";
   if (sample.includes("tiktok")) return "tiktok";
   if (sample.includes("youtube") || sample.includes("youtu.be")) return "youtube";
   if (sample.includes("mailto:") || /\b[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b/i.test(sample)) {

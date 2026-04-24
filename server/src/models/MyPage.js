@@ -27,7 +27,7 @@ const secondaryLinkSchema = new mongoose.Schema(
     id: { type: String, required: true, trim: true },
     platform: {
       type: String,
-      enum: ["instagram", "facebook", "youtube", "tiktok", "email", "site"],
+      enum: ["instagram", "facebook", "linkedin", "youtube", "tiktok", "email", "site"],
       trim: true,
       default: "instagram",
     },

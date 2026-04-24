@@ -1,6 +1,9 @@
 import { Router } from "express";
 import { uploadAvatarHandler } from "../controllers/avatar.controller.js";
-import { uploadProductImageHandler } from "../controllers/productImage.controller.js";
+import {
+  internalizeProductImageFromUrlHandler,
+  uploadProductImageHandler,
+} from "../controllers/productImage.controller.js";
 import {
   createLinkHandler,
   deleteLinkHandler,
@@ -55,6 +58,7 @@ router.patch("/my-page/secondary-links/:id/toggle", toggleSecondaryLinkHandler);
 
 router.put("/my-page/shop", updateShopHandler);
 router.post("/my-page/shop/products/import", importShopProductHandler);
+router.post("/my-page/shop/products/image-from-url", internalizeProductImageFromUrlHandler);
 router.post("/my-page/shop/products/image", uploadProductImageSingle, uploadProductImageHandler);
 router.post("/my-page/shop/products", createShopProductHandler);
 router.patch("/my-page/shop/products/reorder", reorderShopProductsHandler);

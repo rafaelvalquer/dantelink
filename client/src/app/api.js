@@ -151,3 +151,7 @@ export function reorderShopProducts(ids) {
 export function uploadShopProductImage(file) {
   return uploadFile("/my-page/shop/products/image", file);
 }
+
+export function internalizeShopProductImage(imageUrl) {
+  return request("POST", "/my-page/shop/products/image-from-url", { imageUrl });
+}

@@ -88,15 +88,29 @@ function sortActiveShopProducts(products = []) {
 
 function ShopPreviewGrid({ products = [] }) {
   const previewItems = sortActiveShopProducts(products).slice(0, 4);
+  const mosaicCount = previewItems.length || 4;
   const cells = previewItems.length
     ? previewItems
     : Array.from({ length: 4 }, (_, index) => ({ id: `placeholder-${index}` }));
 
   return (
     <div className="link-card__shop-preview">
-      <div className="link-card__shop-preview-grid">
+      <div
+        className={[
+          "link-card__shop-preview-grid",
+          `is-count-${mosaicCount}`,
+        ].join(" ")}
+      >
         {cells.map((product, index) => (
-          <div key={product.id || index} className="link-card__shop-preview-cell">
+          <div
+            key={product.id || index}
+            className={[
+              "link-card__shop-preview-cell",
+              mosaicCount === 3 && index === 0 ? "is-featured" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+          >
             {product.imageUrl ? (
               <img src={product.imageUrl} alt={product.title || "Produto da loja"} />
             ) : (

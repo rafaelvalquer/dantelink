@@ -17,6 +17,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import {
   ExternalLink,
+  Crop,
   GripVertical,
   ImagePlus,
   LoaderCircle,
@@ -93,12 +94,342 @@ function normalizeDraftForSave(draft = {}) {
   };
 }
 
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function isLocalProductImageUrl(imageUrl = "") {
+  const sample = String(imageUrl || "").trim();
+  if (!sample) return false;
+
+  try {
+    const parsed = new URL(sample, window.location.origin);
+    return parsed.pathname.startsWith("/uploads/");
+  } catch {
+    return false;
+  }
+}
+
+function getCropDisplaySize(sourceSize, stageSize, zoom) {
+  if (!sourceSize.width || !sourceSize.height || !stageSize) {
+    return { width: 0, height: 0 };
+  }
+
+  const coverScale = Math.max(
+    stageSize / sourceSize.width,
+    stageSize / sourceSize.height,
+  );
+
+  return {
+    width: sourceSize.width * coverScale * zoom,
+    height: sourceSize.height * coverScale * zoom,
+  };
+}
+
+function clampCropOffset(offset, displaySize, stageSize) {
+  const maxX = Math.max(0, (displaySize.width - stageSize) / 2);
+  const maxY = Math.max(0, (displaySize.height - stageSize) / 2);
+
+  return {
+    x: clamp(offset.x, -maxX, maxX),
+    y: clamp(offset.y, -maxY, maxY),
+  };
+}
+
+function loadImage(url) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("Nao foi possivel carregar a imagem."));
+    image.src = url;
+  });
+}
+
+async function createSquareCroppedImageFile({
+  imageUrl,
+  sourceSize,
+  displaySize,
+  offset,
+  stageSize,
+}) {
+  const image = await loadImage(imageUrl);
+  const left = (stageSize - displaySize.width) / 2 + offset.x;
+  const top = (stageSize - displaySize.height) / 2 + offset.y;
+  const scaleX = sourceSize.width / displaySize.width;
+  const scaleY = sourceSize.height / displaySize.height;
+  const sourceX = clamp((0 - left) * scaleX, 0, sourceSize.width);
+  const sourceY = clamp((0 - top) * scaleY, 0, sourceSize.height);
+  const sourceWidth = clamp(stageSize * scaleX, 1, sourceSize.width - sourceX);
+  const sourceHeight = clamp(stageSize * scaleY, 1, sourceSize.height - sourceY);
+  const canvas = document.createElement("canvas");
+  const outputSize = 1200;
+
+  canvas.width = outputSize;
+  canvas.height = outputSize;
+
+  const context = canvas.getContext("2d");
+  if (!context) {
+    throw new Error("Nao foi possivel preparar o recorte da imagem.");
+  }
+
+  context.drawImage(
+    image,
+    sourceX,
+    sourceY,
+    sourceWidth,
+    sourceHeight,
+    0,
+    0,
+    outputSize,
+    outputSize,
+  );
+
+  const blob = await new Promise((resolve, reject) => {
+    canvas.toBlob((result) => {
+      if (result) {
+        resolve(result);
+        return;
+      }
+
+      reject(new Error("Nao foi possivel gerar a imagem recortada."));
+    }, "image/png");
+  });
+
+  return new File(
+    [blob],
+    `product-crop-${Date.now()}.png`,
+    { type: "image/png" },
+  );
+}
+
+function ProductImageCropper({
+  imageUrl,
+  title,
+  onCancel,
+  onApply,
+  busy = false,
+}) {
+  const stageRef = useRef(null);
+  const dragRef = useRef(null);
+  const [stageSize, setStageSize] = useState(320);
+  const [sourceUrl, setSourceUrl] = useState("");
+  const [sourceSize, setSourceSize] = useState({ width: 0, height: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const displaySize = useMemo(
+    () => getCropDisplaySize(sourceSize, stageSize, zoom),
+    [sourceSize, stageSize, zoom],
+  );
+
+  useEffect(() => {
+    let active = true;
+    let objectUrl = "";
+
+    async function prepareSource() {
+      try {
+        setLoading(true);
+        setError("");
+        setZoom(1);
+        setOffset({ x: 0, y: 0 });
+        const response = await fetch(imageUrl);
+        if (!response.ok) {
+          throw new Error("Nao foi possivel preparar a imagem para recorte.");
+        }
+
+        const blob = await response.blob();
+        objectUrl = URL.createObjectURL(blob);
+        const image = await loadImage(objectUrl);
+
+        if (!active) return;
+
+        setSourceUrl(objectUrl);
+        setSourceSize({
+          width: image.naturalWidth || image.width,
+          height: image.naturalHeight || image.height,
+        });
+      } catch (cropError) {
+        if (!active) return;
+        setError(cropError.message || "Nao foi possivel preparar a imagem para recorte.");
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    prepareSource();
+
+    return () => {
+      active = false;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [imageUrl]);
+
+  useEffect(() => {
+    const node = stageRef.current;
+    if (!node || typeof ResizeObserver === "undefined") {
+      return undefined;
+    }
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      setStageSize(Math.max(220, Math.round(entry.contentRect.width)));
+    });
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!displaySize.width || !displaySize.height || !stageSize) {
+      return;
+    }
+
+    setOffset((current) => clampCropOffset(current, displaySize, stageSize));
+  }, [displaySize, stageSize]);
+
+  useEffect(() => {
+    function handlePointerMove(event) {
+      if (!dragRef.current) return;
+
+      const nextOffset = {
+        x: dragRef.current.startOffset.x + (event.clientX - dragRef.current.pointer.x),
+        y: dragRef.current.startOffset.y + (event.clientY - dragRef.current.pointer.y),
+      };
+
+      setOffset(clampCropOffset(nextOffset, displaySize, stageSize));
+    }
+
+    function handlePointerUp() {
+      dragRef.current = null;
+    }
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+  }, [displaySize, stageSize]);
+
+  function handlePointerDown(event) {
+    if (busy || loading || error || !displaySize.width || !displaySize.height) {
+      return;
+    }
+
+    event.preventDefault();
+    dragRef.current = {
+      pointer: { x: event.clientX, y: event.clientY },
+      startOffset: offset,
+    };
+  }
+
+  function handleZoomChange(event) {
+    const nextZoom = Number(event.target.value);
+    const nextDisplaySize = getCropDisplaySize(sourceSize, stageSize, nextZoom);
+    setZoom(nextZoom);
+    setOffset((current) => clampCropOffset(current, nextDisplaySize, stageSize));
+  }
+
+  async function handleApply() {
+    try {
+      const file = await createSquareCroppedImageFile({
+        imageUrl: sourceUrl,
+        sourceSize,
+        displaySize,
+        offset,
+        stageSize,
+      });
+
+      await onApply(file);
+    } catch (cropError) {
+      setError(cropError.message || "Nao foi possivel aplicar o recorte.");
+    }
+  }
+
+  return (
+    <div className="shop-product-cropper">
+      <div
+        ref={stageRef}
+        className={cls(
+          "shop-product-cropper__stage",
+          busy && "is-busy",
+        )}
+        onPointerDown={handlePointerDown}
+      >
+        {loading ? (
+          <div className="shop-product-cropper__empty">
+            <LoaderCircle size={18} className="is-spinning" />
+            <span>Preparando imagem...</span>
+          </div>
+        ) : error ? (
+          <div className="shop-product-cropper__empty">
+            <span>{error}</span>
+          </div>
+        ) : (
+          <>
+            <img
+              className="shop-product-cropper__image"
+              src={sourceUrl}
+              alt={title || "Recorte do produto"}
+              draggable="false"
+              style={{
+                width: `${displaySize.width}px`,
+                height: `${displaySize.height}px`,
+                left: `calc(50% - ${displaySize.width / 2}px + ${offset.x}px)`,
+                top: `calc(50% - ${displaySize.height / 2}px + ${offset.y}px)`,
+              }}
+            />
+            <div className="shop-product-cropper__grid" aria-hidden="true" />
+          </>
+        )}
+      </div>
+
+      <div className="shop-product-cropper__controls">
+        <label className="field field--full">
+          <span>Zoom</span>
+          <input
+            className="shop-product-cropper__range"
+            type="range"
+            min="1"
+            max="3"
+            step="0.01"
+            value={zoom}
+            onChange={handleZoomChange}
+            disabled={busy || loading || Boolean(error)}
+          />
+        </label>
+        <span className="shop-product-cropper__hint">
+          Arraste a imagem para posicionar e use o zoom para definir o enquadramento.
+        </span>
+      </div>
+
+      <div className="shop-product-cropper__actions">
+        <Button variant="ghost" onClick={onCancel} disabled={busy}>
+          Cancelar recorte
+        </Button>
+        <Button onClick={handleApply} disabled={busy || loading || Boolean(error)}>
+          {busy ? "Salvando recorte..." : "Salvar recorte"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function ProductModal({
   open,
   product,
   onClose,
   onImportProduct,
   onUploadImage,
+  onInternalizeImage,
   onCreateProduct,
   onUpdateProduct,
 }) {
@@ -109,7 +440,11 @@ function ProductModal({
   });
   const [isImporting, setIsImporting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isPreparingCrop, setIsPreparingCrop] = useState(false);
+  const [isApplyingCrop, setIsApplyingCrop] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isCropOpen, setIsCropOpen] = useState(false);
+  const [cropImageUrl, setCropImageUrl] = useState("");
   const [error, setError] = useState("");
   const lastImportedUrlRef = useRef("");
   const fileInputRef = useRef(null);
@@ -121,7 +456,11 @@ function ProductModal({
     setError("");
     setIsImporting(false);
     setIsUploading(false);
+    setIsPreparingCrop(false);
+    setIsApplyingCrop(false);
     setIsSaving(false);
+    setIsCropOpen(false);
+    setCropImageUrl("");
     lastImportedUrlRef.current = String(product?.sourceUrl || "");
     setStatus({
       kind: product ? "idle" : "hint",
@@ -232,6 +571,58 @@ function ProductModal({
     }
   }
 
+  async function handleOpenCrop() {
+    const currentImageUrl = String(draft.imageUrl || "").trim();
+
+    if (!currentImageUrl) {
+      setError("Escolha ou informe uma imagem antes de recortar.");
+      return;
+    }
+
+    try {
+      setIsPreparingCrop(true);
+      setError("");
+      let nextImageUrl = currentImageUrl;
+
+      if (!isLocalProductImageUrl(nextImageUrl)) {
+        nextImageUrl = await onInternalizeImage(nextImageUrl);
+      }
+
+      setCropImageUrl(nextImageUrl);
+      setIsCropOpen(true);
+      setStatus({
+        kind: "manual",
+        message: "Ajuste o enquadramento da imagem e salve o recorte.",
+      });
+    } catch (cropError) {
+      setError(
+        cropError.message ||
+          "Nao foi possivel preparar a imagem para recorte. Envie o arquivo manualmente.",
+      );
+    } finally {
+      setIsPreparingCrop(false);
+    }
+  }
+
+  async function handleApplyCrop(file) {
+    try {
+      setIsApplyingCrop(true);
+      setError("");
+      const url = await onUploadImage(file);
+      updateField("imageUrl", url);
+      setCropImageUrl(url);
+      setIsCropOpen(false);
+      setStatus({
+        kind: "manual",
+        message: "Recorte salvo com sucesso.",
+      });
+    } catch (cropError) {
+      setError(cropError.message || "Nao foi possivel salvar o recorte.");
+    } finally {
+      setIsApplyingCrop(false);
+    }
+  }
+
   async function handleSave() {
     const payload = normalizeDraftForSave(draft);
 
@@ -281,34 +672,70 @@ function ProductModal({
         </div>
 
         <div className="shop-product-modal__body">
-          <div className="shop-product-modal__image-shell">
-            {draft.imageUrl ? (
-              <img
-                className="shop-product-modal__image"
-                src={draft.imageUrl}
-                alt={draft.title || "Produto"}
-              />
-            ) : (
-              <div className="shop-product-modal__image-placeholder">
-                <ShoppingBag size={28} />
-              </div>
-            )}
-            <button
-              type="button"
-              className="shop-product-modal__image-action"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploading}
-            >
-              {isUploading ? <LoaderCircle size={16} className="is-spinning" /> : <ImagePlus size={16} />}
-            </button>
-            <input
-              ref={fileInputRef}
-              className="shop-product-modal__file-input"
-              type="file"
-              accept="image/*"
-              onChange={handleUpload}
+          {isCropOpen ? (
+            <ProductImageCropper
+              imageUrl={cropImageUrl}
+              title={draft.title}
+              onCancel={() => setIsCropOpen(false)}
+              onApply={handleApplyCrop}
+              busy={isApplyingCrop}
             />
-          </div>
+          ) : (
+            <>
+              <div className="shop-product-modal__image-shell">
+                {draft.imageUrl ? (
+                  <img
+                    className="shop-product-modal__image"
+                    src={draft.imageUrl}
+                    alt={draft.title || "Produto"}
+                  />
+                ) : (
+                  <div className="shop-product-modal__image-placeholder">
+                    <ShoppingBag size={28} />
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className="shop-product-modal__image-action"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading || isPreparingCrop}
+                >
+                  {isUploading ? <LoaderCircle size={16} className="is-spinning" /> : <ImagePlus size={16} />}
+                </button>
+                <input
+                  ref={fileInputRef}
+                  className="shop-product-modal__file-input"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleUpload}
+                />
+              </div>
+
+              <div className="shop-product-modal__image-toolbar">
+                <Button
+                  variant="ghost"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading || isPreparingCrop}
+                >
+                  {isUploading ? "Enviando imagem..." : "Trocar imagem"}
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={handleOpenCrop}
+                  disabled={!draft.imageUrl || isUploading || isPreparingCrop}
+                  className="shop-product-modal__icon-button"
+                  title="Recortar imagem"
+                  aria-label="Recortar imagem"
+                >
+                  {isPreparingCrop ? (
+                    <LoaderCircle size={20} className="is-spinning" />
+                  ) : (
+                    <Crop size={22} strokeWidth={2.2} />
+                  )}
+                </Button>
+              </div>
+            </>
+          )}
 
           <label className="field field--full">
             <span>URL</span>
@@ -389,10 +816,10 @@ function ProductModal({
         </div>
 
         <div className="shop-product-modal__footer">
-          <Button variant="ghost" onClick={onClose} disabled={isSaving}>
+          <Button variant="ghost" onClick={onClose} disabled={isSaving || isApplyingCrop}>
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={isSaving}>
+          <Button onClick={handleSave} disabled={isSaving || isCropOpen || isApplyingCrop}>
             {isSaving ? "Salvando..." : "Salvar alteracoes"}
           </Button>
         </div>
@@ -492,6 +919,7 @@ export default function ShopProductsEditorCard({
   shop,
   onImportProduct,
   onUploadProductImage,
+  onInternalizeProductImage,
   onCreateProduct,
   onUpdateProduct,
   onDeleteProduct,
@@ -665,6 +1093,7 @@ export default function ShopProductsEditorCard({
         onClose={() => setIsModalOpen(false)}
         onImportProduct={onImportProduct}
         onUploadImage={onUploadProductImage}
+        onInternalizeImage={onInternalizeProductImage}
         onCreateProduct={onCreateProduct}
         onUpdateProduct={onUpdateProduct}
       />

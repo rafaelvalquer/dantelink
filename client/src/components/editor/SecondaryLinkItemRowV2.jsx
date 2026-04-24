@@ -16,6 +16,7 @@ import Switch from "../ui/Switch.jsx";
 const platformOptions = [
   { value: "instagram", label: "Instagram" },
   { value: "facebook", label: "Facebook" },
+  { value: "linkedin", label: "LinkedIn" },
   { value: "tiktok", label: "TikTok" },
   { value: "youtube", label: "YouTube" },
   { value: "email", label: "E-mail" },
@@ -34,6 +35,12 @@ const PLATFORM_META = {
     Icon: Link2,
     primaryFieldLabel: "URL",
     primaryPlaceholder: "https://...",
+  },
+  linkedin: {
+    label: "LinkedIn",
+    Icon: Link2,
+    primaryFieldLabel: "URL",
+    primaryPlaceholder: "https://www.linkedin.com/in/...",
   },
   tiktok: {
     label: "TikTok",

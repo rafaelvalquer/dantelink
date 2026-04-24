@@ -138,6 +138,7 @@ function PrimaryLinkCard({ link, interactive, page, theme, preview = false }) {
 
 function ShopCard({ page, shop, theme, interactive }) {
   const previewProducts = sortActiveProducts(shop?.products || []).slice(0, 4);
+  const mosaicCount = previewProducts.length || 4;
   const mosaicItems = previewProducts.length
     ? previewProducts
     : Array.from({ length: 4 }, (_, index) => ({ id: `empty-${index}` }));
@@ -151,9 +152,15 @@ function ShopCard({ page, shop, theme, interactive }) {
         style={theme.surfaceStyle}
         ariaLabel="Ver loja completa"
       >
-        <div className="public-page__shop-mosaic-grid">
+        <div className={cls("public-page__shop-mosaic-grid", `is-count-${mosaicCount}`)}>
           {mosaicItems.map((product, index) => (
-            <div key={product.id || index} className="public-page__shop-mosaic-cell">
+            <div
+              key={product.id || index}
+              className={cls(
+                "public-page__shop-mosaic-cell",
+                mosaicCount === 3 && index === 0 && "is-featured",
+              )}
+            >
               {product.imageUrl ? (
                 <img src={product.imageUrl} alt={product.title || "Produto da loja"} />
               ) : (

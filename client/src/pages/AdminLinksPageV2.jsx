@@ -28,6 +28,7 @@ const PRIMARY_LINK_TYPES = new Set([
 const SECONDARY_LINK_PLATFORMS = new Set([
   "instagram",
   "facebook",
+  "linkedin",
   "tiktok",
   "youtube",
   "email",

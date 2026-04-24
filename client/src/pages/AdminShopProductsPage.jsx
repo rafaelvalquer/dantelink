@@ -3,6 +3,7 @@ import {
   createShopProduct,
   getMyPage,
   importShopProduct,
+  internalizeShopProductImage,
   removeShopProduct,
   reorderShopProducts,
   saveShopProduct,
@@ -75,6 +76,11 @@ export default function AdminShopProductsPage() {
     return response.url;
   }
 
+  async function handleInternalizeProductImage(imageUrl) {
+    const response = await internalizeShopProductImage(imageUrl);
+    return response.url;
+  }
+
   async function handleCreateProduct(payload) {
     return runMutation("create-product", () => createShopProduct(payload));
   }
@@ -110,6 +116,7 @@ export default function AdminShopProductsPage() {
           shop={page?.shop || {}}
           onImportProduct={handleImportProduct}
           onUploadProductImage={handleUploadProductImage}
+          onInternalizeProductImage={handleInternalizeProductImage}
           onCreateProduct={handleCreateProduct}
           onUpdateProduct={handleUpdateProduct}
           onDeleteProduct={handleDeleteProduct}

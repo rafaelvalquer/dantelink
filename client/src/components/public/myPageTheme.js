@@ -9,6 +9,7 @@ import {
   FaFacebookF,
   FaGlobe,
   FaInstagram,
+  FaLinkedinIn,
   FaTiktok,
   FaWhatsapp,
   FaYoutube,
@@ -1377,6 +1378,7 @@ const SOCIAL_PLATFORM_LABELS = {
   youtube: "YouTube",
   email: "E-mail",
   site: "Site",
+  linkedin: "LinkedIn",
 };
 
 export function getMyPageSocialLabel(link = {}) {
@@ -1407,6 +1409,17 @@ export function getMyPageSocialBrand(link = {}) {
       Icon: FaFacebookF,
       badgeStyle: {
         background: "linear-gradient(135deg, #7aa7ff 0%, #1877f2 100%)",
+        color: "#ffffff",
+      },
+    };
+  }
+
+  if (platform === "linkedin") {
+    return {
+      platform,
+      Icon: FaLinkedinIn,
+      badgeStyle: {
+        background: "linear-gradient(135deg, #60a5fa 0%, #0a66c2 100%)",
         color: "#ffffff",
       },
     };
