@@ -324,6 +324,7 @@ function AdminLinksPageLegacy() {
       title="Links"
       description="Monte os blocos publicos da pagina e acompanhe o preview enquanto edita."
       page={previewPage}
+      publishedPage={page}
       notice={notice}
       error={error}
     >

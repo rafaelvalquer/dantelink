@@ -106,6 +106,7 @@ export default function AdminShopProductsPage() {
       title="Loja"
       description="Gerencie sua vitrine, cadastre produtos por URL e mantenha a loja publica atualizada em tempo real."
       page={previewPage}
+      publishedPage={page}
       notice={notice}
       error={error}
     >

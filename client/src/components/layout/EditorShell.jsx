@@ -1,10 +1,12 @@
 import Sidebar from "./Sidebar.jsx";
 import PhonePreview from "../preview/PhonePreview.jsx";
+import PreviewSharePopover from "./PreviewSharePopover.jsx";
 
 export default function EditorShell({
   title,
   description,
   page,
+  publishedPage = page,
   children,
   notice,
   error,
@@ -32,6 +34,7 @@ export default function EditorShell({
       </main>
 
       <aside className="editor-shell__preview">
+        <PreviewSharePopover page={publishedPage} />
         <div className="editor-shell__preview-header">
           <span>Preview ao vivo</span>
           <strong>Página pública</strong>

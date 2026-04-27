@@ -81,6 +81,7 @@ export default function AdminShopPage() {
       title="Loja"
       description="Edite o bloco de loja que aparece abaixo do restante do seu conteúdo."
       page={previewPage}
+      publishedPage={page}
       notice={notice}
       error={error}
     >

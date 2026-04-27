@@ -88,6 +88,7 @@ export default function AdminDesignPage() {
       title="Design"
       description="Ajuste o visual público da página com seções de marca, fundo, superfície, botões, redes e cor."
       page={previewPage}
+      publishedPage={page}
       notice={notice}
       error={error}
     >

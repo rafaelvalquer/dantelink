@@ -908,7 +908,13 @@ export default function AdminLinksPageV2() {
   }
 
   return (
-    <EditorShell title="Links" page={previewPage} notice={notice} error={error}>
+    <EditorShell
+      title="Links"
+      page={previewPage}
+      publishedPage={serverPage}
+      notice={notice}
+      error={error}
+    >
       {loading ? (
         <div className="loading-state">Carregando editor da pagina...</div>
       ) : (
