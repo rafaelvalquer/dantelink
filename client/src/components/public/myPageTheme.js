@@ -44,9 +44,15 @@ export const MY_PAGE_THEME_DEFAULTS = {
   titleTextColor: "#0f172a",
   primaryButtonsLayout: "stack",
   primaryButtonContentAlign: "center",
-  primaryIconBadgeStyle: "theme",
+  primaryIconLayout: "circle_solid",
+  primaryIconSize: "md",
+  primaryIconBadgeColor: "",
+  primaryIconColor: "",
   secondaryLinksStyle: "icon_text",
   secondaryLinksIconLayout: "brand_badge",
+  secondaryLinksIconSize: "md",
+  secondaryLinksIconBadgeColor: "",
+  secondaryLinksIconColor: "",
   secondaryLinksSize: "medium",
   secondaryLinksAlign: "center",
   secondaryLinksPosition: "bottom",
@@ -814,6 +820,14 @@ export const MY_PAGE_PRIMARY_BUTTON_CONTENT_ALIGN_OPTIONS = [
   { value: "left", label: "A esquerda", description: "Texto alinhado ao inicio do card com leitura mais natural." },
 ];
 
+export const MY_PAGE_PRIMARY_ICON_LAYOUT_OPTIONS = [
+  { value: "plain", label: "So icone", description: "Mostra apenas o icone, sem envoltorio." },
+  { value: "circle_soft", label: "Circulo suave", description: "Circulo leve com leitura mais sutil." },
+  { value: "circle_solid", label: "Circulo solido", description: "Circulo com mais contraste e presenca." },
+  { value: "circle_neutral", label: "Circulo neutro", description: "Badge neutro para temas premium ou escuros." },
+  { value: "square_soft", label: "Quadrado suave", description: "Bloco arredondado com visual mais moderno." },
+];
+
 export const MY_PAGE_SECONDARY_LINK_STYLE_OPTIONS = [
   { value: "text", label: "Texto" },
   { value: "icon", label: "Icone" },
@@ -821,8 +835,17 @@ export const MY_PAGE_SECONDARY_LINK_STYLE_OPTIONS = [
 ];
 
 export const MY_PAGE_SECONDARY_LINK_ICON_LAYOUT_OPTIONS = [
-  { value: "plain", label: "React Icons", description: "Icone simples no estilo anterior." },
+  { value: "plain", label: "So icone", description: "Icone simples, sem badge." },
   { value: "brand_badge", label: "Badge oficial", description: "Usa o badge colorido da rede." },
+  { value: "circle_soft", label: "Circulo suave", description: "Circulo leve com foco no icone." },
+  { value: "circle_solid", label: "Circulo solido", description: "Mais contraste e presenca visual." },
+  { value: "square_soft", label: "Quadrado suave", description: "Badge arredondado com visual moderno." },
+];
+
+export const MY_PAGE_ICON_SIZE_OPTIONS = [
+  { value: "sm", label: "Pequeno", description: "Mais compacto e discreto." },
+  { value: "md", label: "Medio", description: "Tamanho padrao e equilibrado." },
+  { value: "lg", label: "Grande", description: "Mais destaque para o icone." },
 ];
 
 export const MY_PAGE_SECONDARY_LINK_SIZE_OPTIONS = [
@@ -871,8 +894,46 @@ const BUTTON_ICON_RADIUS_CLASSNAMES = {
   pill: "public-page__icon-radius-pill",
 };
 
+const VALID_PRIMARY_ICON_LAYOUTS = new Set(
+  MY_PAGE_PRIMARY_ICON_LAYOUT_OPTIONS.map((option) => option.value),
+);
+const VALID_SECONDARY_ICON_LAYOUTS = new Set(
+  MY_PAGE_SECONDARY_LINK_ICON_LAYOUT_OPTIONS.map((option) => option.value),
+);
+const VALID_ICON_SIZES = new Set(MY_PAGE_ICON_SIZE_OPTIONS.map((option) => option.value));
+
+const PRIMARY_ICON_SIZE_TOKENS = {
+  public: {
+    sm: { badge: 44, glyph: 18 },
+    md: { badge: 54, glyph: 20 },
+    lg: { badge: 64, glyph: 24 },
+  },
+  preview: {
+    sm: { badge: 24, glyph: 13 },
+    md: { badge: 32, glyph: 16 },
+    lg: { badge: 40, glyph: 19 },
+  },
+};
+
+const SECONDARY_ICON_SIZE_TOKENS = {
+  public: {
+    sm: { badge: 28, glyph: 14 },
+    md: { badge: 34, glyph: 16 },
+    lg: { badge: 42, glyph: 20 },
+  },
+  preview: {
+    sm: { badge: 20, glyph: 12 },
+    md: { badge: 26, glyph: 14 },
+    lg: { badge: 34, glyph: 18 },
+  },
+};
+
 const LOCATION_ICON_RADIUS_CLASSNAME = "public-page__icon-radius-round";
 const LOCATION_ROUTE_CHIP_RADIUS_CLASSNAME = "public-page__chip-radius-pill";
+
+function cls(...parts) {
+  return parts.filter(Boolean).join(" ");
+}
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -882,6 +943,11 @@ function normalizeHexColor(value, fallback) {
   const normalized = String(value || "").trim();
   if (/^#[0-9a-f]{6}$/i.test(normalized)) return normalized;
   return fallback;
+}
+
+function normalizeOptionalHexColor(value) {
+  const normalized = String(value || "").trim();
+  return /^#[0-9a-f]{6}$/i.test(normalized) ? normalized : "";
 }
 
 function hexToRgb(hex) {
@@ -918,6 +984,10 @@ function isDarkColor(hex) {
   const { r, g, b } = hexToRgb(hex);
   const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
   return luminance < 0.55;
+}
+
+function getReadableColor(backgroundHex, darkColor = "#111827", lightColor = "#ffffff") {
+  return isDarkColor(backgroundHex) ? lightColor : darkColor;
 }
 
 function resolveLegacyRadius(buttonStyle) {
@@ -1200,6 +1270,8 @@ export function normalizeMyPageTheme(rawTheme = {}) {
   const legacySurfaceColor = rawTheme.surfaceColor || rawTheme.cardColor;
   const legacyPageTextColor = rawTheme.pageTextColor || rawTheme.textColor;
   const legacyTitleTextColor = rawTheme.titleTextColor || rawTheme.textColor;
+  const legacyPrimaryIconLayout =
+    rawTheme.primaryIconBadgeStyle === "neutral" ? "circle_neutral" : "circle_solid";
 
   const next = {
     ...MY_PAGE_THEME_DEFAULTS,
@@ -1239,8 +1311,30 @@ export function normalizeMyPageTheme(rawTheme = {}) {
       rawTheme.primaryButtonContentAlign === "right"
         ? "left"
         : MY_PAGE_THEME_DEFAULTS.primaryButtonContentAlign,
-    primaryIconBadgeStyle:
-      rawTheme.primaryIconBadgeStyle === "neutral" ? "neutral" : "theme",
+    primaryIconLayout: VALID_PRIMARY_ICON_LAYOUTS.has(rawTheme.primaryIconLayout)
+      ? rawTheme.primaryIconLayout
+      : VALID_PRIMARY_ICON_LAYOUTS.has(presetTheme.primaryIconLayout)
+        ? presetTheme.primaryIconLayout
+        : legacyPrimaryIconLayout,
+    primaryIconSize: VALID_ICON_SIZES.has(rawTheme.primaryIconSize)
+      ? rawTheme.primaryIconSize
+      : VALID_ICON_SIZES.has(presetTheme.primaryIconSize)
+        ? presetTheme.primaryIconSize
+        : MY_PAGE_THEME_DEFAULTS.primaryIconSize,
+    primaryIconBadgeColor: normalizeOptionalHexColor(rawTheme.primaryIconBadgeColor),
+    primaryIconColor: normalizeOptionalHexColor(rawTheme.primaryIconColor),
+    secondaryLinksIconLayout: VALID_SECONDARY_ICON_LAYOUTS.has(rawTheme.secondaryLinksIconLayout)
+      ? rawTheme.secondaryLinksIconLayout
+      : VALID_SECONDARY_ICON_LAYOUTS.has(presetTheme.secondaryLinksIconLayout)
+        ? presetTheme.secondaryLinksIconLayout
+        : MY_PAGE_THEME_DEFAULTS.secondaryLinksIconLayout,
+    secondaryLinksIconSize: VALID_ICON_SIZES.has(rawTheme.secondaryLinksIconSize)
+      ? rawTheme.secondaryLinksIconSize
+      : VALID_ICON_SIZES.has(presetTheme.secondaryLinksIconSize)
+        ? presetTheme.secondaryLinksIconSize
+        : MY_PAGE_THEME_DEFAULTS.secondaryLinksIconSize,
+    secondaryLinksIconBadgeColor: normalizeOptionalHexColor(rawTheme.secondaryLinksIconBadgeColor),
+    secondaryLinksIconColor: normalizeOptionalHexColor(rawTheme.secondaryLinksIconColor),
   };
 
   return {
@@ -1278,6 +1372,162 @@ export function createMyPageThemePreviewPage(page = {}, themeOverrides = {}) {
   };
 }
 
+function getIconSizeTokens(kind = "primary", size = "md", context = "public") {
+  const source = kind === "secondary" ? SECONDARY_ICON_SIZE_TOKENS : PRIMARY_ICON_SIZE_TOKENS;
+  return source[context]?.[size] || source.public.md;
+}
+
+function buildSoftIconTokenStyle(badgeColor, iconColor) {
+  return {
+    background: alphaColor(badgeColor, isDarkColor(badgeColor) ? 0.26 : 0.16),
+    border: `1px solid ${alphaColor(badgeColor, 0.24)}`,
+    color: iconColor,
+    boxShadow: `0 14px 28px -22px ${alphaColor(badgeColor, 0.38)}`,
+  };
+}
+
+function buildSolidIconTokenStyle(badgeColor, iconColor) {
+  return {
+    background: `linear-gradient(180deg, ${mixColors(badgeColor, "#ffffff", 0.18)} 0%, ${badgeColor} 100%)`,
+    border: `1px solid ${alphaColor(mixColors(badgeColor, "#ffffff", 0.18), 0.3)}`,
+    color: iconColor,
+    boxShadow: `0 16px 34px -24px ${alphaColor(badgeColor, 0.48)}`,
+  };
+}
+
+function buildNeutralIconTokenStyle(design, neutralBase) {
+  return {
+    background: `linear-gradient(180deg, ${alphaColor(mixColors(neutralBase, "#ffffff", 0.06), 0.94)} 0%, ${alphaColor(neutralBase, 0.98)} 100%)`,
+    border: `1px solid ${alphaColor(mixColors(design.titleTextColor, "#ffffff", 0.12), 0.18)}`,
+    color: design.titleTextColor,
+    boxShadow: `0 16px 32px -24px ${alphaColor("#000000", 0.62)}`,
+  };
+}
+
+function buildPlainIconTokenStyle(iconColor) {
+  return {
+    background: "transparent",
+    border: "none",
+    boxShadow: "none",
+    color: iconColor,
+  };
+}
+
+function resolvePrimaryIconToken(theme, context = "public") {
+  const design = theme?.design || normalizeMyPageTheme(theme || {});
+  const radiusClassName =
+    theme?.buttonIconRadiusClassName ||
+    BUTTON_ICON_RADIUS_CLASSNAMES[design.buttonRadius] ||
+    BUTTON_ICON_RADIUS_CLASSNAMES.round;
+  const { badge, glyph } = getIconSizeTokens("primary", design.primaryIconSize, context);
+  const layout = design.primaryIconLayout;
+  const neutralBase = mixColors(
+    design.surfaceColor,
+    "#000000",
+    isDarkColor(design.surfaceColor) ? 0.42 : 0.72,
+  );
+  const badgeColorOverride = normalizeOptionalHexColor(design.primaryIconBadgeColor);
+  const iconColorOverride = normalizeOptionalHexColor(design.primaryIconColor);
+  const defaultBadgeColor =
+    layout === "circle_neutral" ? neutralBase : design.buttonColor;
+
+  let style;
+
+  if (layout === "plain") {
+    style = buildPlainIconTokenStyle(iconColorOverride || design.buttonTextColor);
+  } else if (layout === "circle_neutral") {
+    style = buildNeutralIconTokenStyle(design, badgeColorOverride || neutralBase);
+    if (iconColorOverride) {
+      style = { ...style, color: iconColorOverride };
+    }
+  } else if (layout === "circle_soft" || layout === "square_soft") {
+    const badgeColor = badgeColorOverride || defaultBadgeColor;
+    const iconColor = iconColorOverride || design.buttonColor;
+    style = buildSoftIconTokenStyle(badgeColor, iconColor);
+  } else {
+    const badgeColor = badgeColorOverride || defaultBadgeColor;
+    const iconColor =
+      iconColorOverride || getReadableColor(badgeColor, "#111827", "#ffffff");
+    style = buildSolidIconTokenStyle(badgeColor, iconColor);
+  }
+
+  return {
+    className: cls(
+      "public-page__icon-token",
+      `is-${layout}`,
+      `is-size-${design.primaryIconSize}`,
+      layout === "square_soft" && radiusClassName,
+    ),
+    style: {
+      "--page-icon-badge-size": `${badge}px`,
+      "--page-icon-glyph-size": `${glyph}px`,
+      ...style,
+    },
+    iconClassName: "public-page__icon-glyph",
+    iconSize: glyph,
+    layout,
+  };
+}
+
+function resolveSecondaryIconToken(theme, link = {}, context = "public") {
+  const design = theme?.design || normalizeMyPageTheme(theme || {});
+  const radiusClassName =
+    theme?.buttonIconRadiusClassName ||
+    BUTTON_ICON_RADIUS_CLASSNAMES[design.buttonRadius] ||
+    BUTTON_ICON_RADIUS_CLASSNAMES.round;
+  const { badge, glyph } = getIconSizeTokens("secondary", design.secondaryLinksIconSize, context);
+  const layout = design.secondaryLinksIconLayout;
+  const brand = getMyPageSocialBrand(link);
+  const badgeColorOverride = normalizeOptionalHexColor(design.secondaryLinksIconBadgeColor);
+  const iconColorOverride = normalizeOptionalHexColor(design.secondaryLinksIconColor);
+  let style;
+
+  if (layout === "plain") {
+    style = buildPlainIconTokenStyle(iconColorOverride || "currentColor");
+  } else if (layout === "brand_badge") {
+    style = {
+      ...((brand.badgeStyle && typeof brand.badgeStyle === "object")
+        ? brand.badgeStyle
+        : buildSoftIconTokenStyle(design.buttonColor, "currentColor")),
+    };
+  } else if (layout === "circle_soft" || layout === "square_soft") {
+    const badgeColor = badgeColorOverride || design.buttonColor;
+    const iconColor = iconColorOverride || "currentColor";
+    style = buildSoftIconTokenStyle(badgeColor, iconColor);
+  } else {
+    const badgeColor = badgeColorOverride || design.buttonColor;
+    const iconColor =
+      iconColorOverride || getReadableColor(badgeColor, "#111827", "#ffffff");
+    style = buildSolidIconTokenStyle(badgeColor, iconColor);
+  }
+
+  return {
+    className: cls(
+      "public-page__icon-token",
+      `is-${layout}`,
+      `is-size-${design.secondaryLinksIconSize}`,
+      layout === "square_soft" && radiusClassName,
+    ),
+    style: {
+      "--page-icon-badge-size": `${badge}px`,
+      "--page-icon-glyph-size": `${glyph}px`,
+      ...style,
+    },
+    iconClassName: "public-page__icon-glyph",
+    iconSize: glyph,
+    layout,
+    usesBrandBadge: layout === "brand_badge",
+  };
+}
+
+export function getMyPagePrimaryIconProps(theme, context = "public") {
+  return resolvePrimaryIconToken(theme, context);
+}
+
+export function getMyPageSecondaryIconProps(theme, link = {}, context = "public") {
+  return resolveSecondaryIconToken(theme, link, context);
+}
+
 export function getMyPageTheme(page = {}) {
   const design = normalizeMyPageTheme(page?.theme || page);
   const fontFamily = FONT_FAMILIES[design.fontPreset] || FONT_FAMILIES.inter;
@@ -1297,20 +1547,16 @@ export function getMyPageTheme(page = {}) {
     "#ffffff",
     darkSurface ? 0.22 : 0.72,
   );
-  const neutralIconBase = mixColors(design.surfaceColor, "#000000", darkSurface ? 0.42 : 0.72);
-  const primaryIconBadgeStyle =
-    design.primaryIconBadgeStyle === "neutral"
-      ? {
-          background: `linear-gradient(180deg, ${alphaColor(mixColors(neutralIconBase, "#ffffff", 0.06), 0.94)} 0%, ${alphaColor(neutralIconBase, 0.98)} 100%)`,
-          border: `1px solid ${alphaColor(mixColors(design.titleTextColor, "#ffffff", 0.12), 0.18)}`,
-          color: design.titleTextColor,
-          boxShadow: `0 16px 32px -24px ${alphaColor("#000000", 0.62)}`,
-          fontFamily,
-        }
-      : {
-          ...secondaryButtonStyle,
-          fontFamily,
-        };
+  const buttonIconRadiusClassName =
+    BUTTON_ICON_RADIUS_CLASSNAMES[design.buttonRadius] ||
+    BUTTON_ICON_RADIUS_CLASSNAMES.round;
+  const primaryIconBadgeStyle = {
+    ...resolvePrimaryIconToken(
+      { design, buttonIconRadiusClassName },
+      "public",
+    ).style,
+    fontFamily,
+  };
 
   return {
     design,
@@ -1318,9 +1564,7 @@ export function getMyPageTheme(page = {}) {
     headingFontFamily,
     usesHeroLayout,
     usesSpotlightLayout,
-    buttonIconRadiusClassName:
-      BUTTON_ICON_RADIUS_CLASSNAMES[design.buttonRadius] ||
-      BUTTON_ICON_RADIUS_CLASSNAMES.round,
+    buttonIconRadiusClassName,
     locationIconRadiusClassName: LOCATION_ICON_RADIUS_CLASSNAME,
     locationRouteChipRadiusClassName: LOCATION_ROUTE_CHIP_RADIUS_CLASSNAME,
     rootStyle: {
@@ -1629,6 +1873,9 @@ export function getMyPageButtonIcon(link = {}) {
   if (link?.type === "whatsapp") return FaWhatsapp;
   if (link?.type === "location") return MapPin;
   if (link?.type === "shop-preview") return ShoppingBag;
+  if (link?.type === "link" && String(link?.platform || "").trim()) {
+    return getMyPageSocialBrand(link).Icon;
+  }
   if (String(link?.title || "").toLowerCase().includes("loja")) return Store;
   return Link2;
 }
@@ -1637,6 +1884,9 @@ export function getMyPageButtonMeta(link = {}) {
   if (link?.type === "whatsapp") return "WhatsApp";
   if (link?.type === "location") return "Localizacao";
   if (link?.type === "shop-preview") return "Shop";
+  if (link?.type === "link" && String(link?.platform || "").trim()) {
+    return getMyPageSocialLabel(link);
+  }
   return "Link";
 }
 
@@ -1647,6 +1897,9 @@ export function getMyPagePrimaryLinkLabel(link = {}) {
   if (link?.type === "whatsapp") return "WhatsApp";
   if (link?.type === "location") return "Localizacao";
   if (link?.type === "shop-preview") return "Previa da loja";
+  if (link?.type === "link" && String(link?.platform || "").trim()) {
+    return getMyPageSocialLabel(link);
+  }
   return "Link";
 }
 

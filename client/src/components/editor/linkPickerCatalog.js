@@ -313,12 +313,34 @@ export const SECONDARY_LINK_PICKER_OPTIONS = Object.entries(SECONDARY_PLATFORM_M
   }),
 );
 
+export const PRIMARY_PLATFORM_LINK_PICKER_OPTIONS = Object.entries(
+  SECONDARY_PLATFORM_META,
+).map(([platform, meta]) => ({
+  id: platform,
+  scope: "primary",
+  category: meta.category,
+  label: meta.label,
+  description: meta.modalDescription,
+  keywords: meta.keywords,
+  Icon: meta.Icon,
+  badgeStyle: meta.badgeStyle,
+  platform,
+}));
+
 export const SECONDARY_PLATFORM_OPTIONS = Object.entries(SECONDARY_PLATFORM_META).map(
   ([value, meta]) => ({
     value,
     label: meta.label,
   }),
 );
+
+export const PRIMARY_LINK_PLATFORM_OPTIONS = [
+  {
+    value: "",
+    label: "Link generico",
+  },
+  ...SECONDARY_PLATFORM_OPTIONS,
+];
 
 const SECONDARY_HANDLE_PLATFORMS = new Set([
   "instagram",
@@ -330,19 +352,35 @@ const SECONDARY_HANDLE_PLATFORMS = new Set([
 ]);
 
 export function getPrimaryLinkPickerOptions({ hasShopPreview = false } = {}) {
-  return PRIMARY_LINK_PICKER_OPTIONS.map((option) =>
-    option.id === "shop-preview" && hasShopPreview
-      ? {
-          ...option,
-          disabled: true,
-          disabledReason: "A pagina ja possui uma Previa da loja.",
-        }
-      : option,
-  );
+  return [
+    ...PRIMARY_LINK_PICKER_OPTIONS.map((option) =>
+      option.id === "shop-preview" && hasShopPreview
+        ? {
+            ...option,
+            disabled: true,
+            disabledReason: "A pagina ja possui uma Previa da loja.",
+          }
+        : option,
+    ),
+    ...PRIMARY_PLATFORM_LINK_PICKER_OPTIONS,
+  ];
 }
 
 export function buildPrimaryLinkCreatePayload(type = "link") {
-  if (type === "whatsapp") {
+  const normalizedType = String(type || "link").trim().toLowerCase();
+
+  if (SECONDARY_PLATFORM_META[normalizedType]) {
+    return {
+      title: getSecondaryPlatformLabel(normalizedType),
+      url: "",
+      handle: "",
+      platform: normalizedType,
+      isActive: true,
+      type: "link",
+    };
+  }
+
+  if (normalizedType === "whatsapp") {
     return {
       title: "WhatsApp",
       url: "",
@@ -353,7 +391,7 @@ export function buildPrimaryLinkCreatePayload(type = "link") {
     };
   }
 
-  if (type === "location") {
+  if (normalizedType === "location") {
     return {
       title: "Localizacao",
       url: "",
@@ -365,7 +403,7 @@ export function buildPrimaryLinkCreatePayload(type = "link") {
     };
   }
 
-  if (type === "shop-preview") {
+  if (normalizedType === "shop-preview") {
     return {
       title: "Previa da loja",
       url: "",
@@ -377,6 +415,8 @@ export function buildPrimaryLinkCreatePayload(type = "link") {
   return {
     title: "Link",
     url: "",
+    handle: "",
+    platform: "",
     isActive: true,
     type: "link",
   };

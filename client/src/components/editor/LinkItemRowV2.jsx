@@ -12,6 +12,16 @@ import {
   Trash2,
 } from "lucide-react";
 import { searchLocationSuggestions } from "../../app/api.js";
+import {
+  PRIMARY_LINK_PLATFORM_OPTIONS,
+  buildSecondaryLinkUrl,
+  getSecondaryPlatformLabel,
+  getSecondaryPlatformMeta,
+  isSecondaryHandlePlatform,
+  normalizeSecondaryEmail,
+  normalizeSecondaryHandle,
+  normalizeSecondaryPhone,
+} from "./linkPickerCatalog.js";
 import Input from "../ui/Input.jsx";
 import Switch from "../ui/Switch.jsx";
 
@@ -56,8 +66,19 @@ const LINK_TYPE_META = {
   },
 };
 
-function getTypeMeta(type = "") {
-  const normalizedType = String(type || "").trim().toLowerCase();
+function isPlatformLink(link = {}) {
+  return (
+    String(link?.type || "").trim().toLowerCase() === "link" &&
+    String(link?.platform || "").trim() !== ""
+  );
+}
+
+function getTypeMeta(link = {}) {
+  if (isPlatformLink(link)) {
+    return getSecondaryPlatformMeta(link.platform);
+  }
+
+  const normalizedType = String(link?.type || "").trim().toLowerCase();
   return LINK_TYPE_META[normalizedType] || LINK_TYPE_META.link;
 }
 
@@ -68,6 +89,24 @@ function isUrlType(type = "") {
 
 function getPrimaryFieldValue(link = {}) {
   const linkType = String(link.type || "").trim().toLowerCase();
+
+  if (linkType === "link" && String(link.platform || "").trim()) {
+    const platform = String(link.platform || "").trim().toLowerCase();
+
+    if (platform === "email") {
+      return normalizeSecondaryEmail(link.url || "");
+    }
+
+    if (platform === "phone") {
+      return normalizeSecondaryPhone(link.url || "");
+    }
+
+    if (isSecondaryHandlePlatform(platform)) {
+      return String(link.handle || "").trim();
+    }
+
+    return String(link.url || "").trim();
+  }
 
   if (linkType === "whatsapp") {
     return String(link.phone || "").trim();
@@ -135,6 +174,8 @@ function buildEditableLinkSnapshot(link = {}) {
   return JSON.stringify({
     title: String(link.title || ""),
     type: String(link.type || "link").trim().toLowerCase(),
+    platform: String(link.platform || "").trim().toLowerCase(),
+    handle: String(link.handle || "").trim(),
     url: String(link.url || ""),
     phone: String(link.phone || ""),
     message: String(link.message || ""),
@@ -158,6 +199,39 @@ function buildFieldPatch(link = {}, field, value, locationPlaceId = "") {
   }
 
   const linkType = String(link.type || "").trim().toLowerCase();
+
+  if (linkType === "link" && String(link.platform || "").trim()) {
+    const platform = String(link.platform || "").trim().toLowerCase();
+
+    if (isSecondaryHandlePlatform(platform)) {
+      const nextHandle = normalizeSecondaryHandle(value, platform);
+      return {
+        handle: nextHandle,
+        url: buildSecondaryLinkUrl(platform, nextHandle),
+      };
+    }
+
+    if (platform === "email") {
+      const normalizedEmail = normalizeSecondaryEmail(value);
+      return {
+        handle: "",
+        url: buildSecondaryLinkUrl("email", "", normalizedEmail),
+      };
+    }
+
+    if (platform === "phone") {
+      const normalizedPhone = normalizeSecondaryPhone(value);
+      return {
+        handle: "",
+        url: buildSecondaryLinkUrl("phone", "", normalizedPhone),
+      };
+    }
+
+    return {
+      handle: "",
+      url: value,
+    };
+  }
 
   if (linkType === "whatsapp") {
     return {
@@ -183,6 +257,8 @@ function createTypeChangePatch(link = {}, nextType) {
     return {
       type: "whatsapp",
       url: "",
+      platform: "",
+      handle: "",
       address: "",
       placeId: "",
       showMap: false,
@@ -198,6 +274,8 @@ function createTypeChangePatch(link = {}, nextType) {
     return {
       type: "location",
       url: "",
+      platform: "",
+      handle: "",
       phone: "",
       message: "",
       address: currentType === "location" ? String(link.address || "") : "",
@@ -210,6 +288,8 @@ function createTypeChangePatch(link = {}, nextType) {
     return {
       type: "shop-preview",
       url: "",
+      platform: "",
+      handle: "",
       phone: "",
       message: "",
       address: "",
@@ -221,11 +301,87 @@ function createTypeChangePatch(link = {}, nextType) {
   return {
     type: normalizedNextType,
     url: isUrlType(currentType) ? String(link.url || "") : "",
+    platform: currentType === "link" ? String(link.platform || "").trim().toLowerCase() : "",
+    handle:
+      currentType === "link" && isSecondaryHandlePlatform(link.platform || "")
+        ? normalizeSecondaryHandle(link.handle || "", link.platform || "")
+        : "",
     phone: "",
     message: "",
     address: "",
     placeId: "",
     showMap: false,
+  };
+}
+
+function createPlatformChangePatch(link = {}, nextPlatform) {
+  const normalizedNextPlatform = String(nextPlatform || "").trim().toLowerCase();
+  const currentPlatform = String(link.platform || "").trim().toLowerCase();
+  const nextUsesHandle = isSecondaryHandlePlatform(normalizedNextPlatform);
+  const currentUsesHandle = isSecondaryHandlePlatform(currentPlatform);
+  const currentTitle = String(link.title || "").trim();
+  const currentTypeMeta = getTypeMeta(link);
+  const shouldReplaceTitle =
+    !currentTitle ||
+    currentTitle === "Link" ||
+    currentTitle === currentTypeMeta.label;
+
+  if (!normalizedNextPlatform) {
+    return {
+      type: "link",
+      platform: "",
+      handle: "",
+      title: shouldReplaceTitle ? "Link" : currentTitle,
+      url:
+        currentUsesHandle || currentPlatform === "email" || currentPlatform === "phone"
+          ? ""
+          : String(link.url || "").trim(),
+    };
+  }
+
+  if (nextUsesHandle) {
+    const nextHandle = currentUsesHandle
+      ? normalizeSecondaryHandle(link.handle, currentPlatform)
+      : "";
+
+    return {
+      type: "link",
+      platform: normalizedNextPlatform,
+      title: shouldReplaceTitle
+        ? getSecondaryPlatformLabel(normalizedNextPlatform)
+        : currentTitle,
+      handle: nextHandle,
+      url: buildSecondaryLinkUrl(normalizedNextPlatform, nextHandle),
+    };
+  }
+
+  return {
+    type: "link",
+    platform: normalizedNextPlatform,
+    title: shouldReplaceTitle
+      ? getSecondaryPlatformLabel(normalizedNextPlatform)
+      : currentTitle,
+    handle: "",
+    url:
+      normalizedNextPlatform === "email"
+        ? buildSecondaryLinkUrl(
+            "email",
+            "",
+            currentPlatform === "email"
+              ? normalizeSecondaryEmail(link.url || "")
+              : "",
+          )
+        : normalizedNextPlatform === "phone"
+          ? buildSecondaryLinkUrl(
+              "phone",
+              "",
+              currentPlatform === "phone"
+                ? normalizeSecondaryPhone(link.url || "")
+                : "",
+            )
+          : currentUsesHandle || currentPlatform === "email" || currentPlatform === "phone"
+            ? ""
+            : String(link.url || "").trim(),
   };
 }
 
@@ -270,7 +426,7 @@ export default function LinkItemRowV2({
     id: link.id,
     disabled: isInteractionLocked,
   });
-  const typeMeta = getTypeMeta(link.type);
+  const typeMeta = getTypeMeta(link);
   const primaryValue = getPrimaryFieldValue(link);
   const Icon = typeMeta.Icon;
   const isShopPreview = link.type === "shop-preview";
@@ -585,6 +741,13 @@ export default function LinkItemRowV2({
     });
   }
 
+  async function handlePlatformChange(event) {
+    await commitPatch(createPlatformChangePatch(link, event.target.value), {
+      source: "menu",
+      closeMenu: true,
+    });
+  }
+
   async function handleShowMapChange(nextChecked) {
     await commitPatch(
       {
@@ -715,7 +878,7 @@ export default function LinkItemRowV2({
                     type="button"
                     className="link-card__field-action"
                     onClick={() => startEditing("value")}
-                    aria-label={`Editar ${typeMeta.primaryFieldLabel.toLowerCase()} de ${link.title || "link"}`}
+                    aria-label={`Editar ${typeMeta.primaryFieldLabel.toLowerCase()} de ${link.title || typeMeta.label || "link"}`}
                     disabled={Boolean(savingField || menuSaving)}
                   >
                     <Pencil size={14} aria-hidden="true" />
@@ -784,6 +947,24 @@ export default function LinkItemRowV2({
                   <div className="item-row__helper">
                     A Previa da loja usa automaticamente as imagens dos produtos ativos e leva para o catalogo publico.
                   </div>
+                ) : null}
+
+                {link.type === "link" ? (
+                  <label className="field">
+                    <span>Plataforma</span>
+                    <select
+                      className="ui-select"
+                      value={link.platform || ""}
+                      onChange={handlePlatformChange}
+                      disabled={menuSaving}
+                    >
+                      {PRIMARY_LINK_PLATFORM_OPTIONS.map((option) => (
+                        <option key={option.value || "generic"} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                 ) : null}
 
                 {menuError ? (

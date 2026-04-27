@@ -19,7 +19,9 @@ import {
   MY_PAGE_BACKGROUND_PATTERN_VARIANT_OPTIONS,
   MY_PAGE_BACKGROUND_STYLE_OPTIONS,
   MY_PAGE_BRAND_LAYOUT_OPTIONS,
+  MY_PAGE_ICON_SIZE_OPTIONS,
   MY_PAGE_PRIMARY_BUTTON_CONTENT_ALIGN_OPTIONS,
+  MY_PAGE_PRIMARY_ICON_LAYOUT_OPTIONS,
   MY_PAGE_PRIMARY_BUTTON_LAYOUT_OPTIONS,
   MY_PAGE_BUTTON_RADIUS_OPTIONS,
   MY_PAGE_BUTTON_STYLE_OPTIONS,
@@ -34,13 +36,13 @@ import {
   MY_PAGE_THEME_PRESET_OPTIONS,
   createMyPageThemePreviewPage,
   getMyPagePreviewPrimaryLinks,
+  getMyPageSecondaryIconProps,
   getMyPagePreviewSocialLinks,
   getMyPageSocialLabel,
   getMyPageThemePresetValues,
   getMyPageSocialBrand,
   getMyPageTheme,
 } from "../public/myPageTheme.js";
-import { getButtonRadiusClassName } from "../public/buttonTheme.js";
 
 const DESIGN_CATEGORIES = [
   {
@@ -160,7 +162,7 @@ function ChoiceButtons({ value, options, onChange }) {
   );
 }
 
-function ColorRow({ label, value, fallback, onChange }) {
+function ColorRow({ label, value, fallback, onChange, disabled = false, hint = "" }) {
   const [draft, setDraft] = useState(value || fallback);
 
   useEffect(() => {
@@ -174,7 +176,7 @@ function ColorRow({ label, value, fallback, onChange }) {
   }
 
   return (
-    <div className="design-color-row">
+    <div className={cls("design-color-row", disabled && "is-disabled")}>
       <label className="design-color-row__label">{label}</label>
       <div className="design-color-row__control">
         <input
@@ -182,6 +184,7 @@ function ColorRow({ label, value, fallback, onChange }) {
           type="text"
           value={draft}
           maxLength={7}
+          disabled={disabled}
           onChange={(event) => setDraft(event.target.value)}
           onBlur={(event) => commit(event.target.value)}
           onKeyDown={(event) => {
@@ -195,9 +198,11 @@ function ColorRow({ label, value, fallback, onChange }) {
           className="design-color-row__swatch"
           type="color"
           value={normalizeColor(value, fallback)}
+          disabled={disabled}
           onChange={(event) => commit(event.target.value)}
         />
       </div>
+      {hint ? <p className="design-color-row__hint">{hint}</p> : null}
     </div>
   );
 }
@@ -342,8 +347,6 @@ function ButtonPreview({ theme, links }) {
 function SocialPreview({ theme, links }) {
   const iconOnly = theme.design.secondaryLinksStyle === "icon";
   const showIcon = theme.design.secondaryLinksStyle !== "text";
-  const useBadge = theme.design.secondaryLinksIconLayout === "brand_badge";
-  const radiusClassName = getButtonRadiusClassName(theme);
 
   return (
     <div className="design-mini-page" style={theme.rootStyle}>
@@ -363,12 +366,12 @@ function SocialPreview({ theme, links }) {
             const brand = getMyPageSocialBrand(link);
             const Icon = brand.Icon;
             const label = getMyPageSocialLabel(link);
+            const iconProps = getMyPageSecondaryIconProps(theme, link, "preview");
             return (
               <div
                 key={link.id}
                 className={cls(
                   "design-social-preview__item",
-                  radiusClassName,
                   iconOnly ? "is-icon-only" : "",
                   theme.design.secondaryLinksStyle === "text" ? "is-text-only" : "",
                   theme.design.secondaryLinksSize === "small" ? "is-small" : "",
@@ -377,14 +380,10 @@ function SocialPreview({ theme, links }) {
               >
                 {showIcon ? (
                   <span
-                    className={cls("design-social-preview__badge", radiusClassName)}
-                    style={
-                      useBadge
-                        ? brand.badgeStyle || theme.primaryButtonStyle
-                        : theme.softSurfaceStyle
-                    }
+                    className={cls("design-social-preview__badge", iconProps.className)}
+                    style={iconProps.style}
                   >
-                    <Icon size={13} />
+                    <Icon className={iconProps.iconClassName} size={iconProps.iconSize} />
                   </span>
                 ) : null}
                 {iconOnly ? null : <small>{label}</small>}
@@ -713,6 +712,51 @@ function renderPanelContent({
               ))}
             </OptionGrid>
           </div>
+          <div className="design-editor__group">
+            <div className="design-editor__group-label">Icone</div>
+            <OptionGrid columns="5">
+              {MY_PAGE_PRIMARY_ICON_LAYOUT_OPTIONS.map((option) => (
+                <OptionCard
+                  key={option.value}
+                  selected={value.primaryIconLayout === option.value}
+                  title={option.label}
+                  description={option.description}
+                  onClick={() => onChange("primaryIconLayout", option.value)}
+                  preview={
+                    <ButtonPreview
+                      theme={getOptionTheme("primaryIconLayout", option.value)}
+                      links={previewPrimaryLinks}
+                    />
+                  }
+                />
+              ))}
+            </OptionGrid>
+          </div>
+          <div className="design-editor__group">
+            <div className="design-editor__group-label">Tamanho do icone</div>
+            <ChoiceButtons
+              value={value.primaryIconSize}
+              options={MY_PAGE_ICON_SIZE_OPTIONS}
+              onChange={(nextValue) => onChange("primaryIconSize", nextValue)}
+            />
+          </div>
+          <div className="design-editor__group">
+            <div className="design-editor__group-label">Cores do icone</div>
+            <div className="design-color-stack">
+              <ColorRow
+                label="Fundo do icone"
+                value={value.primaryIconBadgeColor}
+                fallback={value.buttonColor || "#0f172a"}
+                onChange={(nextValue) => onChange("primaryIconBadgeColor", nextValue)}
+              />
+              <ColorRow
+                label="Cor do icone"
+                value={value.primaryIconColor}
+                fallback={value.buttonTextColor || "#ffffff"}
+                onChange={(nextValue) => onChange("primaryIconColor", nextValue)}
+              />
+            </div>
+          </div>
         </>
       );
     case "redes":
@@ -740,7 +784,7 @@ function renderPanelContent({
           </div>
           <div className="design-editor__group">
             <div className="design-editor__group-label">Layout do icone</div>
-            <OptionGrid columns="2">
+            <OptionGrid columns="5">
               {MY_PAGE_SECONDARY_LINK_ICON_LAYOUT_OPTIONS.map((option) => (
                 <OptionCard
                   key={option.value}
@@ -757,6 +801,47 @@ function renderPanelContent({
                 />
               ))}
             </OptionGrid>
+          </div>
+          <div className="design-editor__group">
+            <div className="design-editor__group-label">Tamanho do icone</div>
+            <ChoiceButtons
+              value={value.secondaryLinksIconSize}
+              options={MY_PAGE_ICON_SIZE_OPTIONS}
+              onChange={(nextValue) => onChange("secondaryLinksIconSize", nextValue)}
+            />
+          </div>
+          <div className="design-editor__group">
+            <div className="design-editor__group-label">Cores do icone</div>
+            <div className="design-color-stack">
+              <ColorRow
+                label="Fundo do icone"
+                value={value.secondaryLinksIconBadgeColor}
+                fallback={value.buttonColor || "#0f172a"}
+                onChange={(nextValue) =>
+                  onChange("secondaryLinksIconBadgeColor", nextValue)
+                }
+                disabled={value.secondaryLinksIconLayout === "brand_badge"}
+                hint={
+                  value.secondaryLinksIconLayout === "brand_badge"
+                    ? "Badge oficial usa as cores da propria rede social."
+                    : ""
+                }
+              />
+              <ColorRow
+                label="Cor do icone"
+                value={value.secondaryLinksIconColor}
+                fallback={value.buttonTextColor || "#ffffff"}
+                onChange={(nextValue) =>
+                  onChange("secondaryLinksIconColor", nextValue)
+                }
+                disabled={value.secondaryLinksIconLayout === "brand_badge"}
+                hint={
+                  value.secondaryLinksIconLayout === "brand_badge"
+                    ? "Cor manual fica desativada enquanto o badge oficial estiver ativo."
+                    : ""
+                }
+              />
+            </div>
           </div>
           <div className="design-editor__group">
             <div className="design-editor__group-label">Tamanho</div>

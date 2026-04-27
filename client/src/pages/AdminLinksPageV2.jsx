@@ -21,6 +21,7 @@ import {
   buildSecondaryLinkCreatePayload,
   buildSecondaryLinkUrl as buildSecondaryLinkUrlFromCatalog,
   getPrimaryLinkPickerOptions,
+  getSecondaryPlatformLabel,
   isSecondaryHandlePlatform as isSecondaryHandlePlatformFromCatalog,
   normalizeSecondaryEmail as normalizeSecondaryEmailValue,
   normalizeSecondaryHandle as normalizeSecondaryHandleValue,
@@ -155,11 +156,20 @@ function mergeServerIdsPreservingDraftContent(
 function createEditableLink(link = {}) {
   const rawType = String(link.type || "link").trim().toLowerCase();
   const type = PRIMARY_LINK_TYPES.has(rawType) ? rawType : "link";
+  const rawPlatform = String(link.platform || "").trim().toLowerCase();
+  const platform = type === "link" && SECONDARY_LINK_PLATFORMS.has(rawPlatform)
+    ? rawPlatform
+    : "";
+  const handle = platform && isSecondaryHandlePlatform(platform)
+    ? normalizeSecondaryHandle(link.handle || link.url || "", platform)
+    : "";
 
   return {
     ...link,
     title: String(link.title || ""),
     type,
+    platform,
+    handle,
     url: String(link.url || ""),
     phone: String(link.phone || ""),
     message: String(link.message || ""),
@@ -175,11 +185,37 @@ function buildSavableLinkPayload(link = {}) {
   const isWhatsapp = draft.type === "whatsapp";
   const isLocation = draft.type === "location";
   const isShopPreview = draft.type === "shop-preview";
+  const usesPlatform = draft.type === "link" && Boolean(draft.platform);
+  const usesHandle = usesPlatform && isSecondaryHandlePlatform(draft.platform);
+  const isEmail = draft.platform === "email";
+  const isPhone = draft.platform === "phone";
+  const normalizedHandle = usesHandle
+    ? normalizeSecondaryHandle(draft.handle, draft.platform)
+    : "";
+  const normalizedUrl = usesPlatform
+    ? usesHandle
+      ? buildSecondaryLinkUrlFromCatalog(draft.platform, normalizedHandle)
+      : isEmail
+        ? buildSecondaryLinkUrlFromCatalog(
+            "email",
+            "",
+            normalizeSecondaryEmailValue(draft.url || ""),
+          )
+        : isPhone
+          ? buildSecondaryLinkUrlFromCatalog(
+              "phone",
+              "",
+              normalizeSecondaryPhoneValue(draft.url || ""),
+            )
+          : String(draft.url || "").trim()
+    : String(draft.url || "").trim();
 
   return {
-    title: draft.title,
+    title: draft.title || (usesPlatform ? getSecondaryPlatformLabel(draft.platform) : ""),
     type: draft.type,
-    url: !isWhatsapp && !isLocation && !isShopPreview ? draft.url : "",
+    url: !isWhatsapp && !isLocation && !isShopPreview ? normalizedUrl : "",
+    platform: usesPlatform ? draft.platform : "",
+    handle: usesHandle ? normalizedHandle : "",
     phone: isWhatsapp ? draft.phone : "",
     message: isWhatsapp ? draft.message || WHATSAPP_DEFAULT_MESSAGE : "",
     address: isLocation ? draft.address : "",

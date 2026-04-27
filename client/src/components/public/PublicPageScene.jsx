@@ -4,9 +4,11 @@ import { Share2, Sparkles } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import {
   getMyPageButtonIcon,
+  getMyPagePrimaryIconProps,
   getMyPagePrimaryLinkLabel,
   getMyPageSocialLabel,
   getMyPageMotionPreset,
+  getMyPageSecondaryIconProps,
   getMyPageSocialBrand,
   getMyPageTheme,
   getPrimaryLinksLayout,
@@ -113,6 +115,7 @@ function PrimaryLinkCard({ link, interactive, theme, preview = false }) {
   const Icon = getMyPageButtonIcon(link);
   const title = getMyPagePrimaryLinkLabel(link);
   const contentAlignClassName = getContentAlignClassName(theme);
+  const iconProps = getMyPagePrimaryIconProps(theme, preview ? "preview" : "public");
 
   return (
     <ActionContainer
@@ -124,10 +127,10 @@ function PrimaryLinkCard({ link, interactive, theme, preview = false }) {
       >
         <div className="public-page__cta-main">
           <div
-            className="public-page__cta-icon"
-            style={theme.secondaryButtonStyle}
+            className={cls("public-page__cta-icon", iconProps.className)}
+            style={iconProps.style}
           >
-            <Icon className="public-page__cta-icon-svg" />
+            <Icon className={iconProps.iconClassName} size={iconProps.iconSize} />
           </div>
           <div className={cls("public-page__cta-copy", contentAlignClassName)}>
             <strong>{title}</strong>
@@ -149,7 +152,7 @@ function SecondaryLinkChip({ link, theme, interactive }) {
   const iconOnly = theme?.design?.secondaryLinksStyle === "icon";
   const textOnly = theme?.design?.secondaryLinksStyle === "text";
   const showIcon = theme?.design?.secondaryLinksStyle !== "text";
-  const useBadge = theme?.design?.secondaryLinksIconLayout !== "plain";
+  const iconProps = getMyPageSecondaryIconProps(theme, link, "public");
 
   return (
     <ActionContainer
@@ -166,15 +169,10 @@ function SecondaryLinkChip({ link, theme, interactive }) {
     >
       {showIcon ? (
         <span
-          className={cls(
-            "public-page__social-badge",
-            useBadge ? "is-badge" : "is-plain",
-          )}
-          style={
-            useBadge ? brand.badgeStyle || theme.softSurfaceStyle : undefined
-          }
+          className={cls("public-page__social-badge", iconProps.className)}
+          style={iconProps.style}
         >
-          <Icon />
+          <Icon className={iconProps.iconClassName} size={iconProps.iconSize} />
         </span>
       ) : null}
       {iconOnly ? null : (

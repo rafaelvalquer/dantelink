@@ -2,7 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { getMyPage, saveMyPageTheme } from "../app/api.js";
 import DesignEditorPanel from "../components/editor/DesignEditorPanel.jsx";
 import EditorShell from "../components/layout/EditorShell.jsx";
-import { MY_PAGE_THEME_DEFAULTS } from "../components/public/myPageTheme.js";
+import {
+  MY_PAGE_THEME_DEFAULTS,
+  normalizeMyPageTheme,
+} from "../components/public/myPageTheme.js";
 
 export default function AdminDesignPage() {
   const [page, setPage] = useState(null);
@@ -20,10 +23,7 @@ export default function AdminDesignPage() {
         const response = await getMyPage();
         if (!active) return;
         setPage(response.page);
-        setThemeDraft({
-          ...MY_PAGE_THEME_DEFAULTS,
-          ...(response.page.theme || {}),
-        });
+        setThemeDraft(normalizeMyPageTheme(response.page.theme || {}));
       } catch (loadError) {
         if (!active) return;
         setError(loadError.message);
@@ -74,10 +74,7 @@ export default function AdminDesignPage() {
       setError("");
       const response = await saveMyPageTheme(themeDraft);
       setPage(response.page);
-      setThemeDraft({
-        ...MY_PAGE_THEME_DEFAULTS,
-        ...(response.page.theme || {}),
-      });
+      setThemeDraft(normalizeMyPageTheme(response.page.theme || {}));
       setNotice("Tema salvo.");
     } catch (saveError) {
       setError(saveError.message);

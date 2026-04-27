@@ -4,6 +4,7 @@ import { Share2, Sparkles } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import {
   getMyPageButtonIcon,
+  getMyPagePrimaryIconProps,
   getMyPagePrimaryLinkLabel,
   getMyPageMotionPreset,
   getMyPageTheme,
@@ -113,6 +114,7 @@ function PrimaryLinkCard({ link, interactive, page, theme, preview = false }) {
     "primary",
     cls(preview && "is-preview"),
   );
+  const iconProps = getMyPagePrimaryIconProps(theme, preview ? "preview" : "public");
 
   return (
     <ActionContainer
@@ -124,10 +126,10 @@ function PrimaryLinkCard({ link, interactive, page, theme, preview = false }) {
       >
         <div className="public-page__cta-main">
           <div
-            className="public-page__cta-icon"
-            style={theme.primaryIconBadgeStyle}
+            className={cls("public-page__cta-icon", iconProps.className)}
+            style={iconProps.style}
           >
-            <Icon className="public-page__cta-icon-svg" />
+            <Icon className={iconProps.iconClassName} size={iconProps.iconSize} />
           </div>
           <div className={cls("public-page__cta-copy", contentAlignClassName)}>
             <strong>{title}</strong>
@@ -149,7 +151,10 @@ function ShopCard({ page, shop, theme, interactive }) {
     : Array.from({ length: 4 }, (_, index) => ({ id: `empty-${index}` }));
 
   return (
-    <section className="public-page-section-card public-page__shop public-page__shop--preview">
+    <section
+      className="public-page-section-card public-page__shop public-page__shop--preview"
+      style={theme.surfaceStyle}
+    >
       <ActionContainer
         interactive={interactive}
         href={getShopPath(page)}

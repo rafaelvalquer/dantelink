@@ -1,6 +1,7 @@
 import { getButtonPreviewProps } from "../public/buttonTheme.js";
 import {
   getMyPageButtonIcon,
+  getMyPagePrimaryIconProps,
   getMyPagePrimaryLinkLabel,
 } from "../public/myPageTheme.js";
 
@@ -29,12 +30,15 @@ export default function ButtonThemePreview({
       {items.map((link) => {
         const Icon = getMyPageButtonIcon(link);
         const buttonProps = getButtonPreviewProps(theme, variant, "design-button-preview__item");
-        const iconStyle = getButtonPreviewProps(theme, "secondary").style;
+        const iconProps = getMyPagePrimaryIconProps(theme, "preview");
 
         return (
           <div key={link.id || link.title} className={buttonProps.className} style={buttonProps.style}>
-            <div className="design-button-preview__icon" style={iconStyle}>
-              <Icon size={14} />
+            <div
+              className={cls("design-button-preview__icon", iconProps.className)}
+              style={iconProps.style}
+            >
+              <Icon className={iconProps.iconClassName} size={iconProps.iconSize} />
             </div>
             <div className={cls("design-button-preview__copy", contentAlignClassName)}>
               <strong>{getMyPagePrimaryLinkLabel(link)}</strong>

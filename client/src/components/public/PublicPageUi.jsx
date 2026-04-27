@@ -2,7 +2,9 @@ import { Link2 } from "lucide-react";
 import { getButtonProps, getButtonRadiusClassName } from "./buttonTheme.js";
 import {
   getMyPageButtonIcon,
+  getMyPagePrimaryIconProps,
   getMyPagePrimaryLinkLabel,
+  getMyPageSecondaryIconProps,
   getMyPageSocialLabel,
   getMyPageSocialBrand,
   getMyPageTheme,
@@ -243,7 +245,6 @@ export function PublicPageSocialLinks({
   const layout = getSecondaryLinksLayout(theme);
   const iconOnly = forceIconOnly || theme?.design?.secondaryLinksStyle === "icon";
   const textOnly = theme?.design?.secondaryLinksStyle === "text";
-  const useBadge = theme?.design?.secondaryLinksIconLayout !== "plain";
   const radiusClassName = getButtonRadiusClassName(theme);
 
   return (
@@ -258,6 +259,11 @@ export function PublicPageSocialLinks({
         const brand = getMyPageSocialBrand(link);
         const Icon = brand.Icon;
         const label = getMyPageSocialLabel(link);
+        const iconProps = getMyPageSecondaryIconProps(
+          theme,
+          link,
+          compact ? "preview" : "public",
+        );
 
         return (
           <ActionContainer
@@ -279,16 +285,12 @@ export function PublicPageSocialLinks({
               <span
                 className={cls(
                   "public-page__social-badge",
-                  radiusClassName,
+                  iconProps.className,
                   compact && "is-compact",
                 )}
-                style={
-                  useBadge
-                    ? brand.badgeStyle || theme.softSurfaceStyle
-                    : theme.softSurfaceStyle
-                }
+                style={iconProps.style}
               >
-                <Icon />
+                <Icon className={iconProps.iconClassName} size={iconProps.iconSize} />
               </span>
             )}
             {iconOnly ? null : (
@@ -394,6 +396,7 @@ function PreviewActionButton({ link, theme, compact = false }) {
   const Icon = getMyPageButtonIcon(link);
   const title = getMyPagePrimaryLinkLabel(link);
   const contentAlignClassName = getContentAlignClassName(theme);
+  const iconProps = getMyPagePrimaryIconProps(theme, compact ? "preview" : "public");
 
   return (
       <div className={props.className} style={props.style}>
@@ -401,10 +404,11 @@ function PreviewActionButton({ link, theme, compact = false }) {
           <div
             className={cls(
               "public-page__cta-icon",
+              iconProps.className,
             )}
-            style={theme.primaryIconBadgeStyle}
+            style={iconProps.style}
           >
-            <Icon className="public-page__cta-icon-svg" />
+            <Icon className={iconProps.iconClassName} size={iconProps.iconSize} />
           </div>
           <div className={cls("public-page__cta-copy", contentAlignClassName)}>
             <strong>{title}</strong>

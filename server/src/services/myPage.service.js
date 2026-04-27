@@ -30,8 +30,15 @@ const THEME_DEFAULTS = {
   buttonRadius: "round",
   primaryButtonsLayout: "stack",
   primaryButtonContentAlign: "center",
+  primaryIconLayout: "circle_solid",
+  primaryIconSize: "md",
+  primaryIconBadgeColor: "",
+  primaryIconColor: "",
   secondaryLinksStyle: "icon_text",
   secondaryLinksIconLayout: "brand_badge",
+  secondaryLinksIconSize: "md",
+  secondaryLinksIconBadgeColor: "",
+  secondaryLinksIconColor: "",
   secondaryLinksSize: "medium",
   secondaryLinksAlign: "center",
   secondaryLinksPosition: "bottom",
@@ -53,6 +60,21 @@ const VALID_THEME_OPTIONS = {
   buttonShadow: new Set(["none", "soft", "strong", "hard"]),
   buttonRadius: new Set(["square", "round", "pill"]),
   primaryButtonContentAlign: new Set(["center", "left"]),
+  primaryIconLayout: new Set([
+    "plain",
+    "circle_soft",
+    "circle_solid",
+    "circle_neutral",
+    "square_soft",
+  ]),
+  secondaryLinksIconLayout: new Set([
+    "plain",
+    "brand_badge",
+    "circle_soft",
+    "circle_solid",
+    "square_soft",
+  ]),
+  iconSize: new Set(["sm", "md", "lg"]),
 };
 
 const PRIMARY_LINK_TYPES = new Set([
@@ -162,6 +184,12 @@ function toPlainObject(value) {
 
 function isPrimaryLinkType(value) {
   return PRIMARY_LINK_TYPES.has(String(value || "").trim().toLowerCase());
+}
+
+function isPrimaryLinkPlatform(value) {
+  return SECONDARY_LINK_PLATFORMS.has(
+    String(value || "").trim().toLowerCase(),
+  );
 }
 
 function isSecondaryPlatform(value) {
@@ -400,8 +428,19 @@ function normalizeLink(link = {}, orderFallback = 0) {
   const rawType =
     typeof source.type === "string" ? source.type.trim().toLowerCase() : "link";
   const type = isPrimaryLinkType(rawType) ? rawType : "link";
+  const rawPlatform =
+    typeof source.platform === "string"
+      ? source.platform.trim().toLowerCase()
+      : "";
+  const platform = type === "link" && isPrimaryLinkPlatform(rawPlatform)
+    ? rawPlatform
+    : "";
   const title =
-    typeof source.title === "string" ? source.title.trim() : "";
+    typeof source.title === "string" && source.title.trim()
+      ? source.title.trim()
+      : type === "link" && platform
+        ? getSecondaryPlatformLabel(platform)
+        : "";
   const phone =
     type === "whatsapp" ? normalizePhoneNumber(source.phone) : "";
   const message =
@@ -418,6 +457,18 @@ function normalizeLink(link = {}, orderFallback = 0) {
       : "";
   const showMap =
     type === "location" ? source.showMap === true : false;
+  const handle =
+    type === "link" && isHandlePlatform(platform)
+      ? normalizeSecondaryHandle(source.handle || source.url || "", platform)
+      : "";
+  const email =
+    type === "link" && platform === "email"
+      ? normalizeEmailAddress(source.url || source.handle || "")
+      : "";
+  const linkPhone =
+    type === "link" && platform === "phone"
+      ? normalizePhoneLinkValue(source.url || source.handle || "")
+      : "";
   let url =
     typeof source.url === "string" ? source.url.trim() : "";
 
@@ -427,6 +478,16 @@ function normalizeLink(link = {}, orderFallback = 0) {
     url = buildLocationUrl(address, placeId);
   } else if (type === "shop-preview") {
     url = "";
+  } else if (platform) {
+    url = buildSecondaryUrl(
+      platform,
+      handle,
+      platform === "email"
+        ? email
+        : platform === "phone"
+          ? linkPhone
+          : url,
+    );
   }
 
   return {
@@ -436,6 +497,11 @@ function normalizeLink(link = {}, orderFallback = 0) {
         : createLinkId(),
     title,
     url,
+    platform,
+    handle:
+      type === "link" && platform !== "email" && platform !== "phone"
+        ? handle
+        : "",
     phone,
     message,
     address,
@@ -637,6 +703,10 @@ function normalizeTheme(theme = {}) {
   const normalizedTheme = toPlainObject(theme) || {};
   const legacyRadius =
     LEGACY_BUTTON_STYLE_TO_RADIUS[normalizedTheme.buttonStyle] || null;
+  const legacyPrimaryIconLayout =
+    normalizedTheme.primaryIconBadgeStyle === "neutral"
+      ? "circle_neutral"
+      : "circle_solid";
   const surfaceColor = normalizedTheme.surfaceColor || normalizedTheme.cardColor;
   const pageTextColor =
     normalizedTheme.pageTextColor || normalizedTheme.textColor;
@@ -704,6 +774,48 @@ function normalizeTheme(theme = {}) {
           ? "left"
           : normalizedTheme.primaryButtonContentAlign.trim()
         : THEME_DEFAULTS.primaryButtonContentAlign,
+    primaryIconLayout:
+      typeof normalizedTheme.primaryIconLayout === "string" &&
+      VALID_THEME_OPTIONS.primaryIconLayout.has(
+        normalizedTheme.primaryIconLayout.trim(),
+      )
+        ? normalizedTheme.primaryIconLayout.trim()
+        : typeof normalizedTheme.primaryIconBadgeStyle === "string"
+          ? legacyPrimaryIconLayout
+          : THEME_DEFAULTS.primaryIconLayout,
+    primaryIconSize:
+      typeof normalizedTheme.primaryIconSize === "string" &&
+      VALID_THEME_OPTIONS.iconSize.has(normalizedTheme.primaryIconSize.trim())
+        ? normalizedTheme.primaryIconSize.trim()
+        : THEME_DEFAULTS.primaryIconSize,
+    primaryIconBadgeColor:
+      typeof normalizedTheme.primaryIconBadgeColor === "string"
+        ? normalizedTheme.primaryIconBadgeColor.trim()
+        : THEME_DEFAULTS.primaryIconBadgeColor,
+    primaryIconColor:
+      typeof normalizedTheme.primaryIconColor === "string"
+        ? normalizedTheme.primaryIconColor.trim()
+        : THEME_DEFAULTS.primaryIconColor,
+    secondaryLinksIconLayout:
+      typeof normalizedTheme.secondaryLinksIconLayout === "string" &&
+      VALID_THEME_OPTIONS.secondaryLinksIconLayout.has(
+        normalizedTheme.secondaryLinksIconLayout.trim(),
+      )
+        ? normalizedTheme.secondaryLinksIconLayout.trim()
+        : THEME_DEFAULTS.secondaryLinksIconLayout,
+    secondaryLinksIconSize:
+      typeof normalizedTheme.secondaryLinksIconSize === "string" &&
+      VALID_THEME_OPTIONS.iconSize.has(normalizedTheme.secondaryLinksIconSize.trim())
+        ? normalizedTheme.secondaryLinksIconSize.trim()
+        : THEME_DEFAULTS.secondaryLinksIconSize,
+    secondaryLinksIconBadgeColor:
+      typeof normalizedTheme.secondaryLinksIconBadgeColor === "string"
+        ? normalizedTheme.secondaryLinksIconBadgeColor.trim()
+        : THEME_DEFAULTS.secondaryLinksIconBadgeColor,
+    secondaryLinksIconColor:
+      typeof normalizedTheme.secondaryLinksIconColor === "string"
+        ? normalizedTheme.secondaryLinksIconColor.trim()
+        : THEME_DEFAULTS.secondaryLinksIconColor,
     secondaryLinksPosition:
       normalizedTheme.secondaryLinksPosition === "top" ||
       normalizedTheme.secondaryLinksPosition === "bottom"
@@ -862,14 +974,21 @@ function sanitizeThemePayload(payload = {}) {
     "buttonRadius",
     "primaryButtonsLayout",
     "primaryButtonContentAlign",
+    "primaryIconLayout",
+    "primaryIconSize",
+    "primaryIconBadgeColor",
+    "primaryIconColor",
     "secondaryLinksStyle",
-      "secondaryLinksIconLayout",
-      "secondaryLinksSize",
-      "secondaryLinksAlign",
-      "secondaryLinksPosition",
-      "animationPreset",
-      "backgroundColor",
-      "cardColor",
+    "secondaryLinksIconLayout",
+    "secondaryLinksIconSize",
+    "secondaryLinksIconBadgeColor",
+    "secondaryLinksIconColor",
+    "secondaryLinksSize",
+    "secondaryLinksAlign",
+    "secondaryLinksPosition",
+    "animationPreset",
+    "backgroundColor",
+    "cardColor",
     "textColor",
   ]) {
     if (typeof payload[key] === "string") {
@@ -906,10 +1025,20 @@ function sanitizeThemePayload(payload = {}) {
 function sanitizeLinkPayload(payload = {}) {
   const rawType =
     typeof payload.type === "string" ? payload.type.trim().toLowerCase() : undefined;
+  const rawPlatform =
+    typeof payload.platform === "string"
+      ? payload.platform.trim().toLowerCase()
+      : undefined;
 
   return {
     title: typeof payload.title === "string" ? payload.title.trim() : undefined,
     url: typeof payload.url === "string" ? payload.url.trim() : undefined,
+    platform:
+      rawPlatform === "" || isPrimaryLinkPlatform(rawPlatform)
+        ? rawPlatform
+        : undefined,
+    handle:
+      typeof payload.handle === "string" ? payload.handle.trim() : undefined,
     phone: typeof payload.phone === "string" ? payload.phone.trim() : undefined,
     message:
       typeof payload.message === "string" ? payload.message.trim() : undefined,
@@ -1063,6 +1192,8 @@ export async function createLink(payload = {}) {
     id: createLinkId(),
     title: data.title || "",
     url: data.url || "",
+    platform: data.platform || "",
+    handle: data.handle || "",
     phone: data.phone || "",
     message: data.message || "",
     address: data.address || "",
