@@ -111,8 +111,40 @@ const DESIGN_CATEGORIES = [
   },
 ];
 
+const DESIGN_COPY_FIXES = {
+  "Use a mesma imagem da pagina como avatar ou como fundo.":
+    "Use a mesma imagem da página como avatar ou como fundo.",
+  "O tema aplica um ponto de partida completo para cor, fundo, fonte e botoes.":
+    "O tema aplica um ponto de partida completo para cor, fundo, fonte e botões.",
+  "Defina o estilo, a direcao e a textura do fundo.":
+    "Defina o estilo, a direção e a textura do fundo.",
+  Superficie: "Superfície",
+  "Controle a camada onde ficam logo, titulos, botoes e formularios.":
+    "Controle a camada onde ficam logo, títulos, botões e formulários.",
+  "A fonte vale para pagina, catalogo, formulario e pagamento.":
+    "A fonte vale para página, catálogo, formulário e pagamento.",
+  "BotÃ£o": "Botão",
+  "Defina o peso visual dos CTAs sem mudar a logica da pagina.":
+    "Defina o peso visual dos CTAs sem mudar a lógica da página.",
+  "Links secundarios": "Links secundários",
+  "Controle conteudo, tamanho e alinhamento das redes na home.":
+    "Controle conteúdo, tamanho e alinhamento das redes na home.",
+  "AnimaÃ§Ã£o": "Animação",
+  "Movimento no publico": "Movimento no público",
+  "Escolha o ritmo visual de entrada da pagina publica.":
+    "Escolha o ritmo visual de entrada da página pública.",
+  "Ajuste cada cor do publico": "Ajuste cada cor do público",
+  "Controle fundo, botoes e textos com liberdade total em cima do tema.":
+    "Controle fundo, botões e textos com liberdade total em cima do tema.",
+  "Minha Pagina": "Minha Página",
+};
+
 function cls(...parts) {
   return parts.filter(Boolean).join(" ");
+}
+
+function fixCopy(value) {
+  return DESIGN_COPY_FIXES[value] || value;
 }
 
 function normalizeColor(value, fallback) {
@@ -221,7 +253,7 @@ function BrandPreview({ page, theme, mode }) {
                 <img
                   className={cls("design-mini-page__avatar", mode === "spotlight" && "is-spotlight")}
                   src={page.avatarUrl}
-                  alt={page?.title || "Minha Pagina"}
+                  alt={fixCopy(page?.title || "Minha Pagina")}
                 />
               ) : (
                 <div
@@ -238,7 +270,7 @@ function BrandPreview({ page, theme, mode }) {
           )}
           <div className={cls("design-mini-page__copy", mode === "spotlight" && "is-spotlight")}>
             <span style={theme.accentTextStyle}>Avatar ou Hero</span>
-            <strong style={theme.titleStyle}>{page?.title || "Minha Pagina"}</strong>
+            <strong style={theme.titleStyle}>{fixCopy(page?.title || "Minha Pagina")}</strong>
             <small>
               {mode === "hero"
                 ? "Imagem no fundo."
@@ -254,7 +286,7 @@ function BrandPreview({ page, theme, mode }) {
 }
 
 function ThemePreview({ page, theme, option }) {
-  const previewTitle = option?.previewTitle || page?.title || "Minha Pagina";
+  const previewTitle = fixCopy(option?.previewTitle || page?.title || "Minha Pagina");
   const previewLabel = option?.previewLabel || option?.label || "Tema";
   const previewCtaLabel = option?.previewCtaLabel || "Ver layout";
   const previewVariant = option?.previewVariant || "airy";
@@ -326,7 +358,7 @@ function FontPreview({ page, theme }) {
     <div className="design-mini-page design-mini-page--font" style={theme.rootStyle}>
       <div className="design-mini-page__surface" style={theme.surfaceStyle}>
         <span style={theme.titleStyle}>Aa</span>
-        <strong style={theme.titleStyle}>{page?.title || "Minha Pagina"}</strong>
+        <strong style={theme.titleStyle}>{fixCopy(page?.title || "Minha Pagina")}</strong>
       </div>
     </div>
   );
@@ -433,7 +465,7 @@ function DesignCategoryNav({ activeId, onSelect }) {
                 onClick={() => onSelect(category.id)}
               >
                 <Icon className="design-shell__nav-icon" size={18} />
-                <span>{category.label}</span>
+                <span>{fixCopy(category.label)}</span>
               </button>
             );
           })}
@@ -451,7 +483,7 @@ function DesignCategoryNav({ activeId, onSelect }) {
             )}
             onClick={() => onSelect(category.id)}
           >
-            {category.label}
+            {fixCopy(category.label)}
           </button>
         ))}
       </div>
@@ -464,9 +496,9 @@ function DesignPanelShell({ category, onSave, isSaving, children }) {
     <section className="design-shell__panel">
       <header className="design-shell__panel-header">
         <div>
-          <span className="design-shell__panel-eyebrow">{category.label}</span>
-          <h2>{category.title}</h2>
-          <p>{category.description}</p>
+          <span className="design-shell__panel-eyebrow">{fixCopy(category.label)}</span>
+          <h2>{fixCopy(category.title)}</h2>
+          <p>{fixCopy(category.description)}</p>
         </div>
         <Button onClick={onSave} disabled={isSaving}>
           {isSaving ? "Salvando..." : "Salvar tema"}
@@ -552,7 +584,7 @@ function renderPanelContent({
           </OptionGrid>
           {value.backgroundStyle === "gradient" ? (
             <div className="design-editor__group">
-              <div className="design-editor__group-label">Direcao</div>
+              <div className="design-editor__group-label">Direção</div>
               <ChoiceButtons
                 value={value.backgroundGradientDirection}
                 options={MY_PAGE_BACKGROUND_GRADIENT_DIRECTION_OPTIONS}
@@ -659,7 +691,7 @@ function renderPanelContent({
             </OptionGrid>
           </div>
           <div className="design-editor__group">
-            <div className="design-editor__group-label">Posicao do texto</div>
+            <div className="design-editor__group-label">Posição do texto</div>
             <ChoiceButtons
               value={value.primaryButtonContentAlign}
               options={MY_PAGE_PRIMARY_BUTTON_CONTENT_ALIGN_OPTIONS}
@@ -713,7 +745,7 @@ function renderPanelContent({
             </OptionGrid>
           </div>
           <div className="design-editor__group">
-            <div className="design-editor__group-label">Icone</div>
+            <div className="design-editor__group-label">Ícone</div>
             <OptionGrid columns="5">
               {MY_PAGE_PRIMARY_ICON_LAYOUT_OPTIONS.map((option) => (
                 <OptionCard
@@ -733,7 +765,7 @@ function renderPanelContent({
             </OptionGrid>
           </div>
           <div className="design-editor__group">
-            <div className="design-editor__group-label">Tamanho do icone</div>
+            <div className="design-editor__group-label">Tamanho do ícone</div>
             <ChoiceButtons
               value={value.primaryIconSize}
               options={MY_PAGE_ICON_SIZE_OPTIONS}
@@ -741,16 +773,16 @@ function renderPanelContent({
             />
           </div>
           <div className="design-editor__group">
-            <div className="design-editor__group-label">Cores do icone</div>
+            <div className="design-editor__group-label">Cores do ícone</div>
             <div className="design-color-stack">
               <ColorRow
-                label="Fundo do icone"
+                label="Fundo do ícone"
                 value={value.primaryIconBadgeColor}
                 fallback={value.buttonColor || "#0f172a"}
                 onChange={(nextValue) => onChange("primaryIconBadgeColor", nextValue)}
               />
               <ColorRow
-                label="Cor do icone"
+                label="Cor do ícone"
                 value={value.primaryIconColor}
                 fallback={value.buttonTextColor || "#ffffff"}
                 onChange={(nextValue) => onChange("primaryIconColor", nextValue)}
@@ -763,7 +795,7 @@ function renderPanelContent({
       return (
         <>
           <div className="design-editor__group">
-            <div className="design-editor__group-label">Conteudo</div>
+            <div className="design-editor__group-label">Conteúdo</div>
             <OptionGrid columns="3">
               {MY_PAGE_SECONDARY_LINK_STYLE_OPTIONS.map((option) => (
                 <OptionCard
@@ -783,7 +815,7 @@ function renderPanelContent({
             </OptionGrid>
           </div>
           <div className="design-editor__group">
-            <div className="design-editor__group-label">Layout do icone</div>
+            <div className="design-editor__group-label">Layout do ícone</div>
             <OptionGrid columns="5">
               {MY_PAGE_SECONDARY_LINK_ICON_LAYOUT_OPTIONS.map((option) => (
                 <OptionCard
@@ -803,7 +835,7 @@ function renderPanelContent({
             </OptionGrid>
           </div>
           <div className="design-editor__group">
-            <div className="design-editor__group-label">Tamanho do icone</div>
+            <div className="design-editor__group-label">Tamanho do ícone</div>
             <ChoiceButtons
               value={value.secondaryLinksIconSize}
               options={MY_PAGE_ICON_SIZE_OPTIONS}
@@ -811,10 +843,10 @@ function renderPanelContent({
             />
           </div>
           <div className="design-editor__group">
-            <div className="design-editor__group-label">Cores do icone</div>
+            <div className="design-editor__group-label">Cores do ícone</div>
             <div className="design-color-stack">
               <ColorRow
-                label="Fundo do icone"
+                label="Fundo do ícone"
                 value={value.secondaryLinksIconBadgeColor}
                 fallback={value.buttonColor || "#0f172a"}
                 onChange={(nextValue) =>
@@ -823,12 +855,12 @@ function renderPanelContent({
                 disabled={value.secondaryLinksIconLayout === "brand_badge"}
                 hint={
                   value.secondaryLinksIconLayout === "brand_badge"
-                    ? "Badge oficial usa as cores da propria rede social."
+                    ? "Badge oficial usa as cores da própria rede social."
                     : ""
                 }
               />
               <ColorRow
-                label="Cor do icone"
+                label="Cor do ícone"
                 value={value.secondaryLinksIconColor}
                 fallback={value.buttonTextColor || "#ffffff"}
                 onChange={(nextValue) =>
@@ -860,7 +892,7 @@ function renderPanelContent({
             />
           </div>
           <div className="design-editor__group">
-            <div className="design-editor__group-label">Posicao dos icones</div>
+            <div className="design-editor__group-label">Posição dos ícones</div>
             <ChoiceButtons
               value={value.secondaryLinksPosition}
               options={MY_PAGE_SECONDARY_LINK_POSITION_OPTIONS}
@@ -899,19 +931,19 @@ function renderPanelContent({
             onChange={(nextValue) => onChange("backgroundColor", nextValue)}
           />
           <ColorRow
-            label="Botoes"
+            label="Botões"
             value={value.buttonColor}
             fallback="#0f172a"
             onChange={(nextValue) => onChange("buttonColor", nextValue)}
           />
           <ColorRow
-            label="Texto do botao"
+            label="Texto do botão"
             value={value.buttonTextColor}
             fallback="#ffffff"
             onChange={(nextValue) => onChange("buttonTextColor", nextValue)}
           />
           <ColorRow
-            label="Texto da pagina"
+            label="Texto da página"
             value={value.pageTextColor}
             fallback="#64748b"
             onChange={(nextValue) => onChange("pageTextColor", nextValue)}

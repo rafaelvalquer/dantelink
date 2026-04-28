@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   closestCenter,
   DndContext,
@@ -38,6 +38,12 @@ const CURRENCY_OPTIONS = [
   { value: "EUR", label: "EUR (EUR)" },
 ];
 
+const PRODUCT_STATUS_FILTER_OPTIONS = [
+  { value: "todos", label: "Todos" },
+  { value: "ativos", label: "Ativos" },
+  { value: "inativos", label: "Inativos" },
+];
+
 function cls(...parts) {
   return parts.filter(Boolean).join(" ");
 }
@@ -65,6 +71,40 @@ function getProductDomain(sourceUrl = "") {
   } catch {
     return "manual";
   }
+}
+
+function matchesStatusFilter(product = {}, filter = "todos") {
+  if (filter === "ativos") {
+    return product.isActive !== false;
+  }
+
+  if (filter === "inativos") {
+    return product.isActive === false;
+  }
+
+  return true;
+}
+
+function normalizeProductSearchValue(product = {}) {
+  return [
+    product.title,
+    product.sourceUrl,
+    product.currency,
+    getProductDomain(product.sourceUrl),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+function mergeFilteredReorder(allIds = [], visibleIds = [], nextVisibleIds = []) {
+  const visibleQueue = nextVisibleIds.map((itemId) => String(itemId));
+  const visibleSet = new Set(visibleIds.map((itemId) => String(itemId)));
+
+  return allIds.map((itemId) => {
+    const normalizedId = String(itemId);
+    return visibleSet.has(normalizedId) ? visibleQueue.shift() : normalizedId;
+  });
 }
 
 function createDraft(product = null) {
@@ -140,7 +180,7 @@ function loadImage(url) {
   return new Promise((resolve, reject) => {
     const image = new Image();
     image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error("Nao foi possivel carregar a imagem."));
+    image.onerror = () => reject(new Error("Não foi possível carregar a imagem."));
     image.src = url;
   });
 }
@@ -169,7 +209,7 @@ async function createSquareCroppedImageFile({
 
   const context = canvas.getContext("2d");
   if (!context) {
-    throw new Error("Nao foi possivel preparar o recorte da imagem.");
+    throw new Error("Não foi possível preparar o recorte da imagem.");
   }
 
   context.drawImage(
@@ -191,7 +231,7 @@ async function createSquareCroppedImageFile({
         return;
       }
 
-      reject(new Error("Nao foi possivel gerar a imagem recortada."));
+      reject(new Error("Não foi possível gerar a imagem recortada."));
     }, "image/png");
   });
 
@@ -236,7 +276,7 @@ function ProductImageCropper({
         setOffset({ x: 0, y: 0 });
         const response = await fetch(imageUrl);
         if (!response.ok) {
-          throw new Error("Nao foi possivel preparar a imagem para recorte.");
+          throw new Error("Não foi possível preparar a imagem para recorte.");
         }
 
         const blob = await response.blob();
@@ -252,7 +292,7 @@ function ProductImageCropper({
         });
       } catch (cropError) {
         if (!active) return;
-        setError(cropError.message || "Nao foi possivel preparar a imagem para recorte.");
+        setError(cropError.message || "Não foi possível preparar a imagem para recorte.");
       } finally {
         if (active) {
           setLoading(false);
@@ -350,7 +390,7 @@ function ProductImageCropper({
 
       await onApply(file);
     } catch (cropError) {
-      setError(cropError.message || "Nao foi possivel aplicar o recorte.");
+      setError(cropError.message || "Não foi possível aplicar o recorte.");
     }
   }
 
@@ -436,7 +476,7 @@ function ProductModal({
   const [draft, setDraft] = useState(createDraft(product));
   const [status, setStatus] = useState({
     kind: "idle",
-    message: "Cole a URL do produto para tentar importar imagem, titulo e preco.",
+    message: "Cole a URL do produto para tentar importar imagem, título e preço.",
   });
   const [isImporting, setIsImporting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -465,8 +505,8 @@ function ProductModal({
     setStatus({
       kind: product ? "idle" : "hint",
       message: product
-        ? "Edite os dados do produto e salve as alteracoes."
-        : "Cole a URL do produto para tentar importar imagem, titulo e preco.",
+        ? "Edite os dados do produto e salve as alterações."
+        : "Cole a URL do produto para tentar importar imagem, título e preço.",
     });
 
     function handleKeyDown(event) {
@@ -522,12 +562,12 @@ function ProductModal({
               ? "Dados importados com sucesso."
               : imported.status === "partial"
                 ? "Encontramos parte dos dados. Complete o restante manualmente."
-                : "Nao foi possivel importar. Preencha manualmente.",
+                : "Não foi possível importar. Preencha manualmente.",
         });
       } catch {
         setStatus({
           kind: "manual",
-          message: "Nao foi possivel importar os dados. Continue manualmente.",
+          message: "Não foi possível importar os dados. Continue manualmente.",
         });
       } finally {
         setIsImporting(false);
@@ -564,7 +604,7 @@ function ProductModal({
         message: "Imagem enviada com sucesso.",
       });
     } catch (uploadError) {
-      setError(uploadError.message || "Nao foi possivel enviar a imagem.");
+      setError(uploadError.message || "Não foi possível enviar a imagem.");
     } finally {
       setIsUploading(false);
       event.target.value = "";
@@ -597,7 +637,7 @@ function ProductModal({
     } catch (cropError) {
       setError(
         cropError.message ||
-          "Nao foi possivel preparar a imagem para recorte. Envie o arquivo manualmente.",
+          "Não foi possível preparar a imagem para recorte. Envie o arquivo manualmente.",
       );
     } finally {
       setIsPreparingCrop(false);
@@ -617,7 +657,7 @@ function ProductModal({
         message: "Recorte salvo com sucesso.",
       });
     } catch (cropError) {
-      setError(cropError.message || "Nao foi possivel salvar o recorte.");
+      setError(cropError.message || "Não foi possível salvar o recorte.");
     } finally {
       setIsApplyingCrop(false);
     }
@@ -632,7 +672,7 @@ function ProductModal({
     }
 
     if (!payload.title) {
-      setError("Informe o titulo do produto.");
+      setError("Informe o título do produto.");
       return;
     }
 
@@ -646,7 +686,7 @@ function ProductModal({
       }
       onClose();
     } catch (saveError) {
-      setError(saveError.message || "Nao foi possivel salvar o produto.");
+      setError(saveError.message || "Não foi possível salvar o produto.");
     } finally {
       setIsSaving(false);
     }
@@ -752,7 +792,7 @@ function ProductModal({
           </div>
 
           <label className="field field--full">
-            <span>Titulo</span>
+            <span>Título</span>
             <Input
               value={draft.title}
               onChange={(event) => updateField("title", event.target.value)}
@@ -764,7 +804,7 @@ function ProductModal({
 
           <div className="form-grid">
             <label className="field">
-              <span>Preco (opcional)</span>
+              <span>Preço (opcional)</span>
               <Input
                 value={draft.price}
                 onChange={(event) => updateField("price", event.target.value)}
@@ -820,7 +860,7 @@ function ProductModal({
             Cancelar
           </Button>
           <Button onClick={handleSave} disabled={isSaving || isCropOpen || isApplyingCrop}>
-            {isSaving ? "Salvando..." : "Salvar alteracoes"}
+            {isSaving ? "Salvando..." : "Salvar alterações"}
           </Button>
         </div>
       </div>
@@ -828,7 +868,13 @@ function ProductModal({
   );
 }
 
-function SortableProductRow({ product, onEdit, onDelete, onToggle }) {
+function SortableProductRow({
+  product,
+  onEdit,
+  onDelete,
+  onToggle,
+  dragDescriptionId,
+}) {
   const {
     attributes,
     listeners,
@@ -858,6 +904,7 @@ function SortableProductRow({ product, onEdit, onDelete, onToggle }) {
         ref={setActivatorNodeRef}
         className="shop-manage-card__handle"
         aria-label="Reordenar produto"
+        aria-describedby={dragDescriptionId}
         {...attributes}
         {...listeners}
       >
@@ -877,7 +924,7 @@ function SortableProductRow({ product, onEdit, onDelete, onToggle }) {
 
         <div className="shop-manage-card__copy">
           <span className="shop-manage-card__domain">{getProductDomain(product.sourceUrl)}</span>
-          <strong>{product.title || "Produto sem titulo"}</strong>
+          <strong>{product.title || "Produto sem título"}</strong>
           {priceLabel ? <span className="shop-manage-card__price">{priceLabel}</span> : null}
         </div>
       </button>
@@ -930,11 +977,33 @@ export default function ShopProductsEditorCard({
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [reordering, setReordering] = useState(false);
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("todos");
+  const [liveMessage, setLiveMessage] = useState("");
+  const searchFieldId = useId();
+  const statusFieldId = useId();
+  const manageTabId = useId();
+  const galleryTabId = useId();
+  const dragDescriptionId = useId();
   const products = useMemo(
     () => [...(shop?.products || [])].sort((left, right) => Number(left.order ?? 0) - Number(right.order ?? 0)),
     [shop?.products],
   );
   const productIds = useMemo(() => products.map((product) => product.id), [products]);
+  const filteredProducts = useMemo(() => {
+    const normalizedQuery = String(query || "").trim().toLowerCase();
+
+    return products.filter((product) => {
+      const matchesQuery = !normalizedQuery
+        || normalizeProductSearchValue(product).includes(normalizedQuery);
+
+      return matchesQuery && matchesStatusFilter(product, statusFilter);
+    });
+  }, [products, query, statusFilter]);
+  const filteredProductIds = useMemo(
+    () => filteredProducts.map((product) => product.id),
+    [filteredProducts],
+  );
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -969,8 +1038,8 @@ export default function ShopProductsEditorCard({
       return;
     }
 
-    const oldIndex = productIds.indexOf(active.id);
-    const newIndex = productIds.indexOf(over.id);
+    const oldIndex = filteredProductIds.indexOf(active.id);
+    const newIndex = filteredProductIds.indexOf(over.id);
 
     if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) {
       return;
@@ -978,7 +1047,14 @@ export default function ShopProductsEditorCard({
 
     try {
       setReordering(true);
-      await onReorderProducts(arrayMove(productIds, oldIndex, newIndex));
+      const nextVisibleIds = arrayMove(filteredProductIds, oldIndex, newIndex);
+      const nextIds =
+        filteredProductIds.length === productIds.length
+          ? nextVisibleIds
+          : mergeFilteredReorder(productIds, filteredProductIds, nextVisibleIds);
+
+      await onReorderProducts(nextIds);
+      setLiveMessage("Ordem dos produtos atualizada.");
     } finally {
       setReordering(false);
     }
@@ -988,54 +1064,113 @@ export default function ShopProductsEditorCard({
     <>
       <SectionCard
         title="Minha loja"
-        description="Gerencie os produtos exibidos na sua loja e publique uma vitrine organizada na pagina publica."
+        description="Gerencie os produtos exibidos na sua loja e publique uma vitrine organizada na página pública."
       >
         <div className="shop-editor">
-          <div className="shop-editor__tabs">
+          <div className="shop-editor__tabs" role="tablist" aria-label="Abas da loja">
             <button
+              id={manageTabId}
               type="button"
               className={cls("shop-editor__tab", activeTab === "manage" && "is-active")}
               onClick={() => setActiveTab("manage")}
+              role="tab"
+              aria-selected={activeTab === "manage"}
+              aria-controls="shop-editor-panel-manage"
             >
               Gerenciamento
             </button>
             <button
+              id={galleryTabId}
               type="button"
               className={cls("shop-editor__tab", activeTab === "gallery" && "is-active")}
               onClick={() => setActiveTab("gallery")}
+              role="tab"
+              aria-selected={activeTab === "gallery"}
+              aria-controls="shop-editor-panel-gallery"
             >
               Meus produtos
             </button>
           </div>
 
+          <div className="editor-list-toolbar">
+            <label className="editor-list-toolbar__field" htmlFor={searchFieldId}>
+              <span className="sr-only">Buscar produtos</span>
+              <Input
+                id={searchFieldId}
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Buscar por produto, domínio ou URL"
+                aria-label="Buscar produtos"
+              />
+            </label>
+
+            <label
+              className="editor-list-toolbar__field editor-list-toolbar__field--compact"
+              htmlFor={statusFieldId}
+            >
+              <span className="sr-only">Filtrar produtos por status</span>
+              <select
+                id={statusFieldId}
+                className="ui-select"
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
+                aria-label="Filtrar produtos por status"
+              >
+                {PRODUCT_STATUS_FILTER_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
           <div className="shop-editor__summary">
             <div>
-              <strong>{products.length}</strong>
-              <span> produtos cadastrados</span>
+              <strong>{filteredProducts.length}</strong>
+              <span> de {products.length} produtos cadastrados</span>
             </div>
             <Button className="shop-editor__add" onClick={openCreateModal}>
               <Plus size={18} />
-              <span>Add</span>
+              <span>Adicionar</span>
             </Button>
           </div>
 
+          <div className="editor-list-toolbar__meta">
+            <span id={dragDescriptionId}>
+              Arraste pelo ícone lateral para reordenar. Também funciona com teclado.
+            </span>
+          </div>
+
+          <div className="sr-only" aria-live="polite">
+            {liveMessage}
+          </div>
+
           {activeTab === "manage" ? (
-            <div className="shop-editor__manage">
-              {products.length ? (
+            <div
+              className="shop-editor__manage"
+              role="tabpanel"
+              id="shop-editor-panel-manage"
+              aria-labelledby={manageTabId}
+            >
+              {filteredProducts.length ? (
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
-                  onDragEnd={handleDragEnd}
+                  onDragEnd={(event) => {
+                    void handleDragEnd(event);
+                  }}
                 >
-                  <SortableContext items={productIds} strategy={verticalListSortingStrategy}>
+                  <SortableContext items={filteredProductIds} strategy={verticalListSortingStrategy}>
                     <div className="shop-manage-list">
-                      {products.map((product) => (
+                      {filteredProducts.map((product) => (
                         <SortableProductRow
                           key={product.id}
                           product={product}
                           onEdit={openEditModal}
                           onDelete={handleDelete}
                           onToggle={onToggleProduct}
+                          dragDescriptionId={dragDescriptionId}
                         />
                       ))}
                     </div>
@@ -1043,15 +1178,22 @@ export default function ShopProductsEditorCard({
                 </DndContext>
               ) : (
                 <div className="empty-state">
-                  Sua loja ainda nao tem produtos. Use o botao Add para cadastrar o primeiro item.
+                  {products.length
+                    ? "Nenhum produto encontrado com os filtros atuais."
+                    : "Sua loja ainda não tem produtos. Use o botão Adicionar para cadastrar o primeiro item."}
                 </div>
               )}
               {reordering ? <div className="shop-editor__helper">Salvando nova ordem...</div> : null}
             </div>
           ) : (
-            <div className="shop-gallery">
-              {products.length ? (
-                products.map((product) => {
+            <div
+              className="shop-gallery"
+              role="tabpanel"
+              id="shop-editor-panel-gallery"
+              aria-labelledby={galleryTabId}
+            >
+              {filteredProducts.length ? (
+                filteredProducts.map((product) => {
                   const priceLabel = formatProductPrice(product);
                   return (
                     <button
@@ -1071,15 +1213,17 @@ export default function ShopProductsEditorCard({
                       </div>
                       <div className="shop-gallery__copy">
                         <span>{getProductDomain(product.sourceUrl)}</span>
-                        <strong>{product.title || "Produto sem titulo"}</strong>
-                        {priceLabel ? <small>{priceLabel}</small> : <small>Sem preco</small>}
+                        <strong>{product.title || "Produto sem título"}</strong>
+                        {priceLabel ? <small>{priceLabel}</small> : <small>Sem preço</small>}
                       </div>
                     </button>
                   );
                 })
               ) : (
                 <div className="empty-state">
-                  Assim que voce cadastrar produtos, eles aparecerao aqui em formato de galeria.
+                  {products.length
+                    ? "Nenhum produto encontrado com os filtros atuais."
+                    : "Assim que você cadastrar produtos, eles aparecerão aqui em formato de galeria."}
                 </div>
               )}
             </div>

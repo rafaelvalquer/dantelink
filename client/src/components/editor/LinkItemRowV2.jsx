@@ -28,12 +28,12 @@ import Switch from "../ui/Switch.jsx";
 const typeOptions = [
   { value: "link", label: "Link" },
   { value: "whatsapp", label: "WhatsApp" },
-  { value: "location", label: "Localizacao" },
-  { value: "shop-preview", label: "Previa da loja" },
+  { value: "location", label: "Localização" },
+  { value: "shop-preview", label: "Prévia da loja" },
 ];
 
 const WHATSAPP_DEFAULT_MESSAGE =
-  "Ola! Vim pela sua pagina publica e gostaria de mais informacoes.";
+  "Olá! Vim pela sua página pública e gostaria de mais informações.";
 
 const LINK_TYPE_META = {
   link: {
@@ -51,14 +51,14 @@ const LINK_TYPE_META = {
     usesPrimaryField: true,
   },
   location: {
-    label: "Localizacao",
+    label: "Localização",
     Icon: MapPin,
-    primaryFieldLabel: "Endereco",
-    primaryPlaceholder: "Digite o endereco para ver sugestoes",
+    primaryFieldLabel: "Endereço",
+    primaryPlaceholder: "Digite o endereço para ver sugestões",
     usesPrimaryField: true,
   },
   "shop-preview": {
-    label: "Previa da loja",
+    label: "Prévia da loja",
     Icon: ShoppingBag,
     primaryFieldLabel: "Preview da loja",
     primaryPlaceholder: "",
@@ -394,6 +394,7 @@ export default function LinkItemRowV2({
   onToggle,
   onMenuOpenChange,
   isHighlighted = false,
+  dragDescriptionId,
 }) {
   const [editingField, setEditingField] = useState(null);
   const [draftValue, setDraftValue] = useState("");
@@ -549,7 +550,7 @@ export default function LinkItemRowV2({
         lastSuccessfulQueryRef.current = query;
 
         if (!nextSuggestions.length) {
-          setAutocompleteError("Nenhum endereco encontrado.");
+          setAutocompleteError("Nenhum endereço encontrado.");
         }
       } catch (error) {
         if (isCancelled || requestSequenceRef.current !== currentRequest) {
@@ -558,7 +559,7 @@ export default function LinkItemRowV2({
 
         setSuggestions([]);
         setAutocompleteError(
-          error.message || "Nao foi possivel buscar enderecos.",
+          error.message || "Não foi possível buscar endereços.",
         );
       } finally {
         if (!isCancelled && requestSequenceRef.current === currentRequest) {
@@ -651,7 +652,7 @@ export default function LinkItemRowV2({
 
       return true;
     } catch (error) {
-      const message = error.message || "Nao foi possivel salvar o link.";
+      const message = error.message || "Não foi possível salvar o link.";
 
       if (source === "field") {
         setFieldError(message);
@@ -770,6 +771,7 @@ export default function LinkItemRowV2({
         ref={setActivatorNodeRef}
         className={`item-row__drag-handle${isInteractionLocked ? " is-disabled" : ""}`}
         aria-label={`Reordenar ${link.title || "link"}`}
+        aria-describedby={dragDescriptionId}
         disabled={isInteractionLocked}
         {...attributes}
         {...listeners}
@@ -790,7 +792,8 @@ export default function LinkItemRowV2({
                     onChange={handleFieldInputChange}
                     onKeyDown={handleFieldKeyDown}
                     onBlur={handleFieldBlur}
-                    placeholder="Titulo"
+                    placeholder="Título"
+                    aria-label="Editar título do link"
                     disabled={Boolean(savingField)}
                   />
                   {fieldError ? (
@@ -802,13 +805,13 @@ export default function LinkItemRowV2({
                   <strong
                     className={`link-card__field-value link-card__field-value--title${link.title ? "" : " is-placeholder"}`}
                   >
-                    {link.title || "Titulo"}
+                    {link.title || "Título"}
                   </strong>
                   <button
                     type="button"
                     className="link-card__field-action"
                     onClick={() => startEditing("title")}
-                    aria-label={`Editar titulo de ${link.title || "link"}`}
+                    aria-label={`Editar título de ${link.title || "link"}`}
                     disabled={Boolean(savingField || menuSaving)}
                   >
                     <Pencil size={14} aria-hidden="true" />
@@ -830,10 +833,11 @@ export default function LinkItemRowV2({
                     onKeyDown={handleFieldKeyDown}
                     onBlur={handleFieldBlur}
                     placeholder={typeMeta.primaryPlaceholder}
+                    aria-label={typeMeta.primaryFieldLabel}
                     disabled={Boolean(savingField)}
                   />
                   {loadingSuggestions ? (
-                    <div className="item-row__helper">Buscando sugestoes...</div>
+                    <div className="item-row__helper">Buscando sugestões...</div>
                   ) : null}
                   {autocompleteError ? (
                     <div className="item-row__helper item-row__helper--error">
@@ -841,15 +845,16 @@ export default function LinkItemRowV2({
                     </div>
                   ) : null}
                   {suggestions.length ? (
-                    <div className="item-row__suggestions" role="listbox">
-                      {suggestions.map((suggestion) => (
-                        <button
-                          key={suggestion.placeId || suggestion.description}
-                          type="button"
-                          className="item-row__suggestion"
-                          onMouseDown={(event) => {
-                            event.preventDefault();
-                            void handleSelectSuggestion(suggestion);
+                      <div className="item-row__suggestions" role="listbox">
+                        {suggestions.map((suggestion) => (
+                          <button
+                            key={suggestion.placeId || suggestion.description}
+                            type="button"
+                            className="item-row__suggestion"
+                            role="option"
+                            onMouseDown={(event) => {
+                              event.preventDefault();
+                              void handleSelectSuggestion(suggestion);
                           }}
                           disabled={Boolean(savingField)}
                         >
@@ -933,6 +938,7 @@ export default function LinkItemRowV2({
                     className="ui-select"
                     value={link.type || "link"}
                     onChange={handleTypeChange}
+                    aria-label="Tipo do link"
                     disabled={menuSaving}
                   >
                     {typeOptions.map((option) => (
@@ -945,7 +951,7 @@ export default function LinkItemRowV2({
 
                 {link.type === "shop-preview" ? (
                   <div className="item-row__helper">
-                    A Previa da loja usa automaticamente as imagens dos produtos ativos e leva para o catalogo publico.
+                    A prévia da loja usa automaticamente as imagens dos produtos ativos e leva para o catálogo público.
                   </div>
                 ) : null}
 
@@ -956,6 +962,7 @@ export default function LinkItemRowV2({
                       className="ui-select"
                       value={link.platform || ""}
                       onChange={handlePlatformChange}
+                      aria-label="Plataforma do link"
                       disabled={menuSaving}
                     >
                       {PRIMARY_LINK_PLATFORM_OPTIONS.map((option) => (

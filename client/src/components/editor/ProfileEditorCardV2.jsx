@@ -213,7 +213,7 @@ function ProfileDetailsModal({
       <div className="profile-details-modal__backdrop" onClick={isSaving ? undefined : onClose} />
       <div className="profile-details-modal__panel">
         <div className="profile-details-modal__header">
-          <h3 id="profile-details-modal-title">Title and bio</h3>
+          <h3 id="profile-details-modal-title">Título e bio</h3>
           <button
             type="button"
             className="profile-details-modal__close"
@@ -227,7 +227,7 @@ function ProfileDetailsModal({
 
         <div className="profile-details-modal__body">
           <label className="field field--full">
-            <span>Title</span>
+            <span>Título</span>
             <Input
               value={draft.title}
               onChange={(event) => handleDraftChange("title", event.target.value)}
@@ -253,7 +253,7 @@ function ProfileDetailsModal({
             <Textarea
               value={draft.bio}
               onChange={(event) => handleDraftChange("bio", event.target.value)}
-              placeholder="Viva a Mutacao."
+              placeholder="Viva a mutação."
               maxLength={BIO_LIMIT}
               rows={5}
             />
@@ -265,7 +265,7 @@ function ProfileDetailsModal({
 
         <div className="profile-details-modal__footer">
           <Button className="profile-details-modal__save" onClick={handleSubmit} disabled={isSaving}>
-            {isSaving ? "Salvando..." : "Save"}
+            {isSaving ? "Salvando..." : "Salvar"}
           </Button>
         </div>
       </div>
@@ -288,8 +288,8 @@ export default function ProfileEditorCardV2({
   const visibleTitle = String(value.title || "").trim() || "@seuusuario";
   const visibleSlug = String(value.slug || "").trim() || "seu-slug";
   const visibleBio =
-    String(value.bio || "").trim() ||
-    "Conte para as pessoas do que se trata a sua pagina.";
+    String(value.bio || "").trim()
+    || "Conte para as pessoas do que se trata a sua página.";
 
   function handleApplyAvatarUrl(nextUrl) {
     onChange("avatarUrl", nextUrl);
@@ -331,9 +331,9 @@ export default function ProfileEditorCardV2({
             type="button"
             className="profile-card__summary"
             onClick={() => setIsProfileModalOpen(true)}
-            aria-label="Editar titulo, slug e bio"
+            aria-label="Editar título, slug e bio"
           >
-            <span className="profile-card__summary-eyebrow">Perfil publico</span>
+            <span className="profile-card__summary-eyebrow">Perfil público</span>
             <span className="profile-card__summary-title">{visibleTitle}</span>
             <span className="profile-card__summary-slug">/{visibleSlug}</span>
             <span className="profile-card__summary-bio">{visibleBio}</span>

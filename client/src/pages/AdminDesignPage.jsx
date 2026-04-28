@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { getMyPage, saveMyPageTheme } from "../app/api.js";
+import useEditorDraft from "../app/useEditorDraft.js";
 import DesignEditorPanel from "../components/editor/DesignEditorPanel.jsx";
 import EditorShell from "../components/layout/EditorShell.jsx";
+import EditorToolbarActions from "../components/layout/EditorToolbarActions.jsx";
 import {
   MY_PAGE_THEME_DEFAULTS,
   normalizeMyPageTheme,
@@ -9,11 +11,34 @@ import {
 
 export default function AdminDesignPage() {
   const [page, setPage] = useState(null);
-  const [themeDraft, setThemeDraft] = useState({ ...MY_PAGE_THEME_DEFAULTS });
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+  const {
+    draft: themeDraft,
+    setDraft: setThemeDraft,
+    resetDraft,
+    saveNow,
+    saveStatus,
+    lastSavedAt,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+  } = useEditorDraft({
+    initialValue: { ...MY_PAGE_THEME_DEFAULTS },
+    autosaveMs: 850,
+    onSave: async (nextTheme) => {
+      try {
+        setError("");
+        const response = await saveMyPageTheme(nextTheme);
+        setPage(response.page);
+        return normalizeMyPageTheme(response.page.theme || {});
+      } catch (saveError) {
+        setError(saveError.message);
+        throw saveError;
+      }
+    },
+  });
 
   useEffect(() => {
     let active = true;
@@ -24,7 +49,7 @@ export default function AdminDesignPage() {
         const response = await getMyPage();
         if (!active) return;
         setPage(response.page);
-        setThemeDraft(normalizeMyPageTheme(response.page.theme || {}));
+        resetDraft(normalizeMyPageTheme(response.page.theme || {}));
       } catch (loadError) {
         if (!active) return;
         setError(loadError.message);
@@ -54,6 +79,7 @@ export default function AdminDesignPage() {
   }, [page, themeDraft]);
 
   function handleChange(fieldOrPatch, value) {
+    setError("");
     setThemeDraft((current) => {
       if (fieldOrPatch && typeof fieldOrPatch === "object") {
         return {
@@ -71,16 +97,10 @@ export default function AdminDesignPage() {
 
   async function handleSave() {
     try {
-      setSaving(true);
       setError("");
-      const response = await saveMyPageTheme(themeDraft);
-      setPage(response.page);
-      setThemeDraft(normalizeMyPageTheme(response.page.theme || {}));
-      setNotice("Tema salvo.");
-    } catch (saveError) {
-      setError(saveError.message);
-    } finally {
-      setSaving(false);
+      await saveNow();
+    } catch {
+      // Error state is already handled by the hook save callback.
     }
   }
 
@@ -89,8 +109,22 @@ export default function AdminDesignPage() {
       title="Design"
       page={previewPage}
       publishedPage={page}
-      notice={notice}
       error={error}
+      headerActions={
+        <EditorToolbarActions
+          saveStatus={saveStatus}
+          lastSavedAt={lastSavedAt}
+          onUndo={undo}
+          onRedo={redo}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onSave={() => {
+            void handleSave();
+          }}
+          disableSave={loading}
+          saveLabel="Salvar tema"
+        />
+      }
     >
       {loading ? (
         <div className="loading-state">Carregando editor de tema...</div>
@@ -100,7 +134,7 @@ export default function AdminDesignPage() {
           value={themeDraft}
           onChange={handleChange}
           onSave={handleSave}
-          isSaving={saving}
+          isSaving={saveStatus === "saving"}
         />
       )}
     </EditorShell>

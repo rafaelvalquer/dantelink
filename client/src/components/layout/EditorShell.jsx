@@ -54,8 +54,8 @@ export default function EditorShell({
               ) : null}
               {notice || error ? (
                 <div className="editor-shell__status">
-                  {notice ? <div className="editor-shell__notice">{notice}</div> : null}
-                  {error ? <div className="editor-shell__error">{error}</div> : null}
+                  {notice ? <div className="editor-shell__notice" role="status">{notice}</div> : null}
+                  {error ? <div className="editor-shell__error" role="alert">{error}</div> : null}
                 </div>
               ) : null}
             </div>

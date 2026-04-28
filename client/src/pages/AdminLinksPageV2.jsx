@@ -31,6 +31,7 @@ import LinksEditorCard from "../components/editor/LinksEditorCard.jsx";
 import ProfileEditorCard from "../components/editor/ProfileEditorCardV2.jsx";
 import SecondaryLinksEditorCard from "../components/editor/SecondaryLinksEditorCard.jsx";
 import EditorShell from "../components/layout/EditorShell.jsx";
+import EditorToolbarActions from "../components/layout/EditorToolbarActions.jsx";
 
 const PRIMARY_LINK_TYPES = new Set([
   "link",
@@ -55,7 +56,7 @@ const SECONDARY_LINK_PLATFORMS = new Set([
 ]);
 
 const WHATSAPP_DEFAULT_MESSAGE =
-  "Ola! Vim pela sua pagina publica e gostaria de mais informacoes.";
+  "Olá! Vim pela sua página pública e gostaria de mais informações.";
 
 function cloneItems(items = []) {
   return items.map((item) => ({ ...item }));
@@ -348,6 +349,9 @@ export default function AdminLinksPageV2() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+  const [saveStatus, setSaveStatus] = useState("idle");
+  const [lastSavedAt, setLastSavedAt] = useState(null);
+  const [reorderHistory, setReorderHistory] = useState({ past: [], future: [] });
   const [addModalScope, setAddModalScope] = useState("");
   const [addModalError, setAddModalError] = useState("");
   const [creatingOptionId, setCreatingOptionId] = useState("");
@@ -366,6 +370,18 @@ export default function AdminLinksPageV2() {
   useEffect(() => {
     secondaryLinksDraftRef.current = secondaryLinksDraft;
   }, [secondaryLinksDraft]);
+
+  function markSaved() {
+    setSaveStatus("saved");
+    setLastSavedAt(Date.now());
+  }
+
+  function pushReorderHistory(scope, beforeIds, afterIds) {
+    setReorderHistory((current) => ({
+      past: [...current.past, { scope, beforeIds, afterIds }].slice(-30),
+      future: [],
+    }));
+  }
 
   useEffect(() => {
     let active = true;
@@ -425,6 +441,7 @@ export default function AdminLinksPageV2() {
   );
 
   function handleProfileChange(field, value) {
+    setSaveStatus("dirty");
     setProfileDraft((current) => ({
       ...current,
       [field]: value,
@@ -434,13 +451,16 @@ export default function AdminLinksPageV2() {
   async function handleSaveProfile(nextProfile = profileDraft) {
     try {
       setSavingProfile(true);
+      setSaveStatus("saving");
       setError("");
       const response = await saveMyPageProfile(nextProfile);
       setServerPage(response.page);
       setProfileDraft(createProfileDraft(response.page));
+      markSaved();
       setNotice("Perfil salvo.");
       return true;
     } catch (saveError) {
+      setSaveStatus("error");
       setError(saveError.message);
       return false;
     } finally {
@@ -451,6 +471,7 @@ export default function AdminLinksPageV2() {
   async function handleUploadAvatar(file) {
     try {
       setUploadingAvatar(true);
+      setSaveStatus("dirty");
       setError("");
       const response = await uploadMyPageAvatar(file);
       setProfileDraft((current) => ({
@@ -459,6 +480,7 @@ export default function AdminLinksPageV2() {
       }));
       setNotice("Avatar enviado. Salve o perfil para confirmar.");
     } catch (uploadError) {
+      setSaveStatus("error");
       setError(uploadError.message);
     } finally {
       setUploadingAvatar(false);
@@ -503,13 +525,14 @@ export default function AdminLinksPageV2() {
 
   async function handleAddLink(option) {
     try {
+      setSaveStatus("saving");
       setError("");
       setAddModalError("");
       const selectedType = String(option?.id || "link").trim().toLowerCase();
 
       if (selectedType === "shop-preview" && hasShopPreview) {
         const duplicateError = new Error(
-          "A pagina ja possui uma Previa da loja. Edite o item existente para continuar.",
+          "A página já possui uma prévia da loja. Edite o item existente para continuar.",
         );
         setAddModalError(duplicateError.message);
         setError(duplicateError.message);
@@ -527,9 +550,12 @@ export default function AdminLinksPageV2() {
       if (createdItem?.id) {
         flashNewItem("primary", createdItem.id);
       }
+      setReorderHistory({ past: [], future: [] });
+      markSaved();
       setAddModalScope("");
       setNotice(`${option?.label || "Link"} adicionado.`);
     } catch (actionError) {
+      setSaveStatus("error");
       setAddModalError(actionError.message);
       setError(actionError.message);
     } finally {
@@ -556,7 +582,7 @@ export default function AdminLinksPageV2() {
 
     if (nextLink.type === "shop-preview" && hasAnotherShopPreview) {
       const duplicateError = new Error(
-        "A pagina ja possui uma Previa da loja. Edite o item existente para continuar.",
+        "A página já possui uma prévia da loja. Edite o item existente para continuar.",
       );
       setError(duplicateError.message);
       throw duplicateError;
@@ -566,6 +592,7 @@ export default function AdminLinksPageV2() {
     const requestToken = nextItemRequestToken(linkRequestTokensRef.current, id);
 
     try {
+      setSaveStatus("saving");
       setError("");
       setLinksDraft((current) => updatePrimaryLinkInDraft(current, id, nextLink));
       const response = await saveLink(id, savePayload);
@@ -578,6 +605,7 @@ export default function AdminLinksPageV2() {
       setLinksDraft((current) =>
         mergeSavedLinkIntoDraft(current, response.page.links || [], id),
       );
+      markSaved();
       setNotice("Link salvo.");
     } catch (actionError) {
       if (!isLatestItemRequestToken(linkRequestTokensRef.current, id, requestToken)) {
@@ -587,6 +615,7 @@ export default function AdminLinksPageV2() {
       setLinksDraft((current) =>
         updatePrimaryLinkInDraft(current, id, previousLink),
       );
+      setSaveStatus("error");
       setError(actionError.message);
       throw actionError;
     }
@@ -594,6 +623,7 @@ export default function AdminLinksPageV2() {
 
   async function handleAddSecondaryLink(option) {
     try {
+      setSaveStatus("saving");
       setError("");
       setAddModalError("");
       const selectedPlatform = String(option?.platform || option?.id || "instagram")
@@ -620,9 +650,12 @@ export default function AdminLinksPageV2() {
       if (createdItem?.id) {
         flashNewItem("secondary", createdItem.id);
       }
+      setReorderHistory({ past: [], future: [] });
+      markSaved();
       setAddModalScope("");
-      setNotice(`${option?.label || "Link secundario"} adicionado.`);
+      setNotice(`${option?.label || "Link secundário"} adicionado.`);
     } catch (actionError) {
+      setSaveStatus("error");
       setAddModalError(actionError.message);
       setError(actionError.message);
     } finally {
@@ -632,6 +665,7 @@ export default function AdminLinksPageV2() {
 
   async function handleDeleteLink(id) {
     try {
+      setSaveStatus("saving");
       setError("");
       const response = await removeLink(id);
       setServerPage(response.page);
@@ -641,14 +675,18 @@ export default function AdminLinksPageV2() {
           current.filter((item) => item.id !== id),
         ),
       );
-      setNotice("Link excluido.");
+      setReorderHistory({ past: [], future: [] });
+      markSaved();
+      setNotice("Link excluído.");
     } catch (actionError) {
+      setSaveStatus("error");
       setError(actionError.message);
     }
   }
 
   async function handleDeleteSecondaryLink(id) {
     try {
+      setSaveStatus("saving");
       setError("");
       const response = await removeSecondaryLink(id);
       setServerPage(response.page);
@@ -658,8 +696,11 @@ export default function AdminLinksPageV2() {
           current.filter((item) => item.id !== id),
         ),
       );
-      setNotice("Link secundario excluido.");
+      setReorderHistory({ past: [], future: [] });
+      markSaved();
+      setNotice("Link secundário excluído.");
     } catch (actionError) {
+      setSaveStatus("error");
       setError(actionError.message);
     }
   }
@@ -680,6 +721,7 @@ export default function AdminLinksPageV2() {
     const requestToken = nextItemRequestToken(linkRequestTokensRef.current, id);
 
     try {
+      setSaveStatus("saving");
       setError("");
       setLinksDraft((current) => updatePrimaryLinkInDraft(current, id, nextLink));
       const response = await toggleLink(id);
@@ -692,6 +734,7 @@ export default function AdminLinksPageV2() {
       setLinksDraft((current) =>
         mergeSavedLinkIntoDraft(current, response.page.links || [], id),
       );
+      markSaved();
       setNotice("Visibilidade do link atualizada.");
     } catch (actionError) {
       if (!isLatestItemRequestToken(linkRequestTokensRef.current, id, requestToken)) {
@@ -701,6 +744,7 @@ export default function AdminLinksPageV2() {
       setLinksDraft((current) =>
         updatePrimaryLinkInDraft(current, id, previousLink),
       );
+      setSaveStatus("error");
       setError(actionError.message);
     }
   }
@@ -724,6 +768,7 @@ export default function AdminLinksPageV2() {
     );
 
     try {
+      setSaveStatus("saving");
       setError("");
       setSecondaryLinksDraft((current) =>
         updateSecondaryLinkInDraft(current, id, nextLink),
@@ -748,7 +793,8 @@ export default function AdminLinksPageV2() {
           id,
         ),
       );
-      setNotice("Visibilidade do link secundario atualizada.");
+      markSaved();
+      setNotice("Visibilidade do link secundário atualizada.");
     } catch (actionError) {
       if (
         !isLatestItemRequestToken(
@@ -763,6 +809,7 @@ export default function AdminLinksPageV2() {
       setSecondaryLinksDraft((current) =>
         updateSecondaryLinkInDraft(current, id, previousLink),
       );
+      setSaveStatus("error");
       setError(actionError.message);
     }
   }
@@ -785,6 +832,7 @@ export default function AdminLinksPageV2() {
     }
 
     try {
+      setSaveStatus("saving");
       setError("");
       setLinksDraft(reorderDraftItemsPreservingContent(previousDraft, normalizedNextIds));
       const response = await reorderLinks(normalizedNextIds);
@@ -798,9 +846,12 @@ export default function AdminLinksPageV2() {
 
         return cloneItems(response.page.links || []);
       });
+      pushReorderHistory("primary", previousIds, normalizedNextIds);
+      markSaved();
       setNotice("Links reordenados.");
     } catch (actionError) {
       setLinksDraft(previousDraft);
+      setSaveStatus("error");
       setError(actionError.message);
     }
   }
@@ -823,6 +874,7 @@ export default function AdminLinksPageV2() {
     );
 
     try {
+      setSaveStatus("saving");
       setError("");
       setSecondaryLinksDraft((current) =>
         updateSecondaryLinkInDraft(current, id, nextLink),
@@ -847,7 +899,8 @@ export default function AdminLinksPageV2() {
           id,
         ),
       );
-      setNotice("Link secundario salvo.");
+      markSaved();
+      setNotice("Link secundário salvo.");
     } catch (actionError) {
       if (
         !isLatestItemRequestToken(
@@ -862,6 +915,7 @@ export default function AdminLinksPageV2() {
       setSecondaryLinksDraft((current) =>
         updateSecondaryLinkInDraft(current, id, previousLink),
       );
+      setSaveStatus("error");
       setError(actionError.message);
       throw actionError;
     }
@@ -885,6 +939,7 @@ export default function AdminLinksPageV2() {
     }
 
     try {
+      setSaveStatus("saving");
       setError("");
       setSecondaryLinksDraft(
         reorderDraftItemsPreservingContent(previousDraft, normalizedNextIds),
@@ -900,9 +955,82 @@ export default function AdminLinksPageV2() {
 
         return cloneItems(response.page.secondaryLinks || []);
       });
-      setNotice("Links secundarios reordenados.");
+      pushReorderHistory("secondary", previousIds, normalizedNextIds);
+      markSaved();
+      setNotice("Links secundários reordenados.");
     } catch (actionError) {
       setSecondaryLinksDraft(previousDraft);
+      setSaveStatus("error");
+      setError(actionError.message);
+    }
+  }
+
+  async function handleUndoReorder() {
+    const action = reorderHistory.past[reorderHistory.past.length - 1];
+
+    if (!action) {
+      return;
+    }
+
+    try {
+      setSaveStatus("saving");
+      setError("");
+      const response =
+        action.scope === "secondary"
+          ? await reorderSecondaryLinks(action.beforeIds)
+          : await reorderLinks(action.beforeIds);
+
+      setServerPage(response.page);
+
+      if (action.scope === "secondary") {
+        setSecondaryLinksDraft(cloneItems(response.page.secondaryLinks || []));
+      } else {
+        setLinksDraft(cloneItems(response.page.links || []));
+      }
+
+      markSaved();
+      setReorderHistory((current) => ({
+        past: current.past.slice(0, -1),
+        future: [action, ...current.future].slice(0, 30),
+      }));
+      setNotice("Ordem anterior restaurada.");
+    } catch (actionError) {
+      setSaveStatus("error");
+      setError(actionError.message);
+    }
+  }
+
+  async function handleRedoReorder() {
+    const action = reorderHistory.future[0];
+
+    if (!action) {
+      return;
+    }
+
+    try {
+      setSaveStatus("saving");
+      setError("");
+      const response =
+        action.scope === "secondary"
+          ? await reorderSecondaryLinks(action.afterIds)
+          : await reorderLinks(action.afterIds);
+
+      setServerPage(response.page);
+
+      if (action.scope === "secondary") {
+        setSecondaryLinksDraft(cloneItems(response.page.secondaryLinks || []));
+      } else {
+        setLinksDraft(cloneItems(response.page.links || []));
+      }
+
+      markSaved();
+      setReorderHistory((current) => ({
+        past: [...current.past, action].slice(-30),
+        future: current.future.slice(1),
+      }));
+      setNotice("Ordem refeita.");
+    } catch (actionError) {
+      setSaveStatus("error");
       setError(actionError.message);
     }
   }
@@ -914,9 +1042,28 @@ export default function AdminLinksPageV2() {
       publishedPage={serverPage}
       notice={notice}
       error={error}
+      headerActions={
+        <EditorToolbarActions
+          saveStatus={saveStatus}
+          lastSavedAt={lastSavedAt}
+          onUndo={() => {
+            void handleUndoReorder();
+          }}
+          onRedo={() => {
+            void handleRedoReorder();
+          }}
+          canUndo={reorderHistory.past.length > 0}
+          canRedo={reorderHistory.future.length > 0}
+          onSave={() => {
+            void handleSaveProfile();
+          }}
+          disableSave={savingProfile || loading}
+          saveLabel="Salvar perfil"
+        />
+      }
     >
       {loading ? (
-        <div className="loading-state">Carregando editor da pagina...</div>
+        <div className="loading-state">Carregando editor da página...</div>
       ) : (
         <div className="stack">
           <ProfileEditorCard

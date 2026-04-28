@@ -12,13 +12,22 @@ import {
 } from "../app/api.js";
 import ShopProductsEditorCard from "../components/editor/ShopProductsEditorCard.jsx";
 import EditorShell from "../components/layout/EditorShell.jsx";
+import EditorToolbarActions from "../components/layout/EditorToolbarActions.jsx";
+
+function getOrderedProductIds(page = {}) {
+  return [...(page?.shop?.products || [])]
+    .sort((left, right) => Number(left.order ?? 0) - Number(right.order ?? 0))
+    .map((product) => String(product.id));
+}
 
 export default function AdminShopProductsPage() {
   const [page, setPage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busyAction, setBusyAction] = useState("");
-  const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+  const [saveStatus, setSaveStatus] = useState("idle");
+  const [lastSavedAt, setLastSavedAt] = useState(null);
+  const [reorderHistory, setReorderHistory] = useState({ past: [], future: [] });
 
   useEffect(() => {
     let active = true;
@@ -51,14 +60,15 @@ export default function AdminShopProductsPage() {
   async function runMutation(action, request) {
     try {
       setBusyAction(action);
+      setSaveStatus("saving");
       setError("");
       const response = await request();
       setPage(response.page);
-      if (response.message) {
-        setNotice(response.message);
-      }
+      setSaveStatus("saved");
+      setLastSavedAt(Date.now());
       return response;
     } catch (actionError) {
+      setSaveStatus("error");
       setError(actionError.message);
       throw actionError;
     } finally {
@@ -82,7 +92,9 @@ export default function AdminShopProductsPage() {
   }
 
   async function handleCreateProduct(payload) {
-    return runMutation("create-product", () => createShopProduct(payload));
+    const response = await runMutation("create-product", () => createShopProduct(payload));
+    setReorderHistory({ past: [], future: [] });
+    return response;
   }
 
   async function handleUpdateProduct(id, payload) {
@@ -90,7 +102,9 @@ export default function AdminShopProductsPage() {
   }
 
   async function handleDeleteProduct(id) {
-    return runMutation("delete-product", () => removeShopProduct(id));
+    const response = await runMutation("delete-product", () => removeShopProduct(id));
+    setReorderHistory({ past: [], future: [] });
+    return response;
   }
 
   async function handleToggleProduct(id) {
@@ -98,7 +112,51 @@ export default function AdminShopProductsPage() {
   }
 
   async function handleReorderProducts(ids) {
-    return runMutation("reorder-products", () => reorderShopProducts(ids));
+    const previousIds = getOrderedProductIds(page);
+    const nextIds = ids.map((itemId) => String(itemId));
+
+    const response = await runMutation("reorder-products", () => reorderShopProducts(nextIds));
+    setReorderHistory((current) => ({
+      past: [...current.past, { beforeIds: previousIds, afterIds: nextIds }].slice(-30),
+      future: [],
+    }));
+    return response;
+  }
+
+  async function handleUndoReorder() {
+    const action = reorderHistory.past[reorderHistory.past.length - 1];
+
+    if (!action) {
+      return;
+    }
+
+    try {
+      await runMutation("reorder-products", () => reorderShopProducts(action.beforeIds));
+      setReorderHistory((current) => ({
+        past: current.past.slice(0, -1),
+        future: [action, ...current.future].slice(0, 30),
+      }));
+    } catch {
+      // Error state is already handled in runMutation.
+    }
+  }
+
+  async function handleRedoReorder() {
+    const action = reorderHistory.future[0];
+
+    if (!action) {
+      return;
+    }
+
+    try {
+      await runMutation("reorder-products", () => reorderShopProducts(action.afterIds));
+      setReorderHistory((current) => ({
+        past: [...current.past, action].slice(-30),
+        future: current.future.slice(1),
+      }));
+    } catch {
+      // Error state is already handled in runMutation.
+    }
   }
 
   return (
@@ -106,8 +164,21 @@ export default function AdminShopProductsPage() {
       title="Loja"
       page={previewPage}
       publishedPage={page}
-      notice={notice}
       error={error}
+      headerActions={
+        <EditorToolbarActions
+          saveStatus={saveStatus}
+          lastSavedAt={lastSavedAt}
+          onUndo={() => {
+            void handleUndoReorder();
+          }}
+          onRedo={() => {
+            void handleRedoReorder();
+          }}
+          canUndo={reorderHistory.past.length > 0}
+          canRedo={reorderHistory.future.length > 0}
+        />
+      }
     >
       {loading ? (
         <div className="loading-state">Carregando editor da loja...</div>
@@ -122,7 +193,6 @@ export default function AdminShopProductsPage() {
           onDeleteProduct={handleDeleteProduct}
           onToggleProduct={handleToggleProduct}
           onReorderProducts={handleReorderProducts}
-          busyAction={busyAction}
         />
       )}
     </EditorShell>

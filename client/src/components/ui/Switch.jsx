@@ -12,6 +12,7 @@ export default function Switch({
         type="button"
         role="switch"
         aria-checked={checked}
+        aria-disabled={disabled}
         aria-label={ariaLabel || label}
         className={`ui-switch__track ${checked ? "is-on" : ""}`}
         onClick={() => {

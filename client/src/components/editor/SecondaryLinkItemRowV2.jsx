@@ -132,6 +132,7 @@ export default function SecondaryLinkItemRowV2({
   onToggle,
   onMenuOpenChange,
   isHighlighted = false,
+  dragDescriptionId,
 }) {
   const [editingField, setEditingField] = useState(null);
   const [draftValue, setDraftValue] = useState("");
@@ -297,7 +298,7 @@ export default function SecondaryLinkItemRowV2({
       return true;
     } catch (error) {
       const message =
-        error.message || "Nao foi possivel salvar o link secundario.";
+        error.message || "Não foi possível salvar o link secundário.";
 
       if (source === "field") {
         setFieldError(message);
@@ -364,7 +365,8 @@ export default function SecondaryLinkItemRowV2({
         type="button"
         ref={setActivatorNodeRef}
         className={`item-row__drag-handle${isInteractionLocked ? " is-disabled" : ""}`}
-        aria-label={`Reordenar ${link.title || "link secundario"}`}
+        aria-label={`Reordenar ${link.title || "link secundário"}`}
+        aria-describedby={dragDescriptionId}
         disabled={isInteractionLocked}
         {...attributes}
         {...listeners}
@@ -385,7 +387,8 @@ export default function SecondaryLinkItemRowV2({
                     onChange={(event) => setDraftValue(event.target.value)}
                     onKeyDown={handleFieldKeyDown}
                     onBlur={handleFieldBlur}
-                    placeholder="Rotulo"
+                    placeholder="Rótulo"
+                    aria-label="Editar rótulo do link secundário"
                     disabled={Boolean(savingField)}
                   />
                   {fieldError ? (
@@ -397,13 +400,13 @@ export default function SecondaryLinkItemRowV2({
                   <strong
                     className={`link-card__field-value link-card__field-value--title${link.title ? "" : " is-placeholder"}`}
                   >
-                    {link.title || "Rotulo"}
+                    {link.title || "Rótulo"}
                   </strong>
                   <button
                     type="button"
                     className="link-card__field-action"
                     onClick={() => startEditing("title")}
-                    aria-label={`Editar rotulo de ${link.title || getSecondaryPlatformLabel(link.platform)}`}
+                    aria-label={`Editar rótulo de ${link.title || getSecondaryPlatformLabel(link.platform)}`}
                     disabled={Boolean(savingField || menuSaving)}
                   >
                     <Pencil size={14} aria-hidden="true" />
@@ -423,6 +426,7 @@ export default function SecondaryLinkItemRowV2({
                     onKeyDown={handleFieldKeyDown}
                     onBlur={handleFieldBlur}
                     placeholder={platformMeta.primaryPlaceholder}
+                    aria-label={platformMeta.primaryFieldLabel}
                     disabled={Boolean(savingField)}
                   />
                   {fieldError ? (
