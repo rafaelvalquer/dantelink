@@ -4,6 +4,7 @@ import { env } from "./config/env.js";
 import { ensureUploadsDir, uploadsRoot } from "./config/uploads.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { notFound } from "./middleware/notFound.js";
+import authRoutes from "./routes/auth.routes.js";
 import healthRoutes from "./routes/health.routes.js";
 import myPageRoutes from "./routes/myPage.routes.js";
 
@@ -49,7 +50,7 @@ export function createApp() {
       return callback(error);
     },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: false,
     optionsSuccessStatus: 204,
   };
@@ -60,6 +61,7 @@ export function createApp() {
   app.use("/uploads", express.static(uploadsRoot));
 
   app.use("/api", healthRoutes);
+  app.use("/api", authRoutes);
   app.use("/api", myPageRoutes);
 
   app.use(notFound);

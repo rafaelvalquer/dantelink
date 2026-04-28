@@ -50,7 +50,7 @@ function hasThemePayload(body = {}) {
 
 export async function getMyPageHandler(_req, res, next) {
   try {
-    const page = await getMyPage();
+    const page = await getMyPage(_req.auth.userId);
     res.json({ ok: true, page });
   } catch (error) {
     next(error);
@@ -61,8 +61,8 @@ export async function updateMyPageHandler(req, res, next) {
   try {
     const useThemeUpdate = hasThemePayload(req.body);
     const page = useThemeUpdate
-      ? await updateTheme(req.body.theme || req.body)
-      : await updateMyPage(req.body);
+      ? await updateTheme(req.auth.userId, req.body.theme || req.body)
+      : await updateMyPage(req.auth.userId, req.body);
 
     res.json({
       ok: true,

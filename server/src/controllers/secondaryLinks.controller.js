@@ -8,7 +8,7 @@ import {
 
 export async function createSecondaryLinkHandler(req, res, next) {
   try {
-    const page = await createSecondaryLink(req.body);
+    const page = await createSecondaryLink(req.auth.userId, req.body);
     res.status(201).json({
       ok: true,
       page,
@@ -21,7 +21,11 @@ export async function createSecondaryLinkHandler(req, res, next) {
 
 export async function updateSecondaryLinkHandler(req, res, next) {
   try {
-    const page = await updateSecondaryLink(req.params.id, req.body);
+    const page = await updateSecondaryLink(
+      req.auth.userId,
+      req.params.id,
+      req.body,
+    );
     res.json({
       ok: true,
       page,
@@ -34,7 +38,7 @@ export async function updateSecondaryLinkHandler(req, res, next) {
 
 export async function deleteSecondaryLinkHandler(req, res, next) {
   try {
-    const page = await deleteSecondaryLink(req.params.id);
+    const page = await deleteSecondaryLink(req.auth.userId, req.params.id);
     res.json({
       ok: true,
       page,
@@ -47,7 +51,7 @@ export async function deleteSecondaryLinkHandler(req, res, next) {
 
 export async function toggleSecondaryLinkHandler(req, res, next) {
   try {
-    const page = await toggleSecondaryLink(req.params.id);
+    const page = await toggleSecondaryLink(req.auth.userId, req.params.id);
     res.json({
       ok: true,
       page,
@@ -60,7 +64,7 @@ export async function toggleSecondaryLinkHandler(req, res, next) {
 
 export async function reorderSecondaryLinksHandler(req, res, next) {
   try {
-    const page = await reorderSecondaryLinks(req.body.ids || []);
+    const page = await reorderSecondaryLinks(req.auth.userId, req.body.ids || []);
     res.json({
       ok: true,
       page,

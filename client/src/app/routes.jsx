@@ -1,26 +1,59 @@
-import { Navigate, createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter } from "react-router-dom";
+import ProtectedRoute from "./ProtectedRoute.jsx";
+import PublicOnlyRoute from "./PublicOnlyRoute.jsx";
 import AdminDesignPage from "../pages/AdminDesignPage.jsx";
 import AdminLinksPage from "../pages/AdminLinksPageV2.jsx";
 import AdminShopProductsPage from "../pages/AdminShopProductsPage.jsx";
+import LandingPage from "../pages/LandingPage.jsx";
+import LoginPage from "../pages/LoginPage.jsx";
 import PublicMyPage from "../pages/PublicMyPage.jsx";
 import PublicShopPage from "../pages/PublicShopPage.jsx";
+import RegisterPage from "../pages/RegisterPage.jsx";
 
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: <Navigate to="/admin/links" replace />,
+    element: <LandingPage />,
+  },
+  {
+    path: "/login",
+    element: (
+      <PublicOnlyRoute>
+        <LoginPage />
+      </PublicOnlyRoute>
+    ),
+  },
+  {
+    path: "/cadastro",
+    element: (
+      <PublicOnlyRoute>
+        <RegisterPage />
+      </PublicOnlyRoute>
+    ),
   },
   {
     path: "/admin/links",
-    element: <AdminLinksPage />,
+    element: (
+      <ProtectedRoute>
+        <AdminLinksPage />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/admin/shop",
-    element: <AdminShopProductsPage />,
+    element: (
+      <ProtectedRoute>
+        <AdminShopProductsPage />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/admin/design",
-    element: <AdminDesignPage />,
+    element: (
+      <ProtectedRoute>
+        <AdminDesignPage />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/:slug/shop",

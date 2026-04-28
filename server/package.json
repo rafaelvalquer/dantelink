@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "node --watch server.js",
     "start": "node server.js",
-    "seed": "node src/seed/seedMyPage.js",
-    "cleanup:collections": "node src/scripts/removeCollectionsFromMyPage.js"
+    "seed": "node src/seed/seedAuthMyPage.js",
+    "cleanup:collections": "node src/scripts/removeCollectionsFromMyPage.js",
+    "migrate:auth": "node src/scripts/migrateSingletonToUser.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

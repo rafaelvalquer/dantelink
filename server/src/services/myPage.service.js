@@ -162,6 +162,28 @@ const DEFAULT_PAGE = {
   shop: { ...SHOP_DEFAULTS },
 };
 
+function buildDefaultPage(ownerId, overrides = {}) {
+  const ownerSuffix = String(ownerId || "").slice(-6).toLowerCase() || "owner";
+
+  return {
+    ownerId,
+    ...DEFAULT_PAGE,
+    ...overrides,
+    slug:
+      typeof overrides.slug === "string" && overrides.slug.trim()
+        ? overrides.slug.trim()
+        : `pagina-${ownerSuffix}`,
+    theme: {
+      ...THEME_DEFAULTS,
+      ...(overrides.theme || {}),
+    },
+    secondaryLinks: Array.isArray(overrides.secondaryLinks)
+      ? overrides.secondaryLinks
+      : [],
+    shop: normalizeShop(overrides.shop || DEFAULT_PAGE.shop),
+  };
+}
+
 function createHttpError(status, message, code, details) {
   const error = new Error(message);
   error.status = status;
@@ -910,11 +932,15 @@ async function persistNormalizedPage(page) {
   return page;
 }
 
-async function getMainPageDocument() {
-  let page = await MyPage.findOne().sort({ createdAt: 1 });
+async function getPageDocumentByOwnerId(ownerId, { createIfMissing = true } = {}) {
+  let page = await MyPage.findOne({ ownerId }).sort({ createdAt: 1 });
+
+  if (!page && createIfMissing) {
+    page = await MyPage.create(buildDefaultPage(ownerId));
+  }
 
   if (!page) {
-    page = await MyPage.create(DEFAULT_PAGE);
+    throw createHttpError(404, "Pagina da conta nao encontrada.", "PAGE_NOT_FOUND");
   }
 
   return persistNormalizedPage(page);
@@ -1141,13 +1167,13 @@ function ensureSingleShopPreviewLink(page, nextType, excludeId) {
   }
 }
 
-export async function getMyPage() {
-  const page = await getMainPageDocument();
+export async function getMyPage(ownerId) {
+  const page = await getPageDocumentByOwnerId(ownerId);
   return serializePage(page);
 }
 
-export async function updateMyPage(payload = {}) {
-  const page = await getMainPageDocument();
+export async function updateMyPage(ownerId, payload = {}) {
+  const page = await getPageDocumentByOwnerId(ownerId);
   const updates = sanitizeProfilePayload(payload);
 
   if (Object.hasOwn(payload, "slug")) {
@@ -1168,8 +1194,8 @@ export async function updateMyPage(payload = {}) {
   return serializePage(page);
 }
 
-export async function updateTheme(payload = {}) {
-  const page = await getMainPageDocument();
+export async function updateTheme(ownerId, payload = {}) {
+  const page = await getPageDocumentByOwnerId(ownerId);
   const updates = sanitizeThemePayload(payload);
 
   page.theme = normalizeTheme({
@@ -1183,8 +1209,8 @@ export async function updateTheme(payload = {}) {
   return serializePage(page);
 }
 
-export async function createLink(payload = {}) {
-  const page = await getMainPageDocument();
+export async function createLink(ownerId, payload = {}) {
+  const page = await getPageDocumentByOwnerId(ownerId);
   const data = sanitizeLinkPayload(payload);
   ensureSingleShopPreviewLink(page, data.type);
 
@@ -1209,8 +1235,8 @@ export async function createLink(payload = {}) {
   return serializePage(page);
 }
 
-export async function updateLink(id, payload = {}) {
-  const page = await getMainPageDocument();
+export async function updateLink(ownerId, id, payload = {}) {
+  const page = await getPageDocumentByOwnerId(ownerId);
   const linkIndex = findLinkIndex(page, id);
 
   if (linkIndex === -1) {
@@ -1236,8 +1262,8 @@ export async function updateLink(id, payload = {}) {
   return serializePage(page);
 }
 
-export async function deleteLink(id) {
-  const page = await getMainPageDocument();
+export async function deleteLink(ownerId, id) {
+  const page = await getPageDocumentByOwnerId(ownerId);
   const nextLinks = (page.links || []).filter(
     (link) => String(link.id) !== String(id),
   );
@@ -1251,8 +1277,8 @@ export async function deleteLink(id) {
   return serializePage(page);
 }
 
-export async function toggleLink(id) {
-  const page = await getMainPageDocument();
+export async function toggleLink(ownerId, id) {
+  const page = await getPageDocumentByOwnerId(ownerId);
   const linkIndex = findLinkIndex(page, id);
 
   if (linkIndex === -1) {
@@ -1269,8 +1295,8 @@ export async function toggleLink(id) {
   return serializePage(page);
 }
 
-export async function reorderLinks(ids = []) {
-  const page = await getMainPageDocument();
+export async function reorderLinks(ownerId, ids = []) {
+  const page = await getPageDocumentByOwnerId(ownerId);
 
   page.links = reorderExistingItemsPreservingIdentity(
     page.links || [],
@@ -1281,8 +1307,8 @@ export async function reorderLinks(ids = []) {
   return serializePage(page);
 }
 
-export async function createSecondaryLink(payload = {}) {
-  const page = await getMainPageDocument();
+export async function createSecondaryLink(ownerId, payload = {}) {
+  const page = await getPageDocumentByOwnerId(ownerId);
   const data = sanitizeSecondaryLinkPayload(payload);
 
   page.secondaryLinks.push({
@@ -1300,8 +1326,8 @@ export async function createSecondaryLink(payload = {}) {
   return serializePage(page);
 }
 
-export async function updateSecondaryLink(id, payload = {}) {
-  const page = await getMainPageDocument();
+export async function updateSecondaryLink(ownerId, id, payload = {}) {
+  const page = await getPageDocumentByOwnerId(ownerId);
   const linkIndex = findSecondaryLinkIndex(page, id);
 
   if (linkIndex === -1) {
@@ -1327,8 +1353,8 @@ export async function updateSecondaryLink(id, payload = {}) {
   return serializePage(page);
 }
 
-export async function deleteSecondaryLink(id) {
-  const page = await getMainPageDocument();
+export async function deleteSecondaryLink(ownerId, id) {
+  const page = await getPageDocumentByOwnerId(ownerId);
   const nextLinks = (page.secondaryLinks || []).filter(
     (link) => String(link.id) !== String(id),
   );
@@ -1348,8 +1374,8 @@ export async function deleteSecondaryLink(id) {
   return serializePage(page);
 }
 
-export async function toggleSecondaryLink(id) {
-  const page = await getMainPageDocument();
+export async function toggleSecondaryLink(ownerId, id) {
+  const page = await getPageDocumentByOwnerId(ownerId);
   const linkIndex = findSecondaryLinkIndex(page, id);
 
   if (linkIndex === -1) {
@@ -1370,8 +1396,8 @@ export async function toggleSecondaryLink(id) {
   return serializePage(page);
 }
 
-export async function reorderSecondaryLinks(ids = []) {
-  const page = await getMainPageDocument();
+export async function reorderSecondaryLinks(ownerId, ids = []) {
+  const page = await getPageDocumentByOwnerId(ownerId);
 
   page.secondaryLinks = reorderExistingItemsPreservingIdentity(
     page.secondaryLinks || [],
@@ -1382,8 +1408,8 @@ export async function reorderSecondaryLinks(ids = []) {
   return serializePage(page);
 }
 
-export async function updateShop(payload = {}) {
-  const page = await getMainPageDocument();
+export async function updateShop(ownerId, payload = {}) {
+  const page = await getPageDocumentByOwnerId(ownerId);
   const updates = sanitizeShopPayload(payload);
 
   page.shop = normalizeShop({
@@ -1401,8 +1427,8 @@ export async function importShopProductPreview(sourceUrl = "") {
   return importShopProductFromUrl(sourceUrl);
 }
 
-export async function createShopProduct(payload = {}) {
-  const page = await getMainPageDocument();
+export async function createShopProduct(ownerId, payload = {}) {
+  const page = await getPageDocumentByOwnerId(ownerId);
   const data = sanitizeShopProductPayload(payload);
 
   validateShopProductPayload(data, { requireSourceUrl: true });
@@ -1432,8 +1458,8 @@ export async function createShopProduct(payload = {}) {
   return serializePage(page);
 }
 
-export async function updateShopProduct(id, payload = {}) {
-  const page = await getMainPageDocument();
+export async function updateShopProduct(ownerId, id, payload = {}) {
+  const page = await getPageDocumentByOwnerId(ownerId);
   const currentShop = normalizeShop(page.shop || {});
   const productIndex = findShopProductIndex({ shop: currentShop }, id);
 
@@ -1467,8 +1493,8 @@ export async function updateShopProduct(id, payload = {}) {
   return serializePage(page);
 }
 
-export async function deleteShopProduct(id) {
-  const page = await getMainPageDocument();
+export async function deleteShopProduct(ownerId, id) {
+  const page = await getPageDocumentByOwnerId(ownerId);
   const currentShop = normalizeShop(page.shop || {});
   const nextProducts = currentShop.products.filter(
     (product) => String(product.id) !== String(id),
@@ -1487,8 +1513,8 @@ export async function deleteShopProduct(id) {
   return serializePage(page);
 }
 
-export async function toggleShopProduct(id) {
-  const page = await getMainPageDocument();
+export async function toggleShopProduct(ownerId, id) {
+  const page = await getPageDocumentByOwnerId(ownerId);
   const currentShop = normalizeShop(page.shop || {});
   const productIndex = findShopProductIndex({ shop: currentShop }, id);
 
@@ -1514,8 +1540,8 @@ export async function toggleShopProduct(id) {
   return serializePage(page);
 }
 
-export async function reorderShopProducts(ids = []) {
-  const page = await getMainPageDocument();
+export async function reorderShopProducts(ownerId, ids = []) {
+  const page = await getPageDocumentByOwnerId(ownerId);
   const currentShop = normalizeShop(page.shop || {});
 
   page.shop = normalizeShop({
@@ -1586,7 +1612,9 @@ export async function getPublicMyPageBySlug(slug) {
     throw createHttpError(404, "Página pública não encontrada.", "PUBLIC_PAGE_NOT_FOUND");
   }
 
-  await persistNormalizedPage(page);
+  if (page.ownerId) {
+    await persistNormalizedPage(page);
+  }
 
   const publicPage = serializePage(page);
   const activeShopProducts = sortByOrder(publicPage.shop?.products || []).filter(

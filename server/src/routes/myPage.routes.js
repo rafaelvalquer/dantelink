@@ -26,6 +26,7 @@ import {
 } from "../controllers/secondaryLinks.controller.js";
 import { uploadAvatarSingle } from "../middleware/uploadAvatar.js";
 import { uploadProductImageSingle } from "../middleware/uploadProductImage.js";
+import { requireAuth } from "../middleware/auth.js";
 import { updateShopHandler } from "../controllers/shop.controller.js";
 import {
   createShopProductHandler,
@@ -38,9 +39,10 @@ import {
 
 const router = Router();
 
+router.get("/my-page/public/:slug", getPublicMyPageHandler);
+router.use(requireAuth);
 router.get("/my-page", getMyPageHandler);
 router.put("/my-page", updateMyPageHandler);
-router.get("/my-page/public/:slug", getPublicMyPageHandler);
 router.post("/my-page/avatar", uploadAvatarSingle, uploadAvatarHandler);
 router.get("/my-page/locations/autocomplete", autocompleteLocationsHandler);
 

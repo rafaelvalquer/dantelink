@@ -1,5 +1,6 @@
 import { Link2, Palette, Store } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import { useAuth } from "../../app/AuthContext.jsx";
 
 const items = [
   { to: "/admin/links", label: "Links", icon: Link2 },
@@ -21,6 +22,8 @@ function getPageInitial(page) {
 }
 
 export default function Sidebar({ page }) {
+  const { user, logout } = useAuth();
+
   return (
     <aside className="sidebar">
       <div className="sidebar__profile">
@@ -55,6 +58,17 @@ export default function Sidebar({ page }) {
             </NavLink>
           ))}
         </nav>
+      </div>
+
+      <div className="sidebar__section sidebar__section--account">
+        <span className="sidebar__section-label">Conta</span>
+        <div className="sidebar__account-card">
+          <strong>{user?.displayName || user?.email || "Conta"}</strong>
+          <span>{user?.email || "Sessao ativa"}</span>
+          <button type="button" className="sidebar__logout" onClick={logout}>
+            Sair
+          </button>
+        </div>
       </div>
     </aside>
   );

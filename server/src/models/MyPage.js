@@ -97,6 +97,12 @@ const shopProductSchema = new mongoose.Schema(
 
 const myPageSchema = new mongoose.Schema(
   {
+    ownerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
     title: { type: String, trim: true, default: "Mutantwear" },
     slug: {
       type: String,

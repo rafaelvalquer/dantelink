@@ -2,12 +2,24 @@ const API_BASE = (
   import.meta.env.VITE_API_URL || "http://localhost:4000/api"
 ).replace(/\/$/, "");
 
-export async function request(method, path, body) {
+let authToken = "";
+
+export function setApiAuthToken(token = "") {
+  authToken = String(token || "").trim();
+}
+
+export async function request(method, path, body, { auth = false } = {}) {
+  const headers = {
+    "Content-Type": "application/json",
+  };
+
+  if (auth && authToken) {
+    headers.Authorization = `Bearer ${authToken}`;
+  }
+
   const response = await fetch(`${API_BASE}${path}`, {
     method,
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: body === undefined ? undefined : JSON.stringify(body),
   });
 
@@ -21,11 +33,23 @@ export async function request(method, path, body) {
 }
 
 export function getMyPage() {
-  return request("GET", "/my-page");
+  return request("GET", "/my-page", undefined, { auth: true });
 }
 
 export function saveMyPageProfile(payload) {
-  return request("PUT", "/my-page", payload);
+  return request("PUT", "/my-page", payload, { auth: true });
+}
+
+export function registerWithPassword(payload) {
+  return request("POST", "/auth/register", payload);
+}
+
+export function loginWithPassword(payload) {
+  return request("POST", "/auth/login", payload);
+}
+
+export function getAuthMe() {
+  return request("GET", "/auth/me", undefined, { auth: true });
 }
 
 export async function uploadMyPageAvatar(file) {
@@ -34,6 +58,11 @@ export async function uploadMyPageAvatar(file) {
 
   const response = await fetch(`${API_BASE}/my-page/avatar`, {
     method: "POST",
+    headers: authToken
+      ? {
+          Authorization: `Bearer ${authToken}`,
+        }
+      : undefined,
     body: formData,
   });
 
@@ -52,6 +81,11 @@ async function uploadFile(path, file) {
 
   const response = await fetch(`${API_BASE}${path}`, {
     method: "POST",
+    headers: authToken
+      ? {
+          Authorization: `Bearer ${authToken}`,
+        }
+      : undefined,
     body: formData,
   });
 
@@ -65,7 +99,7 @@ async function uploadFile(path, file) {
 }
 
 export function saveMyPageTheme(theme) {
-  return request("PUT", "/my-page", { theme });
+  return request("PUT", "/my-page", { theme }, { auth: true });
 }
 
 export function getPublicMyPage(slug) {
@@ -73,23 +107,23 @@ export function getPublicMyPage(slug) {
 }
 
 export function createLink(payload) {
-  return request("POST", "/my-page/links", payload);
+  return request("POST", "/my-page/links", payload, { auth: true });
 }
 
 export function saveLink(id, payload) {
-  return request("PUT", `/my-page/links/${id}`, payload);
+  return request("PUT", `/my-page/links/${id}`, payload, { auth: true });
 }
 
 export function removeLink(id) {
-  return request("DELETE", `/my-page/links/${id}`);
+  return request("DELETE", `/my-page/links/${id}`, undefined, { auth: true });
 }
 
 export function toggleLink(id) {
-  return request("PATCH", `/my-page/links/${id}/toggle`);
+  return request("PATCH", `/my-page/links/${id}/toggle`, undefined, { auth: true });
 }
 
 export function reorderLinks(ids) {
-  return request("PATCH", "/my-page/links/reorder", { ids });
+  return request("PATCH", "/my-page/links/reorder", { ids }, { auth: true });
 }
 
 export function searchLocationSuggestions(query) {
@@ -97,55 +131,72 @@ export function searchLocationSuggestions(query) {
   return request(
     "GET",
     `/my-page/locations/autocomplete?q=${encodeURIComponent(normalizedQuery)}`,
+    undefined,
+    { auth: true },
   );
 }
 
 export function createSecondaryLink(payload) {
-  return request("POST", "/my-page/secondary-links", payload);
+  return request("POST", "/my-page/secondary-links", payload, { auth: true });
 }
 
 export function saveSecondaryLink(id, payload) {
-  return request("PUT", `/my-page/secondary-links/${id}`, payload);
+  return request("PUT", `/my-page/secondary-links/${id}`, payload, { auth: true });
 }
 
 export function removeSecondaryLink(id) {
-  return request("DELETE", `/my-page/secondary-links/${id}`);
+  return request("DELETE", `/my-page/secondary-links/${id}`, undefined, { auth: true });
 }
 
 export function toggleSecondaryLink(id) {
-  return request("PATCH", `/my-page/secondary-links/${id}/toggle`);
+  return request(
+    "PATCH",
+    `/my-page/secondary-links/${id}/toggle`,
+    undefined,
+    { auth: true },
+  );
 }
 
 export function reorderSecondaryLinks(ids) {
-  return request("PATCH", "/my-page/secondary-links/reorder", { ids });
+  return request("PATCH", "/my-page/secondary-links/reorder", { ids }, { auth: true });
 }
 
 export function saveShop(payload) {
-  return request("PUT", "/my-page/shop", payload);
+  return request("PUT", "/my-page/shop", payload, { auth: true });
 }
 
 export function importShopProduct(sourceUrl) {
-  return request("POST", "/my-page/shop/products/import", { sourceUrl });
+  return request(
+    "POST",
+    "/my-page/shop/products/import",
+    { sourceUrl },
+    { auth: true },
+  );
 }
 
 export function createShopProduct(payload) {
-  return request("POST", "/my-page/shop/products", payload);
+  return request("POST", "/my-page/shop/products", payload, { auth: true });
 }
 
 export function saveShopProduct(id, payload) {
-  return request("PUT", `/my-page/shop/products/${id}`, payload);
+  return request("PUT", `/my-page/shop/products/${id}`, payload, { auth: true });
 }
 
 export function removeShopProduct(id) {
-  return request("DELETE", `/my-page/shop/products/${id}`);
+  return request("DELETE", `/my-page/shop/products/${id}`, undefined, { auth: true });
 }
 
 export function toggleShopProduct(id) {
-  return request("PATCH", `/my-page/shop/products/${id}/toggle`);
+  return request(
+    "PATCH",
+    `/my-page/shop/products/${id}/toggle`,
+    undefined,
+    { auth: true },
+  );
 }
 
 export function reorderShopProducts(ids) {
-  return request("PATCH", "/my-page/shop/products/reorder", { ids });
+  return request("PATCH", "/my-page/shop/products/reorder", { ids }, { auth: true });
 }
 
 export function uploadShopProductImage(file) {
@@ -153,5 +204,10 @@ export function uploadShopProductImage(file) {
 }
 
 export function internalizeShopProductImage(imageUrl) {
-  return request("POST", "/my-page/shop/products/image-from-url", { imageUrl });
+  return request(
+    "POST",
+    "/my-page/shop/products/image-from-url",
+    { imageUrl },
+    { auth: true },
+  );
 }
