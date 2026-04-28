@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Image,
   Layers3,
+  MousePointerClick,
   Palette,
-  RectangleHorizontal,
   Share2,
   Sparkles,
   SquareStack,
@@ -83,10 +83,10 @@ const DESIGN_CATEGORIES = [
   },
   {
     id: "botao",
-    label: "Botao",
+    label: "Botão",
     title: "Acabamento, forma e hierarquia",
     description: "Defina o peso visual dos CTAs sem mudar a logica da pagina.",
-    Icon: RectangleHorizontal,
+    Icon: MousePointerClick,
   },
   {
     id: "redes",
@@ -97,7 +97,7 @@ const DESIGN_CATEGORIES = [
   },
   {
     id: "animacao",
-    label: "Animacao",
+    label: "Animação",
     title: "Movimento no publico",
     description: "Escolha o ritmo visual de entrada da pagina publica.",
     Icon: Sparkles,

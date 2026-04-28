@@ -34,8 +34,6 @@ export default function Sidebar({ page }) {
             <span className="sidebar__profile-handle">{getPageHandle(page)}</span>
           </div>
         </div>
-
-        <span className="sidebar__profile-badge">Admin</span>
       </div>
 
       <div className="sidebar__section">
