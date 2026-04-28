@@ -79,7 +79,6 @@ export default function AdminShopPage() {
   return (
     <EditorShell
       title="Loja"
-      description="Edite o bloco de loja que aparece abaixo do restante do seu conteúdo."
       page={previewPage}
       publishedPage={page}
       notice={notice}
@@ -98,4 +97,3 @@ export default function AdminShopPage() {
     </EditorShell>
   );
 }
-

@@ -10,37 +10,75 @@ export default function EditorShell({
   children,
   notice,
   error,
+  eyebrow = "Editor DandeLink",
+  headerActions = null,
+  previewEyebrow = "Preview ao vivo",
+  previewTitle = "Pagina publica",
 }) {
+  const sidebarPage = publishedPage || page;
+
   return (
     <div className="editor-shell">
-      <Sidebar />
+      <header className="editor-shell__topbar">
+        <div className="editor-shell__topbar-brand">
+          <span className="editor-shell__topbar-mark" aria-hidden="true">
+            D
+          </span>
+          <div className="editor-shell__topbar-copy">
+            <strong>DandeLink admin</strong>
+          </div>
+        </div>
 
-      <main className="editor-shell__main">
-        <header className="editor-shell__header">
-          <div className="editor-shell__heading">
-            <h1>{title}</h1>
-            {description ? <p>{description}</p> : null}
+        <div className="editor-shell__topbar-meta">
+          {sidebarPage?.slug ? (
+            <span className="editor-shell__topbar-slug">/{sidebarPage.slug}</span>
+          ) : null}
+        </div>
+      </header>
+
+      <div className="editor-shell__layout">
+        <Sidebar page={sidebarPage} />
+
+        <main className="editor-shell__main">
+          <header className="editor-shell__header">
+            <div className="editor-shell__heading">
+              {eyebrow ? <span className="editor-shell__eyebrow">{eyebrow}</span> : null}
+              <h1>{title}</h1>
+              {description ? <p>{description}</p> : null}
+            </div>
+
+            <div className="editor-shell__header-side">
+              {headerActions ? (
+                <div className="editor-shell__header-actions">{headerActions}</div>
+              ) : null}
+              {notice || error ? (
+                <div className="editor-shell__status">
+                  {notice ? <div className="editor-shell__notice">{notice}</div> : null}
+                  {error ? <div className="editor-shell__error">{error}</div> : null}
+                </div>
+              ) : null}
+            </div>
+          </header>
+
+          <div className="editor-shell__content">{children}</div>
+        </main>
+
+        <aside className="editor-shell__preview">
+          <div className="editor-shell__preview-top">
+            <div className="editor-shell__preview-header">
+              <span>{previewEyebrow}</span>
+              <strong>{previewTitle}</strong>
+            </div>
+            <PreviewSharePopover page={publishedPage} />
           </div>
 
-          {notice || error ? (
-            <div className="editor-shell__status">
-              {notice ? <div className="editor-shell__notice">{notice}</div> : null}
-              {error ? <div className="editor-shell__error">{error}</div> : null}
+          <div className="editor-shell__preview-stage">
+            <div className="editor-shell__preview-frame">
+              <PhonePreview page={page} />
             </div>
-          ) : null}
-        </header>
-
-        <div className="editor-shell__content">{children}</div>
-      </main>
-
-      <aside className="editor-shell__preview">
-        <PreviewSharePopover page={publishedPage} />
-        <div className="editor-shell__preview-header">
-          <span>Preview ao vivo</span>
-          <strong>Página pública</strong>
-        </div>
-        <PhonePreview page={page} />
-      </aside>
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }

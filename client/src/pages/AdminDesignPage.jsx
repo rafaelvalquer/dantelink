@@ -14,6 +14,7 @@ export default function AdminDesignPage() {
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+
   useEffect(() => {
     let active = true;
 
@@ -86,7 +87,6 @@ export default function AdminDesignPage() {
   return (
     <EditorShell
       title="Design"
-      description="Ajuste o visual público da página com seções de marca, fundo, superfície, botões, redes e cor."
       page={previewPage}
       publishedPage={page}
       notice={notice}
