@@ -12,10 +12,11 @@ export default function EditorShell({
   error,
   eyebrow = "Editor DandeLink",
   headerActions = null,
-  previewEyebrow = "Preview ao vivo",
-  previewTitle = "Pagina publica",
+  previewEyebrow = null,
+  previewTitle = null,
 }) {
   const sidebarPage = publishedPage || page;
+  const hasPreviewHeader = Boolean(previewEyebrow || previewTitle);
 
   return (
     <div className="editor-shell">
@@ -65,10 +66,12 @@ export default function EditorShell({
 
         <aside className="editor-shell__preview">
           <div className="editor-shell__preview-top">
-            <div className="editor-shell__preview-header">
-              <span>{previewEyebrow}</span>
-              <strong>{previewTitle}</strong>
-            </div>
+            {hasPreviewHeader ? (
+              <div className="editor-shell__preview-header">
+                {previewEyebrow ? <span>{previewEyebrow}</span> : null}
+                {previewTitle ? <strong>{previewTitle}</strong> : null}
+              </div>
+            ) : null}
             <PreviewSharePopover page={publishedPage} />
           </div>
 

@@ -104,7 +104,6 @@ export default function AdminShopProductsPage() {
   return (
     <EditorShell
       title="Loja"
-      description="Gerencie sua vitrine, cadastre produtos por URL e mantenha a loja publica atualizada em tempo real."
       page={previewPage}
       publishedPage={page}
       notice={notice}
