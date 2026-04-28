@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { getPublicMyPage } from "../app/api.js";
+import { getPublicMyPage, trackPublicPageView } from "../app/api.js";
 import PublicShopView from "../components/public/PublicShopView.jsx";
 
 export default function PublicShopPage() {
@@ -34,6 +34,17 @@ export default function PublicShopPage() {
     return () => {
       active = false;
     };
+  }, [slug]);
+
+  useEffect(() => {
+    if (!slug) {
+      return;
+    }
+
+    void trackPublicPageView(slug, {
+      pathname: window.location.pathname,
+      search: window.location.search,
+    });
   }, [slug]);
 
   if (loading) {

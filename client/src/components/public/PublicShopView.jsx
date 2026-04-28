@@ -1,7 +1,12 @@
 import { ExternalLink, ShoppingBag } from "lucide-react";
 import { getMyPageTheme } from "./myPageTheme.js";
 import { PublicPageHero, PublicPageScreen } from "./PublicPageUi.jsx";
-import { formatProductPrice, getShopPath, sortActiveProducts } from "./shopHelpers.js";
+import {
+  formatProductPrice,
+  getShopPath,
+  resolveProductHref,
+  sortActiveProducts,
+} from "./shopHelpers.js";
 
 function cls(...parts) {
   return parts.filter(Boolean).join(" ");
@@ -52,7 +57,7 @@ export default function PublicShopView({ page, interactive = true }) {
                         key={product.id}
                         className="public-page__shop-product"
                         style={theme.surfaceStyle}
-                        href={interactive ? product.sourceUrl : undefined}
+                        href={interactive ? resolveProductHref(product, page) : undefined}
                         target="_blank"
                         rel="noreferrer"
                       >

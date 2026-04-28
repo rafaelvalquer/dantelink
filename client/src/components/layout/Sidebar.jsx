@@ -1,11 +1,15 @@
-import { Link2, Palette, Store } from "lucide-react";
+import { BarChart3, Link2, Palette, Store } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../app/AuthContext.jsx";
 
-const items = [
+const editorItems = [
   { to: "/admin/links", label: "Links", icon: Link2 },
   { to: "/admin/shop", label: "Loja", icon: Store },
   { to: "/admin/design", label: "Design", icon: Palette },
+];
+
+const insightItems = [
+  { to: "/admin/analytics", label: "Analytics", icon: BarChart3 },
 ];
 
 function getPageTitle(page) {
@@ -23,6 +27,21 @@ function getPageInitial(page) {
 
 export default function Sidebar({ page }) {
   const { user, logout } = useAuth();
+  const renderNavItems = (items) =>
+    items.map((item) => (
+      <NavLink
+        key={item.to}
+        to={item.to}
+        className={({ isActive }) =>
+          `sidebar__link ${isActive ? "is-active" : ""}`
+        }
+      >
+        <span className="sidebar__link-icon" aria-hidden="true">
+          <item.icon size={17} strokeWidth={2.1} />
+        </span>
+        <span className="sidebar__link-label">{item.label}</span>
+      </NavLink>
+    ));
 
   return (
     <aside className="sidebar">
@@ -43,20 +62,15 @@ export default function Sidebar({ page }) {
         <span className="sidebar__section-label">Editar</span>
 
         <nav className="sidebar__nav" aria-label="Navegacao do editor">
-          {items.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) =>
-                `sidebar__link ${isActive ? "is-active" : ""}`
-              }
-            >
-              <span className="sidebar__link-icon" aria-hidden="true">
-                <item.icon size={17} strokeWidth={2.1} />
-              </span>
-              <span className="sidebar__link-label">{item.label}</span>
-            </NavLink>
-          ))}
+          {renderNavItems(editorItems)}
+        </nav>
+      </div>
+
+      <div className="sidebar__section">
+        <span className="sidebar__section-label">Insights</span>
+
+        <nav className="sidebar__nav" aria-label="Navegacao de insights">
+          {renderNavItems(insightItems)}
         </nav>
       </div>
 

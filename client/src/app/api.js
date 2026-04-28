@@ -3,6 +3,7 @@ const API_BASE = (
 ).replace(/\/$/, "");
 
 let authToken = "";
+const PUBLIC_VIEW_DEDUP_MS = 30 * 60 * 1000;
 
 export function setApiAuthToken(token = "") {
   authToken = String(token || "").trim();
@@ -104,6 +105,85 @@ export function saveMyPageTheme(theme) {
 
 export function getPublicMyPage(slug) {
   return request("GET", `/my-page/public/${encodeURIComponent(slug)}`);
+}
+
+export function getTrackedPublicLinkHref(slug, linkId) {
+  return `${API_BASE}/my-page/public/${encodeURIComponent(slug)}/links/${encodeURIComponent(linkId)}/redirect`;
+}
+
+export function getTrackedPublicProductHref(slug, productId) {
+  return `${API_BASE}/my-page/public/${encodeURIComponent(slug)}/shop/products/${encodeURIComponent(productId)}/redirect`;
+}
+
+export function getMyPageAnalytics(range = "7d") {
+  return request(
+    "GET",
+    `/my-page/analytics?range=${encodeURIComponent(range)}`,
+    undefined,
+    { auth: true },
+  );
+}
+
+export function getLinkAnalyticsInsight(id, range = "7d") {
+  return request(
+    "GET",
+    `/my-page/analytics/links/${encodeURIComponent(id)}?range=${encodeURIComponent(range)}`,
+    undefined,
+    { auth: true },
+  );
+}
+
+export async function trackPublicPageView(slug, { pathname = "", search = "" } = {}) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const normalizedSlug = String(slug || "").trim();
+  if (!normalizedSlug) {
+    return;
+  }
+
+  const dedupeKey = `dandelink:view:${normalizedSlug}:${pathname || window.location.pathname}`;
+  const now = Date.now();
+  const previousAt = Number(window.sessionStorage.getItem(dedupeKey) || 0);
+
+  if (previousAt && now - previousAt < PUBLIC_VIEW_DEDUP_MS) {
+    return;
+  }
+
+  window.sessionStorage.setItem(dedupeKey, String(now));
+
+  const payload = {
+    pathname: pathname || window.location.pathname,
+    locationSearch: search || window.location.search,
+    referrer: document.referrer || "",
+  };
+  const url = `${API_BASE}/my-page/public/${encodeURIComponent(normalizedSlug)}/view`;
+
+  try {
+    if (navigator.sendBeacon) {
+      const body = new Blob([JSON.stringify(payload)], {
+        type: "application/json",
+      });
+      navigator.sendBeacon(url, body);
+      return;
+    }
+  } catch {
+    // Fallback to fetch below.
+  }
+
+  try {
+    await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+      keepalive: true,
+    });
+  } catch {
+    // Tracking errors should not break the public page.
+  }
 }
 
 export function createLink(payload) {

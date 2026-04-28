@@ -12,6 +12,7 @@ export default function EditorShell({
   error,
   eyebrow = "Editor DandeLink",
   headerActions = null,
+  headerClassName = "",
   previewEyebrow = null,
   previewTitle = null,
 }) {
@@ -41,7 +42,7 @@ export default function EditorShell({
         <Sidebar page={sidebarPage} />
 
         <main className="editor-shell__main">
-          <header className="editor-shell__header">
+          <header className={`editor-shell__header ${headerClassName}`.trim()}>
             <div className="editor-shell__heading">
               {eyebrow ? <span className="editor-shell__eyebrow">{eyebrow}</span> : null}
               <h1>{title}</h1>

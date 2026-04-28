@@ -1,3 +1,4 @@
+import AdminAnalyticsDashboardPage from "../pages/AdminAnalyticsDashboardPage.jsx";
 import { createBrowserRouter } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute.jsx";
 import PublicOnlyRoute from "./PublicOnlyRoute.jsx";
@@ -44,6 +45,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <AdminShopProductsPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/admin/analytics",
+    element: (
+      <ProtectedRoute>
+        <AdminAnalyticsDashboardPage />
       </ProtectedRoute>
     ),
   },

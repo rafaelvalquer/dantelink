@@ -5,6 +5,13 @@ import {
   uploadProductImageHandler,
 } from "../controllers/productImage.controller.js";
 import {
+  getAnalyticsOverviewHandler,
+  getLinkAnalyticsInsightHandler,
+  redirectTrackedLinkHandler,
+  redirectTrackedProductHandler,
+  registerPublicPageViewHandler,
+} from "../controllers/analytics.controller.js";
+import {
   createLinkHandler,
   deleteLinkHandler,
   reorderLinksHandler,
@@ -40,8 +47,16 @@ import {
 const router = Router();
 
 router.get("/my-page/public/:slug", getPublicMyPageHandler);
+router.post("/my-page/public/:slug/view", registerPublicPageViewHandler);
+router.get("/my-page/public/:slug/links/:id/redirect", redirectTrackedLinkHandler);
+router.get(
+  "/my-page/public/:slug/shop/products/:id/redirect",
+  redirectTrackedProductHandler,
+);
 router.use(requireAuth);
 router.get("/my-page", getMyPageHandler);
+router.get("/my-page/analytics", getAnalyticsOverviewHandler);
+router.get("/my-page/analytics/links/:id", getLinkAnalyticsInsightHandler);
 router.put("/my-page", updateMyPageHandler);
 router.post("/my-page/avatar", uploadAvatarSingle, uploadAvatarHandler);
 router.get("/my-page/locations/autocomplete", autocompleteLocationsHandler);

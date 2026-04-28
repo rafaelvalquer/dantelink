@@ -78,17 +78,16 @@ function ActionContainer({
   style,
   children,
   ariaLabel,
+  openInNewTab = false,
 }) {
-  const isExternal = /^https?:\/\//i.test(String(href || ""));
-
   if (interactive && href) {
     return (
       <a
         className={className}
         style={style}
         href={href}
-        target={isExternal ? "_blank" : undefined}
-        rel={isExternal ? "noreferrer" : undefined}
+        target={openInNewTab ? "_blank" : undefined}
+        rel={openInNewTab ? "noreferrer" : undefined}
         aria-label={ariaLabel}
       >
         {children}
@@ -120,6 +119,9 @@ function PrimaryLinkCard({ link, interactive, page, theme, preview = false }) {
     <ActionContainer
       interactive={interactive}
       href={resolvePrimaryLinkHref(link, page)}
+      openInNewTab={
+        link?.type !== "shop-preview" && /^https?:\/\//i.test(String(link?.url || "").trim())
+      }
       className={buttonProps.className}
       style={buttonProps.style}
       ariaLabel={title}
@@ -158,6 +160,7 @@ function ShopCard({ page, shop, theme, interactive }) {
       <ActionContainer
         interactive={interactive}
         href={getShopPath(page)}
+        openInNewTab={false}
         className="public-page__shop-mosaic"
         style={theme.surfaceStyle}
         ariaLabel="Ver loja completa"
@@ -185,6 +188,7 @@ function ShopCard({ page, shop, theme, interactive }) {
       <ActionContainer
         interactive={interactive}
         href={getShopPath(page)}
+        openInNewTab={false}
         className="public-page__shop-preview-cta"
         style={theme.bodyStyle}
         ariaLabel="Ver loja completa"

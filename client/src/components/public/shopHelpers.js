@@ -1,3 +1,8 @@
+import {
+  getTrackedPublicLinkHref,
+  getTrackedPublicProductHref,
+} from "../../app/api.js";
+
 export function getShopPath(page = {}) {
   const slug = String(page?.slug || "").trim();
   return slug ? `/${slug}/shop` : "/minha-pagina/shop";
@@ -10,11 +15,27 @@ export function getShopPreviewLink(links = []) {
 }
 
 export function resolvePrimaryLinkHref(link = {}, page = {}) {
+  const slug = String(page?.slug || "").trim();
+
+  if (slug && link?.id) {
+    return getTrackedPublicLinkHref(slug, link.id);
+  }
+
   if (link?.type === "shop-preview") {
     return getShopPath(page);
   }
 
   return String(link?.url || "").trim();
+}
+
+export function resolveProductHref(product = {}, page = {}) {
+  const slug = String(page?.slug || "").trim();
+
+  if (slug && product?.id) {
+    return getTrackedPublicProductHref(slug, product.id);
+  }
+
+  return String(product?.sourceUrl || "").trim();
 }
 
 export function sortActiveProducts(products = []) {
