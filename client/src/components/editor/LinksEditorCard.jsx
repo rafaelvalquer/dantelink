@@ -172,7 +172,7 @@ export default function LinksEditorCard({
           return;
         }
 
-        setInsightData(response);
+        setInsightData(response?.insight || null);
       } catch (error) {
         if (!active) {
           return;

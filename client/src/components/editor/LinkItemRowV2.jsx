@@ -483,7 +483,7 @@ export default function LinkItemRowV2({
   const isLocationValue = isEditingValue && link.type === "location";
   const insightPanelId = `link-insight-${link.id}`;
   const visibleInsightRows = useMemo(
-    () => getVisibleInsightRows(insightData?.linkInsight?.rows || insightData?.rows || []),
+    () => getVisibleInsightRows(insightData?.rows || []),
     [insightData],
   );
   const sortableStyle = useMemo(
@@ -1103,7 +1103,7 @@ export default function LinkItemRowV2({
             ) : insightData ? (
               <div className="link-card__insight-body">
                 <p className="link-card__insight-highlight">
-                  {getInsightHeadline(insightData?.linkInsight?.lifetimeTotal ?? insightData?.lifetimeTotal)}
+                  {getInsightHeadline(insightData?.lifetimeTotal)}
                 </p>
 
                 <div className="link-card__insight-table">
