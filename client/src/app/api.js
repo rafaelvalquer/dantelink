@@ -1,6 +1,47 @@
-const API_BASE = (
-  import.meta.env.VITE_API_URL || "http://localhost:4000/api"
-).replace(/\/$/, "");
+function isLoopbackHost(hostname = "") {
+  const normalized = String(hostname || "").trim().toLowerCase();
+  return normalized === "localhost" || normalized === "127.0.0.1";
+}
+
+function buildRelativeApiBase() {
+  if (typeof window === "undefined") {
+    return "/api";
+  }
+
+  return `${window.location.origin}/api`;
+}
+
+function resolveApiBase() {
+  const configuredBase = String(import.meta.env.VITE_API_URL || "").trim();
+
+  if (!configuredBase) {
+    if (typeof window !== "undefined" && isLoopbackHost(window.location.hostname)) {
+      return "http://localhost:4000/api";
+    }
+
+    return buildRelativeApiBase();
+  }
+
+  try {
+    const configuredUrl = new URL(configuredBase);
+
+    if (
+      typeof window !== "undefined"
+      && !isLoopbackHost(window.location.hostname)
+      && isLoopbackHost(configuredUrl.hostname)
+    ) {
+      return buildRelativeApiBase();
+    }
+  } catch {
+    if (configuredBase.startsWith("/")) {
+      return configuredBase;
+    }
+  }
+
+  return configuredBase;
+}
+
+const API_BASE = resolveApiBase().replace(/\/$/, "");
 
 let authToken = "";
 const PUBLIC_VIEW_DEDUP_MS = 30 * 60 * 1000;

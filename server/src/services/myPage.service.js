@@ -100,6 +100,7 @@ const SECONDARY_LINK_PLATFORMS = new Set([
 ]);
 const HANDLE_BASED_PLATFORMS = new Set([
   "instagram",
+  "facebook",
   "youtube",
   "tiktok",
   "x",
@@ -108,7 +109,12 @@ const HANDLE_BASED_PLATFORMS = new Set([
 ]);
 const SHOP_IMPORT_MODES = new Set([
   "manual",
+  "mercadolivre-item-api",
+  "mercadolivre-product-api",
   "mercadolivre",
+  "amazon-json-ld",
+  "amazon-open-graph",
+  "amazon-html",
   "json-ld",
   "open-graph",
 ]);
@@ -263,6 +269,11 @@ function extractHandleFromUrl(url = "", platform = "") {
     return match ? match[1] : clean.split("/").pop() || "";
   }
 
+  if (platform === "facebook") {
+    const match = clean.match(/(?:m\.)?facebook\.com\/(?!profile\.php)([^/?#]+)/i);
+    return match ? match[1] : clean.split("/").pop() || "";
+  }
+
   if (platform === "tiktok") {
     const match = clean.match(/tiktok\.com\/@([^/?#]+)/i);
     return match ? match[1] : clean.split("/@").pop()?.split("/")[0] || "";
@@ -297,7 +308,7 @@ function normalizeSecondaryHandle(value = "", platform = "") {
   const sample = String(value || "").trim();
   if (!sample) return "";
 
-  const extracted = sample.includes("http")
+  const extracted = /^https?:\/\//i.test(sample) || /(?:^|\/)(?:www\.|m\.)?[a-z0-9-]+\.[a-z]{2,}/i.test(sample)
     ? extractHandleFromUrl(sample, platform)
     : sample;
 
@@ -323,6 +334,12 @@ function buildSecondaryUrl(platform = "", handle = "", fallbackUrl = "") {
 
   if (platform === "instagram") {
     return safeHandle ? `https://www.instagram.com/${safeHandle}/` : "";
+  }
+
+  if (platform === "facebook") {
+    return safeHandle
+      ? `https://www.facebook.com/${safeHandle}`
+      : String(fallbackUrl || "").trim();
   }
 
   if (platform === "tiktok") {

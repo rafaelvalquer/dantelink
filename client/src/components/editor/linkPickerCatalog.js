@@ -133,11 +133,11 @@ export const SECONDARY_PLATFORM_META = {
     label: "Facebook",
     Icon: FaFacebookF,
     category: "social",
-    primaryFieldLabel: "URL",
-    primaryPlaceholder: "https://www.facebook.com/...",
+    primaryFieldLabel: "Perfil",
+    primaryPlaceholder: "@perfil",
     modalDescription: "Direcione para sua pagina ou perfil do Facebook.",
     keywords: ["facebook", "pagina", "perfil", "social"],
-    inputMode: "url",
+    inputMode: "handle",
     badgeStyle: {
       background: "linear-gradient(135deg, #7aa7ff 0%, #1877f2 100%)",
       color: "#ffffff",
@@ -344,6 +344,7 @@ export const PRIMARY_LINK_PLATFORM_OPTIONS = [
 
 const SECONDARY_HANDLE_PLATFORMS = new Set([
   "instagram",
+  "facebook",
   "tiktok",
   "youtube",
   "x",
@@ -442,6 +443,11 @@ function extractSecondaryHandleFromUrl(value = "", platform = "") {
     return match ? match[1] : clean.split("/").pop() || "";
   }
 
+  if (platform === "facebook") {
+    const match = clean.match(/(?:m\.)?facebook\.com\/(?!profile\.php)([^/?#]+)/i);
+    return match ? match[1] : clean.split("/").pop() || "";
+  }
+
   if (platform === "tiktok") {
     const match = clean.match(/tiktok\.com\/@([^/?#]+)/i);
     return match ? match[1] : clean.split("/@").pop()?.split("/")[0] || "";
@@ -479,7 +485,7 @@ export function normalizeSecondaryHandle(value = "", platform = "") {
   if (!sample) return "";
 
   const normalizedPlatform = String(platform || "").trim().toLowerCase();
-  const extracted = /^https?:\/\//i.test(sample)
+  const extracted = /^(https?:\/\/)/i.test(sample) || /(?:^|\/)(?:www\.|m\.)?[a-z0-9-]+\.[a-z]{2,}/i.test(sample)
     ? extractSecondaryHandleFromUrl(sample, normalizedPlatform)
     : sample;
 
@@ -509,6 +515,12 @@ export function buildSecondaryLinkUrl(platform = "", handle = "", fallbackUrl = 
 
   if (normalizedPlatform === "instagram") {
     return normalizedHandle ? `https://www.instagram.com/${normalizedHandle}/` : "";
+  }
+
+  if (normalizedPlatform === "facebook") {
+    return normalizedHandle
+      ? `https://www.facebook.com/${normalizedHandle}`
+      : String(fallbackUrl || "").trim();
   }
 
   if (normalizedPlatform === "tiktok") {

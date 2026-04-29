@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
+  BarChart3,
   ChevronDown,
   GripVertical,
   Link2,
@@ -10,6 +11,7 @@ import {
   Pencil,
   ShoppingBag,
   Trash2,
+  X,
 } from "lucide-react";
 import { searchLocationSuggestions } from "../../app/api.js";
 import {
@@ -65,6 +67,11 @@ const LINK_TYPE_META = {
     usesPrimaryField: false,
   },
 };
+
+const INSIGHT_RANGE_OPTIONS = [
+  { value: "7d", label: "Últimos 7 dias" },
+  { value: "28d", label: "Últimos 28 dias" },
+];
 
 function isPlatformLink(link = {}) {
   return (
@@ -385,10 +392,51 @@ function createPlatformChangePatch(link = {}, nextPlatform) {
   };
 }
 
+function formatClicksLabel(total = 0) {
+  const safeTotal = Number(total || 0);
+  return `${safeTotal} ${safeTotal === 1 ? "clique" : "cliques"}`;
+}
+
+function getInsightRangeLabel(range = "7d") {
+  return INSIGHT_RANGE_OPTIONS.find((option) => option.value === range)?.label || "Últimos 7 dias";
+}
+
+function getInsightHeadline(total = 0) {
+  const safeTotal = Number(total || 0);
+
+  if (safeTotal <= 0) {
+    return "Parece que este link ainda não recebeu cliques.";
+  }
+
+  if (safeTotal === 1) {
+    return "Este link recebeu 1 clique.";
+  }
+
+  return `Este link recebeu ${safeTotal} cliques.`;
+}
+
+function getVisibleInsightRows(rows = []) {
+  return (rows || []).filter(
+    (row) =>
+      row?.label === "Total"
+      || Number(row?.lifetime || 0) > 0
+      || Number(row?.range || 0) > 0
+      || row?.label === "Direto",
+  );
+}
+
 
 export default function LinkItemRowV2({
   link,
   shopProducts = [],
+  clickCount = 0,
+  isInsightOpen = false,
+  insightData = null,
+  insightLoading = false,
+  insightError = "",
+  insightRange = "7d",
+  onInsightToggle,
+  onInsightRangeChange,
   onCommit,
   onDelete,
   onToggle,
@@ -433,6 +481,11 @@ export default function LinkItemRowV2({
   const isShopPreview = link.type === "shop-preview";
   const isEditingValue = editingField === "value";
   const isLocationValue = isEditingValue && link.type === "location";
+  const insightPanelId = `link-insight-${link.id}`;
+  const visibleInsightRows = useMemo(
+    () => getVisibleInsightRows(insightData?.linkInsight?.rows || insightData?.rows || []),
+    [insightData],
+  );
   const sortableStyle = useMemo(
     () => ({
       transform: CSS.Transform.toString(transform),
@@ -913,7 +966,8 @@ export default function LinkItemRowV2({
         </div>
 
         <div className="link-card__footer">
-          <div className="link-card__meta-menu" ref={menuRef}>
+          <div className="link-card__footer-main">
+            <div className="link-card__meta-menu" ref={menuRef}>
             <button
               type="button"
               className={`link-card__meta-chip link-card__meta-button${menuOpen ? " is-open" : ""}`}
@@ -979,6 +1033,19 @@ export default function LinkItemRowV2({
                 ) : null}
               </div>
             ) : null}
+            </div>
+
+            <button
+              type="button"
+              className={`link-card__insight-pill${isInsightOpen ? " is-open" : ""}`}
+              aria-expanded={isInsightOpen}
+              aria-controls={insightPanelId}
+              onClick={onInsightToggle}
+              disabled={Boolean(savingField || menuSaving)}
+            >
+              <BarChart3 size={14} aria-hidden="true" />
+              <span>{formatClicksLabel(clickCount)}</span>
+            </button>
           </div>
 
           {link.type === "location" ? (
@@ -995,6 +1062,73 @@ export default function LinkItemRowV2({
             </div>
           ) : null}
         </div>
+
+        {isInsightOpen ? (
+          <div id={insightPanelId} className="link-card__insight-panel">
+            <div className="link-card__insight-header">
+              <strong>Insights</strong>
+              <button
+                type="button"
+                className="link-card__insight-close"
+                onClick={onInsightToggle}
+                aria-label="Fechar insights do link"
+              >
+                <X size={16} aria-hidden="true" />
+              </button>
+            </div>
+
+            <div className="link-card__insight-toolbar">
+              <label className="field link-card__insight-field">
+                <span>Período</span>
+                <select
+                  className="ui-select"
+                  value={insightRange}
+                  onChange={(event) => onInsightRangeChange?.(event.target.value)}
+                  aria-label="Selecionar período dos insights do link"
+                  disabled={insightLoading}
+                >
+                  {INSIGHT_RANGE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            {insightLoading ? (
+              <div className="loading-state link-card__insight-state">Carregando insights...</div>
+            ) : insightError ? (
+              <div className="link-card__field-error">{insightError}</div>
+            ) : insightData ? (
+              <div className="link-card__insight-body">
+                <p className="link-card__insight-highlight">
+                  {getInsightHeadline(insightData?.linkInsight?.lifetimeTotal ?? insightData?.lifetimeTotal)}
+                </p>
+
+                <div className="link-card__insight-table">
+                  <div className="link-card__insight-table-header">
+                    <span>Origem do clique</span>
+                    <span>Tempo total</span>
+                    <span>{getInsightRangeLabel(insightRange)}</span>
+                  </div>
+
+                  {visibleInsightRows.map((row) => (
+                    <div key={row.label} className="link-card__insight-table-row">
+                      <span>{row.label}</span>
+                      <strong>{row.lifetime || 0}</strong>
+                      <strong>{row.range || 0}</strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="empty-state link-card__insight-state">
+                Ainda não há dados suficientes para este link.
+              </div>
+            )}
+          </div>
+        ) : null}
       </div>
     </article>
   );

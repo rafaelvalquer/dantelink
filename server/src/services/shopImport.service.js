@@ -7,6 +7,11 @@ const MERCADO_LIVRE_HOSTS = [
   "mercadolibre.com.co",
   "mercadolibre.com.uy",
 ];
+const AMAZON_BR_HOSTS = [
+  "amazon.com.br",
+  "www.amazon.com.br",
+];
+const MERCADO_LIVRE_API_BASE = "https://api.mercadolibre.com";
 
 function createImportResult({
   sourceUrl = "",
@@ -16,15 +21,17 @@ function createImportResult({
   imageUrl = "",
   importMode = "manual",
 }) {
-  const hasCoreData = Boolean(title && imageUrl && Number.isFinite(Number(price)));
-  const hasAnyData = Boolean(title || imageUrl || Number.isFinite(Number(price)));
+  const normalizedPrice = Number(price);
+  const hasValidPrice = Number.isFinite(normalizedPrice) && normalizedPrice > 0;
+  const hasCoreData = Boolean(title && imageUrl && hasValidPrice);
+  const hasAnyData = Boolean(title || imageUrl || hasValidPrice);
 
   return {
     sourceUrl,
-    title,
-    price: Number.isFinite(Number(price)) ? Number(price) : null,
+    title: normalizeWhitespace(title),
+    price: hasValidPrice ? normalizedPrice : null,
     currency: String(currency || "BRL").trim().toUpperCase() || "BRL",
-    imageUrl,
+    imageUrl: sanitizeImageUrl(imageUrl),
     importMode,
     status: hasCoreData ? "complete" : hasAnyData ? "partial" : "manual",
   };
@@ -86,6 +93,214 @@ function parseDomain(sourceUrl = "") {
   } catch {
     return "";
   }
+}
+
+function isMercadoLivreUrl(sourceUrl = "") {
+  const domain = parseDomain(sourceUrl);
+  return MERCADO_LIVRE_HOSTS.some((host) => domain.includes(host));
+}
+
+function isAmazonBrUrl(sourceUrl = "") {
+  const domain = parseDomain(sourceUrl);
+  return AMAZON_BR_HOSTS.some((host) => domain === host || domain.endsWith(`.${host}`));
+}
+
+function parseUrl(sourceUrl = "") {
+  try {
+    return new URL(sourceUrl);
+  } catch {
+    return null;
+  }
+}
+
+function extractMercadoLivreItemId(sourceUrl = "") {
+  const parsed = parseUrl(sourceUrl);
+  const fromQuery = String(
+    parsed?.searchParams.get("wid")
+      || parsed?.searchParams.get("item_id")
+      || parsed?.searchParams.get("itemId")
+      || "",
+  )
+    .trim()
+    .toUpperCase();
+
+  if (/^ML[A-Z]\d+$/i.test(fromQuery)) {
+    return fromQuery;
+  }
+
+  const source = String(sourceUrl || "").trim().toUpperCase();
+  const itemMatches = [...source.matchAll(/\bML[A-Z]\d+\b/g)];
+  for (const match of itemMatches) {
+    const candidate = String(match?.[0] || "").trim();
+    if (candidate && candidate !== extractMercadoLivreProductId(sourceUrl)) {
+      return candidate;
+    }
+  }
+
+  return "";
+}
+
+function extractMercadoLivreProductId(sourceUrl = "") {
+  const source = String(sourceUrl || "").trim().toUpperCase();
+  const pathMatch = source.match(/\/P\/(ML[A-Z]\d+)\b/);
+  if (pathMatch?.[1]) {
+    return pathMatch[1];
+  }
+
+  return "";
+}
+
+function getMercadoLivrePictureUrl(pictures = []) {
+  for (const picture of pictures || []) {
+    const candidateFromString =
+      typeof picture === "string" ? sanitizeImageUrl(picture) : "";
+    if (candidateFromString) {
+      return candidateFromString;
+    }
+
+    const candidate =
+      sanitizeImageUrl(picture?.secure_url)
+      || sanitizeImageUrl(picture?.url)
+      || sanitizeImageUrl(picture?.source)
+      || sanitizeImageUrl(picture?.large)
+      || sanitizeImageUrl(picture?.max_size)
+      || sanitizeImageUrl(picture?.image);
+
+    if (candidate) {
+      return candidate;
+    }
+  }
+
+  return "";
+}
+
+function normalizeAmazonProductUrl(sourceUrl = "") {
+  const parsed = parseUrl(sourceUrl);
+  if (!parsed || !isAmazonBrUrl(sourceUrl)) {
+    return normalizeWhitespace(sourceUrl);
+  }
+
+  const asinMatch =
+    parsed.pathname.match(/\/dp\/([A-Z0-9]{10})(?:[/?]|$)/i)
+    || parsed.pathname.match(/\/gp\/product\/([A-Z0-9]{10})(?:[/?]|$)/i);
+
+  if (!asinMatch?.[1]) {
+    return parsed.toString();
+  }
+
+  const normalized = new URL(parsed.origin);
+  normalized.pathname = `/dp/${asinMatch[1].toUpperCase()}`;
+  return normalized.toString();
+}
+
+function extractAmazonPriceFromString(value = "") {
+  const sample = normalizeWhitespace(decodeHtmlEntities(value));
+  if (!sample) {
+    return null;
+  }
+
+  const match = sample.match(/(?:R\$\s*)?(\d{1,3}(?:\.\d{3})*,\d{2}|\d+(?:[.,]\d{2})?)/);
+  return normalizePrice(match?.[1] || sample);
+}
+
+function extractAmazonPriceFromHtml(html = "") {
+  const candidates = [
+    html.match(/id=["']priceblock_ourprice["'][^>]*>\s*([^<]+)/i)?.[1],
+    html.match(/id=["']priceblock_dealprice["'][^>]*>\s*([^<]+)/i)?.[1],
+    html.match(/id=["']priceblock_saleprice["'][^>]*>\s*([^<]+)/i)?.[1],
+    html.match(/id=["']corePriceDisplay_desktop_feature_div["'][\s\S]*?a-offscreen["'][^>]*>\s*([^<]+)/i)?.[1],
+    html.match(/"priceToPay"\s*:\s*\{[\s\S]*?"amount"\s*:\s*([\d.]+)/i)?.[1],
+    html.match(/"displayPrice"\s*:\s*"([^"]+)"/i)?.[1],
+  ];
+
+  for (const candidate of candidates) {
+    const price = extractAmazonPriceFromString(candidate || "");
+    if (price !== null) {
+      return price;
+    }
+  }
+
+  return null;
+}
+
+function extractAmazonTitleFromHtml(html = "") {
+  return (
+    normalizeWhitespace(
+      decodeHtmlEntities(
+        html.match(/id=["']productTitle["'][^>]*>\s*([\s\S]*?)\s*<\/span>/i)?.[1] || "",
+      ),
+    )
+    || matchMetaContent(html, "property", "og:title")
+    || matchMetaContent(html, "name", "twitter:title")
+    || matchTitleTag(html)
+  );
+}
+
+function extractAmazonImageFromHtml(html = "") {
+  return (
+    sanitizeImageUrl(
+      html.match(/id=["']landingImage["'][^>]+data-old-hires=["']([^"']+)["']/i)?.[1] || "",
+    )
+    || sanitizeImageUrl(
+      html.match(/"hiRes"\s*:\s*"([^"]+)"/i)?.[1] || "",
+    )
+    || sanitizeImageUrl(
+      html.match(/"large"\s*:\s*"([^"]+)"/i)?.[1] || "",
+    )
+    || sanitizeImageUrl(matchMetaContent(html, "property", "og:image"))
+    || sanitizeImageUrl(matchMetaContent(html, "name", "twitter:image"))
+  );
+}
+
+function extractAmazonMetadata(html = "", sourceUrl = "") {
+  return createImportResult({
+    sourceUrl,
+    title: extractAmazonTitleFromHtml(html),
+    price: extractAmazonPriceFromHtml(html),
+    currency: "BRL",
+    imageUrl: extractAmazonImageFromHtml(html),
+    importMode: "amazon-html",
+  });
+}
+
+function extractAmazonJsonLd(html = "", sourceUrl = "") {
+  const result = extractProductFromJsonLd(html, sourceUrl);
+  return {
+    ...result,
+    importMode: result.status === "manual" ? "manual" : "amazon-json-ld",
+  };
+}
+
+function extractAmazonOpenGraph(html = "", sourceUrl = "") {
+  const result = extractOpenGraphMetadata(html, sourceUrl);
+  return {
+    ...result,
+    importMode: result.status === "manual" ? "manual" : "amazon-open-graph",
+  };
+}
+
+function getCandidateScore(candidate = {}) {
+  if (!candidate || candidate.status === "manual") {
+    return -1;
+  }
+
+  let score = 0;
+
+  if (candidate.title) score += 3;
+  if (candidate.imageUrl) score += 3;
+  if (Number.isFinite(Number(candidate.price)) && Number(candidate.price) > 0) score += 4;
+  if (candidate.status === "complete") score += 10;
+  if (candidate.importMode?.includes("item-api")) score += 2;
+  if (candidate.importMode?.includes("product-api")) score += 1;
+
+  return score;
+}
+
+function pickBestCandidate(candidates = []) {
+  return candidates
+    .filter(Boolean)
+    .filter((candidate) => candidate.status !== "manual")
+    .sort((left, right) => getCandidateScore(right) - getCandidateScore(left))[0] || null;
 }
 
 function matchMetaContent(html = "", attribute, value) {
@@ -197,6 +412,155 @@ function extractMercadoLivreMetadata(html = "", sourceUrl = "") {
   });
 }
 
+async function fetchMercadoLivreJson(pathname = "") {
+  if (!pathname) {
+    return null;
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(`${MERCADO_LIVRE_API_BASE}${pathname}`, {
+      signal: controller.signal,
+      redirect: "follow",
+      headers: {
+        "User-Agent": "dandelink/1.0 (shop import mercadolivre fallback)",
+        Accept: "application/json",
+        "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
+        "Cache-Control": "no-cache",
+      },
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return response.json();
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      return null;
+    }
+
+    return null;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+function extractMercadoLivreItemApiResult(payload = {}, sourceUrl = "") {
+  if (!payload || typeof payload !== "object") {
+    return createImportResult({ sourceUrl });
+  }
+
+  const pictures = Array.isArray(payload.pictures) ? payload.pictures : [];
+
+  return createImportResult({
+    sourceUrl,
+    title: normalizeWhitespace(payload.title || payload.name || ""),
+    price: normalizePrice(
+      payload.price
+        || payload.base_price
+        || payload.original_price
+        || payload.sale_price
+        || payload.price_amount,
+    ),
+    currency: normalizeCurrency(
+      payload.currency_id
+        || payload.currency
+        || payload.sale_price?.currency_id
+        || "BRL",
+    ),
+    imageUrl:
+      getMercadoLivrePictureUrl(pictures)
+      || sanitizeImageUrl(payload.secure_thumbnail)
+      || sanitizeImageUrl(payload.thumbnail),
+    importMode: "mercadolivre-item-api",
+  });
+}
+
+function extractMercadoLivreProductApiResult(payload = {}, sourceUrl = "") {
+  if (!payload || typeof payload !== "object") {
+    return createImportResult({ sourceUrl });
+  }
+
+  const buyBoxWinner = payload.buy_box_winner || {};
+  const mainPicture =
+    payload.main_picture?.secure_url
+    || payload.main_picture?.url
+    || payload.main_picture?.source
+    || payload.main_picture?.image;
+
+  return createImportResult({
+    sourceUrl,
+    title: normalizeWhitespace(
+      payload.name || payload.title || buyBoxWinner.title || "",
+    ),
+    price: normalizePrice(
+      payload.price
+        || payload.base_price
+        || payload.original_price
+        || payload.sale_price
+        || buyBoxWinner.price
+        || buyBoxWinner.base_price
+        || buyBoxWinner.original_price,
+    ),
+    currency: normalizeCurrency(
+      payload.currency_id
+        || buyBoxWinner.currency_id
+        || buyBoxWinner.currency
+        || "BRL",
+    ),
+    imageUrl:
+      sanitizeImageUrl(mainPicture)
+      || getMercadoLivrePictureUrl(payload.pictures)
+      || sanitizeImageUrl(buyBoxWinner.secure_thumbnail)
+      || sanitizeImageUrl(buyBoxWinner.thumbnail),
+    importMode: "mercadolivre-product-api",
+  });
+}
+
+async function resolveMercadoLivreByItemId(itemId = "", sourceUrl = "") {
+  const normalizedItemId = String(itemId || "").trim().toUpperCase();
+  if (!/^ML[A-Z]\d+$/.test(normalizedItemId)) {
+    return createImportResult({ sourceUrl });
+  }
+
+  const payload = await fetchMercadoLivreJson(`/items/${normalizedItemId}`);
+  return extractMercadoLivreItemApiResult(payload, sourceUrl);
+}
+
+async function resolveMercadoLivreByProductId(productId = "", sourceUrl = "") {
+  const normalizedProductId = String(productId || "").trim().toUpperCase();
+  if (!/^ML[A-Z]\d+$/.test(normalizedProductId)) {
+    return createImportResult({ sourceUrl });
+  }
+
+  const productPayload = await fetchMercadoLivreJson(`/products/${normalizedProductId}`);
+  const productResult = extractMercadoLivreProductApiResult(productPayload, sourceUrl);
+
+  if (productResult.status === "complete") {
+    return productResult;
+  }
+
+  const winnerItemId = String(
+    productPayload?.buy_box_winner?.id
+      || productPayload?.buy_box_winner?.item_id
+      || "",
+  )
+    .trim()
+    .toUpperCase();
+
+  if (/^ML[A-Z]\d+$/.test(winnerItemId)) {
+    const itemResult = await resolveMercadoLivreByItemId(winnerItemId, sourceUrl);
+    if (itemResult.status !== "manual") {
+      return itemResult;
+    }
+  }
+
+  return productResult;
+}
+
 function extractOpenGraphMetadata(html = "", sourceUrl = "") {
   return createImportResult({
     sourceUrl,
@@ -260,7 +624,10 @@ async function fetchHtml(sourceUrl = "") {
 }
 
 export async function importShopProductFromUrl(sourceUrl = "") {
-  const normalizedUrl = normalizeWhitespace(sourceUrl);
+  const initialUrl = normalizeWhitespace(sourceUrl);
+  const normalizedUrl = isAmazonBrUrl(initialUrl)
+    ? normalizeAmazonProductUrl(initialUrl)
+    : initialUrl;
 
   if (!/^https?:\/\//i.test(normalizedUrl)) {
     const error = new Error("Informe uma URL valida para importar o produto.");
@@ -269,24 +636,66 @@ export async function importShopProductFromUrl(sourceUrl = "") {
     throw error;
   }
 
-  const html = await fetchHtml(normalizedUrl);
-  const domain = parseDomain(normalizedUrl);
-
   const candidates = [];
+  const isMercadoLivre = isMercadoLivreUrl(normalizedUrl);
+  const isAmazonBr = isAmazonBrUrl(normalizedUrl);
+  let html = "";
+  let htmlFetchError = null;
 
-  if (MERCADO_LIVRE_HOSTS.some((host) => domain.includes(host))) {
-    candidates.push(extractMercadoLivreMetadata(html, normalizedUrl));
+  if (isMercadoLivre) {
+    const itemId = extractMercadoLivreItemId(normalizedUrl);
+    const productId = extractMercadoLivreProductId(normalizedUrl);
+
+    if (itemId) {
+      candidates.push(await resolveMercadoLivreByItemId(itemId, normalizedUrl));
+    }
+
+    if (productId && productId !== itemId) {
+      candidates.push(await resolveMercadoLivreByProductId(productId, normalizedUrl));
+    }
   }
 
-  candidates.push(extractProductFromJsonLd(html, normalizedUrl));
-  candidates.push(extractOpenGraphMetadata(html, normalizedUrl));
+  try {
+    html = await fetchHtml(normalizedUrl);
+  } catch (error) {
+    htmlFetchError = error;
+  }
 
-  const best = candidates.find((candidate) => candidate.status === "complete")
-    || candidates.find((candidate) => candidate.status === "partial")
-    || createImportResult({ sourceUrl: normalizedUrl });
+  if (html) {
+    if (isMercadoLivre) {
+      candidates.push(extractMercadoLivreMetadata(html, normalizedUrl));
+    }
+
+    if (isAmazonBr) {
+      candidates.push(extractAmazonJsonLd(html, normalizedUrl));
+      candidates.push(extractAmazonOpenGraph(html, normalizedUrl));
+      candidates.push(extractAmazonMetadata(html, normalizedUrl));
+    } else {
+      candidates.push(extractProductFromJsonLd(html, normalizedUrl));
+      candidates.push(extractOpenGraphMetadata(html, normalizedUrl));
+    }
+  }
+
+  const best = pickBestCandidate(candidates);
+
+  if (best) {
+    return {
+      ...best,
+      sourceUrl: normalizedUrl,
+    };
+  }
+
+  if (isMercadoLivre && htmlFetchError) {
+    const error = new Error(
+      "Nao foi possivel importar este produto do Mercado Livre. A pagina bloqueou a consulta publica e nao encontramos dados estruturados suficientes.",
+    );
+    error.status = 502;
+    error.code = "SHOP_IMPORT_MERCADOLIVRE_UNAVAILABLE";
+    throw error;
+  }
 
   return {
-    ...best,
+    ...createImportResult({ sourceUrl: normalizedUrl }),
     sourceUrl: normalizedUrl,
   };
 }

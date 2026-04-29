@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import {
   closestCenter,
   DndContext,
@@ -13,6 +13,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import { getLinkAnalyticsInsight, getMyPageAnalytics } from "../../app/api.js";
 import Button from "../ui/Button.jsx";
 import Input from "../ui/Input.jsx";
 import SectionCard from "./SectionCard.jsx";
@@ -61,6 +62,10 @@ function mergeFilteredReorder(allIds = [], visibleIds = [], nextVisibleIds = [])
   });
 }
 
+function createEmptyClickTotals(links = []) {
+  return Object.fromEntries((links || []).map((link) => [String(link.id), 0]));
+}
+
 export default function LinksEditorCard({
   links,
   shopProducts = [],
@@ -75,10 +80,20 @@ export default function LinksEditorCard({
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
   const [liveMessage, setLiveMessage] = useState("");
+  const [clickTotals, setClickTotals] = useState({});
+  const [openInsightLinkId, setOpenInsightLinkId] = useState("");
+  const [insightRange, setInsightRange] = useState("7d");
+  const [insightLoading, setInsightLoading] = useState(false);
+  const [insightError, setInsightError] = useState("");
+  const [insightData, setInsightData] = useState(null);
   const searchFieldId = useId();
   const statusFieldId = useId();
   const dragDescriptionId = useId();
   const linkIds = useMemo(() => links.map((link) => link.id), [links]);
+  const linkIdsKey = useMemo(
+    () => linkIds.map((itemId) => String(itemId)).join("|"),
+    [linkIds],
+  );
   const filteredLinks = useMemo(() => {
     const normalizedQuery = String(query || "").trim().toLowerCase();
 
@@ -104,6 +119,95 @@ export default function LinksEditorCard({
     }),
   );
 
+  useEffect(() => {
+    let active = true;
+
+    async function loadClickTotals() {
+      if (!links.length) {
+        setClickTotals({});
+        return;
+      }
+
+      try {
+        const response = await getMyPageAnalytics("lifetime");
+        if (!active) {
+          return;
+        }
+
+        const totals = createEmptyClickTotals(links);
+        for (const item of response?.analytics?.linkSummaries || []) {
+          totals[String(item.id)] = Number(item.total || 0);
+        }
+        setClickTotals(totals);
+      } catch {
+        if (active) {
+          setClickTotals(createEmptyClickTotals(links));
+        }
+      }
+    }
+
+    void loadClickTotals();
+
+    return () => {
+      active = false;
+    };
+  }, [linkIdsKey]);
+
+  useEffect(() => {
+    if (!openInsightLinkId) {
+      setInsightLoading(false);
+      setInsightError("");
+      setInsightData(null);
+      return;
+    }
+
+    let active = true;
+
+    async function loadInsight() {
+      try {
+        setInsightLoading(true);
+        setInsightError("");
+        const response = await getLinkAnalyticsInsight(openInsightLinkId, insightRange);
+        if (!active) {
+          return;
+        }
+
+        setInsightData(response);
+      } catch (error) {
+        if (!active) {
+          return;
+        }
+
+        setInsightData(null);
+        setInsightError(error.message || "Não foi possível carregar os insights deste link.");
+      } finally {
+        if (active) {
+          setInsightLoading(false);
+        }
+      }
+    }
+
+    void loadInsight();
+
+    return () => {
+      active = false;
+    };
+  }, [insightRange, openInsightLinkId]);
+
+  useEffect(() => {
+    if (!openInsightLinkId) {
+      return;
+    }
+
+    const stillExists = links.some((link) => String(link.id) === String(openInsightLinkId));
+    if (!stillExists) {
+      setOpenInsightLinkId("");
+      setInsightData(null);
+      setInsightError("");
+      setInsightLoading(false);
+    }
+  }, [links, openInsightLinkId]);
+
   async function handleDragEnd(event) {
     const { active, over } = event;
 
@@ -126,6 +230,20 @@ export default function LinksEditorCard({
 
     await onReorder(nextIds);
     setLiveMessage("Ordem dos links atualizada.");
+  }
+
+  function handleInsightToggle(linkId) {
+    setOpenInsightLinkId((current) => {
+      const normalizedId = String(linkId);
+      if (String(current) === normalizedId) {
+        return "";
+      }
+
+      setInsightRange("7d");
+      return normalizedId;
+    });
+    setInsightData(null);
+    setInsightError("");
   }
 
   return (
@@ -198,6 +316,22 @@ export default function LinksEditorCard({
                   key={link.id}
                   link={link}
                   shopProducts={shopProducts}
+                  clickCount={Number(clickTotals[String(link.id)] || 0)}
+                  isInsightOpen={String(openInsightLinkId) === String(link.id)}
+                  insightData={
+                    String(openInsightLinkId) === String(link.id) ? insightData : null
+                  }
+                  insightLoading={
+                    String(openInsightLinkId) === String(link.id) && insightLoading
+                  }
+                  insightError={
+                    String(openInsightLinkId) === String(link.id) ? insightError : ""
+                  }
+                  insightRange={insightRange}
+                  onInsightToggle={() => handleInsightToggle(link.id)}
+                  onInsightRangeChange={(nextRange) => {
+                    setInsightRange(nextRange);
+                  }}
                   onCommit={(payload) => onCommit(link.id, payload)}
                   onDelete={() => onDelete(link.id)}
                   onToggle={() => onToggle(link.id)}
