@@ -49,7 +49,7 @@ const DESIGN_CATEGORIES = [
     id: "marca",
     label: "Marca",
     title: "Avatar ou Hero",
-    description: "Use a mesma imagem da pagina como avatar ou como fundo.",
+    description: "Use a mesma imagem da página como avatar ou como fundo.",
     Icon: Image,
   },
   {
@@ -57,87 +57,61 @@ const DESIGN_CATEGORIES = [
     label: "Tema",
     title: "Escolha um preset",
     description:
-      "O tema aplica um ponto de partida completo para cor, fundo, fonte e botoes.",
+      "O tema aplica um ponto de partida completo para cor, fundo, fonte e botões.",
     Icon: SwatchBook,
   },
   {
     id: "fundo",
     label: "Fundo",
     title: "Escolha o estilo do fundo",
-    description: "Defina o estilo, a direcao e a textura do fundo.",
+    description: "Defina o estilo, a direção e a textura do fundo.",
     Icon: Layers3,
   },
   {
     id: "superficie",
-    label: "Superficie",
+    label: "Superfície",
     title: "Container da frente",
-    description: "Controle a camada onde ficam logo, titulos, botoes e formularios.",
+    description: "Controle a camada onde ficam logo, títulos, botões e formulários.",
     Icon: SquareStack,
   },
   {
     id: "fonte",
     label: "Fonte",
     title: "Escolha a tipografia",
-    description: "A fonte vale para pagina, catalogo, formulario e pagamento.",
+    description: "A fonte vale para página, catálogo, formulário e pagamento.",
     Icon: Type,
   },
   {
     id: "botao",
     label: "Botão",
     title: "Acabamento, forma e hierarquia",
-    description: "Defina o peso visual dos CTAs sem mudar a logica da pagina.",
+    description: "Defina o peso visual dos CTAs sem mudar a lógica da página.",
     Icon: MousePointerClick,
   },
   {
     id: "redes",
     label: "Redes",
-    title: "Links secundarios",
-    description: "Controle conteudo, tamanho e alinhamento das redes na home.",
+    title: "Links secundários",
+    description: "Controle conteúdo, tamanho e alinhamento das redes na home.",
     Icon: Share2,
   },
   {
     id: "animacao",
     label: "Animação",
-    title: "Movimento no publico",
-    description: "Escolha o ritmo visual de entrada da pagina publica.",
+    title: "Movimento no público",
+    description: "Escolha o ritmo visual de entrada da página pública.",
     Icon: Sparkles,
   },
   {
     id: "cor",
     label: "Cor",
-    title: "Ajuste cada cor do publico",
-    description: "Controle fundo, botoes e textos com liberdade total em cima do tema.",
+    title: "Ajuste cada cor do público",
+    description: "Controle fundo, botões e textos com liberdade total em cima do tema.",
     Icon: Palette,
   },
 ];
 
-const DESIGN_COPY_FIXES = {
-  "Use a mesma imagem da pagina como avatar ou como fundo.":
-    "Use a mesma imagem da página como avatar ou como fundo.",
-  "O tema aplica um ponto de partida completo para cor, fundo, fonte e botoes.":
-    "O tema aplica um ponto de partida completo para cor, fundo, fonte e botões.",
-  "Defina o estilo, a direcao e a textura do fundo.":
-    "Defina o estilo, a direção e a textura do fundo.",
-  Superficie: "Superfície",
-  "Controle a camada onde ficam logo, titulos, botoes e formularios.":
-    "Controle a camada onde ficam logo, títulos, botões e formulários.",
-  "A fonte vale para pagina, catalogo, formulario e pagamento.":
-    "A fonte vale para página, catálogo, formulário e pagamento.",
-  "BotÃ£o": "Botão",
-  "Defina o peso visual dos CTAs sem mudar a logica da pagina.":
-    "Defina o peso visual dos CTAs sem mudar a lógica da página.",
-  "Links secundarios": "Links secundários",
-  "Controle conteudo, tamanho e alinhamento das redes na home.":
-    "Controle conteúdo, tamanho e alinhamento das redes na home.",
-  "AnimaÃ§Ã£o": "Animação",
-  "Movimento no publico": "Movimento no público",
-  "Escolha o ritmo visual de entrada da pagina publica.":
-    "Escolha o ritmo visual de entrada da página pública.",
-  "Ajuste cada cor do publico": "Ajuste cada cor do público",
-  "Controle fundo, botoes e textos com liberdade total em cima do tema.":
-    "Controle fundo, botões e textos com liberdade total em cima do tema.",
-  "Minha Pagina": "Minha Página",
-};
+const DESIGN_COPY_FIXES = {};
 
 function cls(...parts) {
   return parts.filter(Boolean).join(" ");
@@ -253,7 +227,7 @@ function BrandPreview({ page, theme, mode }) {
                 <img
                   className={cls("design-mini-page__avatar", mode === "spotlight" && "is-spotlight")}
                   src={page.avatarUrl}
-                  alt={fixCopy(page?.title || "Minha Pagina")}
+                  alt={fixCopy(page?.title || "Minha Página")}
                 />
               ) : (
                 <div
@@ -270,7 +244,7 @@ function BrandPreview({ page, theme, mode }) {
           )}
           <div className={cls("design-mini-page__copy", mode === "spotlight" && "is-spotlight")}>
             <span style={theme.accentTextStyle}>Avatar ou Hero</span>
-            <strong style={theme.titleStyle}>{fixCopy(page?.title || "Minha Pagina")}</strong>
+            <strong style={theme.titleStyle}>{fixCopy(page?.title || "Minha Página")}</strong>
             <small>
               {mode === "hero"
                 ? "Imagem no fundo."
@@ -286,7 +260,7 @@ function BrandPreview({ page, theme, mode }) {
 }
 
 function ThemePreview({ page, theme, option }) {
-  const previewTitle = fixCopy(option?.previewTitle || page?.title || "Minha Pagina");
+  const previewTitle = fixCopy(option?.previewTitle || page?.title || "Minha Página");
   const previewLabel = option?.previewLabel || option?.label || "Tema";
   const previewCtaLabel = option?.previewCtaLabel || "Ver layout";
   const previewVariant = option?.previewVariant || "airy";
@@ -358,7 +332,7 @@ function FontPreview({ page, theme }) {
     <div className="design-mini-page design-mini-page--font" style={theme.rootStyle}>
       <div className="design-mini-page__surface" style={theme.surfaceStyle}>
         <span style={theme.titleStyle}>Aa</span>
-        <strong style={theme.titleStyle}>{fixCopy(page?.title || "Minha Pagina")}</strong>
+        <strong style={theme.titleStyle}>{fixCopy(page?.title || "Minha Página")}</strong>
       </div>
     </div>
   );
@@ -949,7 +923,7 @@ function renderPanelContent({
             onChange={(nextValue) => onChange("pageTextColor", nextValue)}
           />
           <ColorRow
-            label="Texto dos titulos"
+            label="Texto dos títulos"
             value={value.titleTextColor}
             fallback="#0f172a"
             onChange={(nextValue) => onChange("titleTextColor", nextValue)}

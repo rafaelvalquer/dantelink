@@ -8,11 +8,11 @@ const BUTTON_THEME_DEFAULTS = {
 };
 
 export const BUTTON_STYLE_OPTIONS = [
-  { value: "solid", label: "Solido", description: "CTA forte com glow base." },
+  { value: "solid", label: "Sólido", description: "CTA forte com glow base." },
   { value: "soft", label: "Soft", description: "Gradiente suave e brilho menor." },
-  { value: "outline", label: "Outline", description: "Fundo translucido sem glow base." },
+  { value: "outline", label: "Outline", description: "Fundo translúcido sem glow base." },
   { value: "glass", label: "Glass", description: "Estrutura pronta para vidro." },
-  { value: "metallic", label: "Metalico", description: "Estrutura pronta para metal." },
+  { value: "metallic", label: "Metálico", description: "Estrutura pronta para metal." },
 ];
 
 export const BUTTON_SHADOW_OPTIONS = [
@@ -24,14 +24,15 @@ export const BUTTON_SHADOW_OPTIONS = [
 
 export const BUTTON_RADIUS_OPTIONS = [
   { value: "square", label: "Reta", description: "Borda baixa." },
-  { value: "round", label: "Round", description: "Curva media." },
-  { value: "pill", label: "Pill", description: "Curva maxima." },
+  { value: "round", label: "Round", description: "Curva média." },
+  { value: "pill", label: "Pill", description: "Curva máxima." },
 ];
 
 const FONT_FAMILIES = {
   inter: "Inter, 'Segoe UI', sans-serif",
   manrope: "Manrope, 'Segoe UI', sans-serif",
   jakarta: "'Plus Jakarta Sans', 'Segoe UI', sans-serif",
+  sora: "Sora, 'Segoe UI', sans-serif",
   editorial: "Georgia, 'Times New Roman', serif",
 };
 

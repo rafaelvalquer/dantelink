@@ -44,7 +44,7 @@ const DESIGN_CATEGORIES = [
     id: "marca",
     label: "Marca",
     title: "Avatar ou Hero",
-    description: "Use a mesma imagem da pagina como avatar ou como fundo.",
+    description: "Use a mesma imagem da página como avatar ou como fundo.",
     Icon: Image,
   },
   {
@@ -52,56 +52,56 @@ const DESIGN_CATEGORIES = [
     label: "Tema",
     title: "Escolha um preset",
     description:
-      "O tema aplica um ponto de partida completo para cor, fundo, fonte e botoes.",
+      "O tema aplica um ponto de partida completo para cor, fundo, fonte e botões.",
     Icon: SwatchBook,
   },
   {
     id: "fundo",
     label: "Fundo",
     title: "Escolha o estilo do fundo",
-    description: "Defina o estilo, a direcao e a textura do fundo.",
+    description: "Defina o estilo, a direção e a textura do fundo.",
     Icon: Layers3,
   },
   {
     id: "superficie",
-    label: "Superficie",
+    label: "Superfície",
     title: "Container da frente",
-    description: "Controle a camada onde ficam logo, titulos, botoes e formularios.",
+    description: "Controle a camada onde ficam logo, títulos, botões e formulários.",
     Icon: SquareStack,
   },
   {
     id: "fonte",
     label: "Fonte",
     title: "Escolha a tipografia",
-    description: "A fonte vale para pagina, catalogo, formulario e pagamento.",
+    description: "A fonte vale para página, catálogo, formulário e pagamento.",
     Icon: Type,
   },
   {
     id: "botao",
-    label: "Botao",
+    label: "Botão",
     title: "Acabamento, forma e hierarquia",
-    description: "Defina o peso visual dos CTAs sem mudar a logica da pagina.",
+    description: "Defina o peso visual dos CTAs sem mudar a lógica da página.",
     Icon: RectangleHorizontal,
   },
   {
     id: "redes",
     label: "Redes",
-    title: "Links secundarios",
-    description: "Controle conteudo, tamanho e alinhamento das redes na home.",
+    title: "Links secundários",
+    description: "Controle conteúdo, tamanho e alinhamento das redes na home.",
     Icon: Share2,
   },
   {
     id: "animacao",
-    label: "Animacao",
-    title: "Movimento no publico",
-    description: "Escolha o ritmo visual de entrada da pagina publica.",
+    label: "Animação",
+    title: "Movimento no público",
+    description: "Escolha o ritmo visual de entrada da página pública.",
     Icon: Sparkles,
   },
   {
     id: "cor",
     label: "Cor",
-    title: "Ajuste cada cor do publico",
-    description: "Controle fundo, botoes e textos com liberdade total em cima do tema.",
+    title: "Ajuste cada cor do público",
+    description: "Controle fundo, botões e textos com liberdade total em cima do tema.",
     Icon: Palette,
   },
 ];
@@ -256,7 +256,7 @@ function BrandPreview({ page, theme, mode, primaryLinks }) {
       eyebrow="Avatar ou Hero"
       description={
         mode === "hero"
-          ? "Imagem destacada com sobreposicao."
+          ? "Imagem destacada com sobreposição."
           : mode === "spotlight"
             ? "Logo grande e centralizado."
             : "Avatar e copy em foco."
@@ -275,7 +275,7 @@ function ThemePreview({ page, theme, option, primaryLinks, socialLinks }) {
       primaryLinks={primaryLinks}
       socialLinks={socialLinks}
       eyebrow={option?.previewLabel || option?.label || "Tema"}
-      description={option?.description || "Preset visual para a pagina publica."}
+      description={option?.description || "Preset visual para a página pública."}
       showButtons
       showSocial
       buttonCount={1}
@@ -291,7 +291,7 @@ function BackgroundPreview({ page, theme, primaryLinks }) {
       theme={theme}
       primaryLinks={primaryLinks}
       eyebrow="Fundo"
-      description="Visual do pano de fundo com a nova composicao publica."
+      description="Visual do pano de fundo com a nova composição pública."
       buttonCount={1}
     />
   );
@@ -330,7 +330,7 @@ function ButtonPreview({ page, theme, links }) {
       theme={theme}
       primaryLinks={links}
       eyebrow="CTAs"
-      description="Peso visual e ritmo dos botoes principais."
+      description="Peso visual e ritmo dos botões principais."
       showButtons
       showSocial={false}
       buttonCount={2}
@@ -360,8 +360,8 @@ function AnimationPreview({ page, theme, links, socialLinks }) {
       theme={theme}
       primaryLinks={links}
       socialLinks={socialLinks}
-      eyebrow="Animacao"
-      description="Entrada e composicao geral da pagina publica."
+      eyebrow="Animação"
+      description="Entrada e composição geral da página pública."
       showButtons
       showSocial
       buttonCount={1}
@@ -564,7 +564,7 @@ function renderPanelContent({
           </OptionGrid>
           {value.backgroundStyle === "gradient" ? (
             <div className="grid gap-3">
-              <GroupLabel>Direcao</GroupLabel>
+              <GroupLabel>Direção</GroupLabel>
               <ChoiceButtons
                 value={value.backgroundGradientDirection}
                 options={MY_PAGE_BACKGROUND_GRADIENT_DIRECTION_OPTIONS}
@@ -676,7 +676,7 @@ function renderPanelContent({
             </OptionGrid>
           </div>
           <div className="grid gap-3">
-            <GroupLabel>Posicao do texto</GroupLabel>
+            <GroupLabel>Posição do texto</GroupLabel>
             <ChoiceButtons
               value={value.primaryButtonContentAlign}
               options={MY_PAGE_PRIMARY_BUTTON_CONTENT_ALIGN_OPTIONS}
@@ -752,7 +752,7 @@ function renderPanelContent({
       return (
         <>
           <div className="grid gap-4">
-            <GroupLabel>Conteudo</GroupLabel>
+            <GroupLabel>Conteúdo</GroupLabel>
             <OptionGrid columns="3">
               {MY_PAGE_SECONDARY_LINK_STYLE_OPTIONS.map((option) => (
                 <OptionCard
@@ -773,7 +773,7 @@ function renderPanelContent({
             </OptionGrid>
           </div>
           <div className="grid gap-4">
-            <GroupLabel>Layout do icone</GroupLabel>
+            <GroupLabel>Layout do ícone</GroupLabel>
             <OptionGrid columns="2">
               {MY_PAGE_SECONDARY_LINK_ICON_LAYOUT_OPTIONS.map((option) => (
                 <OptionCard
@@ -810,7 +810,7 @@ function renderPanelContent({
             />
           </div>
           <div className="grid gap-3">
-            <GroupLabel>Posicao dos icones</GroupLabel>
+            <GroupLabel>Posição dos ícones</GroupLabel>
             <ChoiceButtons
               value={value.secondaryLinksPosition}
               options={MY_PAGE_SECONDARY_LINK_POSITION_OPTIONS}
@@ -852,25 +852,25 @@ function renderPanelContent({
             onChange={(nextValue) => onChange("backgroundColor", nextValue)}
           />
           <ColorRow
-            label="Botoes"
+            label="Botões"
             value={value.buttonColor}
             fallback="#0f172a"
             onChange={(nextValue) => onChange("buttonColor", nextValue)}
           />
           <ColorRow
-            label="Texto do botao"
+            label="Texto do botão"
             value={value.buttonTextColor}
             fallback="#ffffff"
             onChange={(nextValue) => onChange("buttonTextColor", nextValue)}
           />
           <ColorRow
-            label="Texto da pagina"
+            label="Texto da página"
             value={value.pageTextColor}
             fallback="#64748b"
             onChange={(nextValue) => onChange("pageTextColor", nextValue)}
           />
           <ColorRow
-            label="Texto dos titulos"
+            label="Texto dos títulos"
             value={value.titleTextColor}
             fallback="#0f172a"
             onChange={(nextValue) => onChange("titleTextColor", nextValue)}
