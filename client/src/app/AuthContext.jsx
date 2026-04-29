@@ -97,6 +97,7 @@ export function AuthProvider({ children }) {
     () => ({
       token,
       user,
+      canAccessSystemMonitor: Boolean(user?.canAccessSystemMonitor),
       pageSummary,
       loading,
       isAuthenticated: Boolean(token && user),

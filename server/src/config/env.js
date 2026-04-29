@@ -11,4 +11,6 @@ export const env = {
   authSecret:
     process.env.AUTH_SECRET || "dandelink-dev-secret-change-me",
   authTokenTtl: process.env.AUTH_TOKEN_TTL || "7d",
+  systemMonitorEmails:
+    process.env.SYSTEM_MONITOR_EMAILS || "rafael.valquer@gmail.com",
 };

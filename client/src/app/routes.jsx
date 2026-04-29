@@ -1,4 +1,5 @@
 import AdminAnalyticsDashboardPage from "../pages/AdminAnalyticsDashboardPage.jsx";
+import AdminSystemMonitorPage from "../pages/AdminSystemMonitorPage.jsx";
 import { createBrowserRouter } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute.jsx";
 import PublicOnlyRoute from "./PublicOnlyRoute.jsx";
@@ -61,6 +62,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <AdminDesignPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/admin/system-monitor",
+    element: (
+      <ProtectedRoute requireSystemMonitorAccess>
+        <AdminSystemMonitorPage />
       </ProtectedRoute>
     ),
   },

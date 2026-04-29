@@ -1,5 +1,6 @@
 import { env } from "../config/env.js";
 import { logError, serializeError } from "../utils/logger.js";
+import { recordSystemMonitorError } from "../services/systemMonitor.service.js";
 
 export function errorHandler(error, req, res, _next) {
   if (error?.name === "MulterError" && error?.code === "LIMIT_FILE_SIZE") {
@@ -27,6 +28,17 @@ export function errorHandler(error, req, res, _next) {
     status,
     error: serializeError(error),
   });
+
+  if (status >= 500 || error?.code) {
+    recordSystemMonitorError({
+      level: "error",
+      code: error?.code,
+      message: error?.message,
+      route: req?.originalUrl,
+      requestId: req?.requestId,
+      userId: req?.auth?.userId,
+    });
+  }
 
   if (env.nodeEnv !== "production") {
     if (error?.details) {

@@ -3,6 +3,7 @@ import User from "../models/User.js";
 import { createHttpError } from "../utils/httpError.js";
 import { hashPassword, verifyPassword } from "../utils/password.js";
 import { normalizeSlug } from "../utils/slug.js";
+import { canAccessSystemMonitor } from "../utils/systemMonitorAccess.js";
 
 function normalizeEmail(value = "") {
   return String(value || "").trim().toLowerCase();
@@ -64,6 +65,7 @@ function serializeUser(user) {
     id: String(user._id),
     email: user.email,
     displayName: user.displayName || "",
+    canAccessSystemMonitor: canAccessSystemMonitor(user.email),
   };
 }
 

@@ -1,4 +1,4 @@
-import { BarChart3, Link2, Palette, Store } from "lucide-react";
+import { BarChart3, Link2, Palette, Shield, Store } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../app/AuthContext.jsx";
 
@@ -10,6 +10,10 @@ const editorItems = [
 
 const insightItems = [
   { to: "/admin/analytics", label: "Analytics", icon: BarChart3 },
+];
+
+const systemItems = [
+  { to: "/admin/system-monitor", label: "Monitoria", icon: Shield },
 ];
 
 function getPageTitle(page) {
@@ -26,7 +30,7 @@ function getPageInitial(page) {
 }
 
 export default function Sidebar({ page }) {
-  const { user, logout } = useAuth();
+  const { user, logout, canAccessSystemMonitor } = useAuth();
   const renderNavItems = (items) =>
     items.map((item) => (
       <NavLink
@@ -73,6 +77,16 @@ export default function Sidebar({ page }) {
           {renderNavItems(insightItems)}
         </nav>
       </div>
+
+      {canAccessSystemMonitor ? (
+        <div className="sidebar__section">
+          <span className="sidebar__section-label">Sistema</span>
+
+          <nav className="sidebar__nav" aria-label="Navegacao do sistema">
+            {renderNavItems(systemItems)}
+          </nav>
+        </div>
+      ) : null}
 
       <div className="sidebar__section sidebar__section--account">
         <span className="sidebar__section-label">Conta</span>

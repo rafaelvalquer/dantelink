@@ -1,6 +1,7 @@
 import { env } from "../config/env.js";
 import { createHttpError } from "../utils/httpError.js";
 import { verifyJwt } from "../utils/jwt.js";
+import { canAccessSystemMonitor } from "../utils/systemMonitorAccess.js";
 
 export function requireAuth(req, _res, next) {
   try {
@@ -21,7 +22,24 @@ export function requireAuth(req, _res, next) {
       token: match[1],
       userId: String(payload.sub),
       email: String(payload.email || ""),
+      canAccessSystemMonitor: canAccessSystemMonitor(payload.email),
     };
+
+    next();
+  } catch (error) {
+    next(error);
+  }
+}
+
+export function requireSystemMonitorAccess(req, _res, next) {
+  try {
+    if (!req.auth?.canAccessSystemMonitor) {
+      throw createHttpError(
+        403,
+        "Voce nao tem permissao para acessar a monitoria do sistema.",
+        "SYSTEM_MONITOR_FORBIDDEN",
+      );
+    }
 
     next();
   } catch (error) {

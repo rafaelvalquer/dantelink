@@ -8,6 +8,7 @@ import { requestContext } from "./middleware/requestContext.js";
 import authRoutes from "./routes/auth.routes.js";
 import healthRoutes from "./routes/health.routes.js";
 import myPageRoutes from "./routes/myPage.routes.js";
+import systemMonitorRoutes from "./routes/systemMonitor.routes.js";
 
 function isDevLoopbackOrigin(origin) {
   try {
@@ -65,6 +66,7 @@ export function createApp() {
   app.use("/api", healthRoutes);
   app.use("/api", authRoutes);
   app.use("/api", myPageRoutes);
+  app.use("/api", systemMonitorRoutes);
 
   app.use(notFound);
   app.use(errorHandler);

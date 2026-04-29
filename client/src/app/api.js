@@ -165,6 +165,10 @@ export function getMyPageAnalytics(range = "7d") {
   );
 }
 
+export function getSystemMonitorOverview() {
+  return request("GET", "/system-monitor/overview", undefined, { auth: true });
+}
+
 export function getLinkAnalyticsInsight(id, range = "7d") {
   return request(
     "GET",

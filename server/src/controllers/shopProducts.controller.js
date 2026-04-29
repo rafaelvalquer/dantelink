@@ -6,10 +6,12 @@ import {
   toggleShopProduct,
   updateShopProduct,
 } from "../services/myPage.service.js";
+import { recordImportPreviewResult } from "../services/systemMonitor.service.js";
 
 export async function importShopProductHandler(req, res, next) {
   try {
     const product = await importShopProductPreview(req.body?.sourceUrl || req.body?.url || "");
+    recordImportPreviewResult(product);
     res.json({ ok: true, product, message: "Produto importado com sucesso." });
   } catch (error) {
     next(error);
