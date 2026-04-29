@@ -1,6 +1,11 @@
+﻿import { createHttpError } from "../utils/httpError.js";
+
 export function notFound(req, _res, next) {
-  const error = new Error(`Rota não encontrada: ${req.method} ${req.originalUrl}`);
-  error.status = 404;
-  error.code = "ROUTE_NOT_FOUND";
-  next(error);
+  next(
+    createHttpError(
+      404,
+      `Rota não encontrada: ${req.method} ${req.originalUrl}`,
+      "ROUTE_NOT_FOUND",
+    ),
+  );
 }

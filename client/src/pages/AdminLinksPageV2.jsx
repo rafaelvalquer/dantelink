@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import {
   createLink,
   createSecondaryLink,
@@ -8,12 +8,11 @@ import {
   reorderLinks,
   reorderSecondaryLinks,
   saveLink,
-  saveMyPageProfile,
   saveSecondaryLink,
   toggleLink,
   toggleSecondaryLink,
-  uploadMyPageAvatar,
 } from "../app/api.js";
+import useProfileEditor, { createProfileDraft } from "../app/useProfileEditor.js";
 import AddLinkPickerModal from "../components/editor/AddLinkPickerModal.jsx";
 import {
   SECONDARY_LINK_PICKER_OPTIONS,
@@ -60,15 +59,6 @@ const WHATSAPP_DEFAULT_MESSAGE =
 
 function cloneItems(items = []) {
   return items.map((item) => ({ ...item }));
-}
-
-function createProfileDraft(page = {}) {
-  return {
-    title: page.title || "",
-    slug: page.slug || "",
-    bio: page.bio || "",
-    avatarUrl: page.avatarUrl || "",
-  };
 }
 
 function hydrateEditorState(page = {}) {
@@ -341,12 +331,9 @@ function mergeSavedSecondaryLinkIntoDraft(items = [], serverItems = [], id) {
 
 export default function AdminLinksPageV2() {
   const [serverPage, setServerPage] = useState(null);
-  const [profileDraft, setProfileDraft] = useState(createProfileDraft());
   const [linksDraft, setLinksDraft] = useState([]);
   const [secondaryLinksDraft, setSecondaryLinksDraft] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [savingProfile, setSavingProfile] = useState(false);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [saveStatus, setSaveStatus] = useState("idle");
@@ -363,6 +350,27 @@ export default function AdminLinksPageV2() {
   const secondaryLinkRequestTokensRef = useRef(new Map());
   const highlightTimeoutRef = useRef(null);
 
+  function markSaved() {
+    setSaveStatus("saved");
+    setLastSavedAt(Date.now());
+  }
+
+  const {
+    profileDraft,
+    resetProfile,
+    savingProfile,
+    uploadingAvatar,
+    handleProfileChange,
+    saveProfile,
+    uploadAvatar,
+  } = useProfileEditor({
+    onPageSaved: setServerPage,
+    onSaveStatusChange: setSaveStatus,
+    onSaved: markSaved,
+    onNotice: setNotice,
+    onError: setError,
+  });
+
   useEffect(() => {
     linksDraftRef.current = linksDraft;
   }, [linksDraft]);
@@ -370,11 +378,6 @@ export default function AdminLinksPageV2() {
   useEffect(() => {
     secondaryLinksDraftRef.current = secondaryLinksDraft;
   }, [secondaryLinksDraft]);
-
-  function markSaved() {
-    setSaveStatus("saved");
-    setLastSavedAt(Date.now());
-  }
 
   function pushReorderHistory(scope, beforeIds, afterIds) {
     setReorderHistory((current) => ({
@@ -395,7 +398,7 @@ export default function AdminLinksPageV2() {
 
         const hydrated = hydrateEditorState(response.page);
         setServerPage(hydrated.serverPage);
-        setProfileDraft(hydrated.profileDraft);
+        resetProfile(hydrated.profileDraft);
         setLinksDraft(hydrated.linksDraft);
         setSecondaryLinksDraft(hydrated.secondaryLinksDraft);
       } catch (loadError) {
@@ -439,53 +442,6 @@ export default function AdminLinksPageV2() {
     },
     [],
   );
-
-  function handleProfileChange(field, value) {
-    setSaveStatus("dirty");
-    setProfileDraft((current) => ({
-      ...current,
-      [field]: value,
-    }));
-  }
-
-  async function handleSaveProfile(nextProfile = profileDraft) {
-    try {
-      setSavingProfile(true);
-      setSaveStatus("saving");
-      setError("");
-      const response = await saveMyPageProfile(nextProfile);
-      setServerPage(response.page);
-      setProfileDraft(createProfileDraft(response.page));
-      markSaved();
-      setNotice("Perfil salvo.");
-      return true;
-    } catch (saveError) {
-      setSaveStatus("error");
-      setError(saveError.message);
-      return false;
-    } finally {
-      setSavingProfile(false);
-    }
-  }
-
-  async function handleUploadAvatar(file) {
-    try {
-      setUploadingAvatar(true);
-      setSaveStatus("dirty");
-      setError("");
-      const response = await uploadMyPageAvatar(file);
-      setProfileDraft((current) => ({
-        ...current,
-        avatarUrl: response.url,
-      }));
-      setNotice("Avatar enviado. Salve o perfil para confirmar.");
-    } catch (uploadError) {
-      setSaveStatus("error");
-      setError(uploadError.message);
-    } finally {
-      setUploadingAvatar(false);
-    }
-  }
 
   function closeAddModal() {
     if (creatingOptionId) {
@@ -794,7 +750,7 @@ export default function AdminLinksPageV2() {
         ),
       );
       markSaved();
-      setNotice("Visibilidade do link secundário atualizada.");
+      setNotice("Visibilidade do link secundÃ¡rio atualizada.");
     } catch (actionError) {
       if (
         !isLatestItemRequestToken(
@@ -1055,7 +1011,7 @@ export default function AdminLinksPageV2() {
           canUndo={reorderHistory.past.length > 0}
           canRedo={reorderHistory.future.length > 0}
           onSave={() => {
-            void handleSaveProfile();
+            void saveProfile();
           }}
           disableSave={savingProfile || loading}
           saveLabel="Salvar perfil"
@@ -1069,9 +1025,9 @@ export default function AdminLinksPageV2() {
           <ProfileEditorCard
             value={profileDraft}
             onChange={handleProfileChange}
-            onSave={handleSaveProfile}
+            onSave={saveProfile}
             isSaving={savingProfile}
-            onUploadAvatar={handleUploadAvatar}
+            onUploadAvatar={uploadAvatar}
             isUploadingAvatar={uploadingAvatar}
           />
 
@@ -1123,3 +1079,4 @@ export default function AdminLinksPageV2() {
     </EditorShell>
   );
 }
+

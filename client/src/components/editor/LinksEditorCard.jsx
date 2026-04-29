@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from "react";
+﻿import { useEffect, useId, useMemo, useState } from "react";
 import {
   closestCenter,
   DndContext,
@@ -350,8 +350,9 @@ export default function LinksEditorCard({
       ) : links.length ? (
           <div className="empty-state">Nenhum link encontrado com os filtros atuais.</div>
         ) : (
-          <div className="empty-state">Crie seu primeiro link para começar a preencher a página.</div>
+          <div className="empty-state">Crie seu primeiro link para começar a preencher a pÃ¡gina.</div>
         )}
     </SectionCard>
   );
 }
+

@@ -1,4 +1,4 @@
-import { Link2 } from "lucide-react";
+﻿import { Link2 } from "lucide-react";
 import { getButtonProps, getButtonRadiusClassName } from "./buttonTheme.js";
 import {
   getMyPageButtonIcon,
@@ -143,7 +143,7 @@ export function PublicPageAvatar({
       {avatarSrc ? (
         <img
           src={avatarSrc}
-          alt={page?.title || "Minha pagina"}
+          alt={page?.title || "Minha página"}
           className={cls(
             "public-page__hero-avatar",
             theme?.usesSpotlightLayout && "is-spotlight",
@@ -175,9 +175,9 @@ export function PublicPageHero({
   description,
   compact = false,
 }) {
-  const titleValue = String(title || page?.title || "Minha pagina").trim();
+  const titleValue = String(title || page?.title || "Minha página").trim();
   const descriptionValue =
-    description ?? page?.bio ?? "Comece a editar sua bio na area administrativa.";
+    description ?? page?.bio ?? "Comece a editar sua bio na área administrativa.";
   const shouldShowEyebrow = Boolean(eyebrow);
 
   return (
@@ -320,7 +320,7 @@ export function PublicPageLocationCard({
   }
 
   const Icon = getMyPageButtonIcon(link);
-  const title = String(link?.title || "Localizacao").trim();
+  const title = String(link?.title || "Localização").trim();
   const embedUrl = buildGoogleMapsEmbedUrl(link);
 
   return (
@@ -331,7 +331,7 @@ export function PublicPageLocationCard({
       <div className="public-page__location-header">
         <div className="public-page__location-copy">
           <span className="public-page__section-eyebrow" style={theme.accentTextStyle}>
-            Localizacao
+            Localização
           </span>
           <h2 style={theme.titleStyle}>{title}</h2>
           <p className="public-page__location-address" style={theme.mutedTextStyle}>
@@ -362,7 +362,7 @@ export function PublicPageLocationCard({
         </div>
       ) : (
         <div className="public-page__location-map-fallback" style={theme.surfaceStyle}>
-          Mapa indisponivel para este endereco.
+          Mapa indisponível para este endereço.
         </div>
       )}
 
@@ -425,7 +425,7 @@ export function PublicPageMiniPreview({
   primaryLinks = [],
   socialLinks = [],
   className = "",
-  eyebrow = "Minha pagina",
+  eyebrow = "Minha página",
   description,
   showButtons = true,
   showSocial = false,
@@ -487,3 +487,4 @@ export function PublicPageMiniPreview({
     </div>
   );
 }
+

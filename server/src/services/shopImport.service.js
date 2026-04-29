@@ -1,3 +1,6 @@
+import { createHttpError } from "../utils/httpError.js";
+import { logInfo, logWarn } from "../utils/logger.js";
+
 const FETCH_TIMEOUT_MS = 8000;
 const MERCADO_LIVRE_HOSTS = [
   "mercadolivre.com.br",
@@ -603,19 +606,21 @@ async function fetchHtml(sourceUrl = "") {
     });
 
     if (!response.ok) {
-      const error = new Error("Nao foi possivel consultar a URL do produto.");
-      error.status = 502;
-      error.code = "SHOP_IMPORT_REQUEST_FAILED";
-      throw error;
+      throw createHttpError(
+        502,
+        "Não foi possível consultar a URL do produto.",
+        "SHOP_IMPORT_REQUEST_FAILED",
+      );
     }
 
     return response.text();
   } catch (error) {
     if (error?.name === "AbortError") {
-      const timeoutError = new Error("A importacao demorou mais do que o esperado.");
-      timeoutError.status = 504;
-      timeoutError.code = "SHOP_IMPORT_TIMEOUT";
-      throw timeoutError;
+      throw createHttpError(
+        504,
+        "A importação demorou mais do que o esperado.",
+        "SHOP_IMPORT_TIMEOUT",
+      );
     }
     throw error;
   } finally {
@@ -630,10 +635,11 @@ export async function importShopProductFromUrl(sourceUrl = "") {
     : initialUrl;
 
   if (!/^https?:\/\//i.test(normalizedUrl)) {
-    const error = new Error("Informe uma URL valida para importar o produto.");
-    error.status = 400;
-    error.code = "SHOP_IMPORT_INVALID_URL";
-    throw error;
+    throw createHttpError(
+      400,
+      "Informe uma URL válida para importar o produto.",
+      "SHOP_IMPORT_INVALID_URL",
+    );
   }
 
   const candidates = [];
@@ -659,6 +665,12 @@ export async function importShopProductFromUrl(sourceUrl = "") {
     html = await fetchHtml(normalizedUrl);
   } catch (error) {
     htmlFetchError = error;
+    logWarn("shop-import.html-fetch-failed", {
+      sourceUrl: normalizedUrl,
+      code: error?.code,
+      status: error?.status,
+      domain: parseDomain(normalizedUrl),
+    });
   }
 
   if (html) {
@@ -679,6 +691,15 @@ export async function importShopProductFromUrl(sourceUrl = "") {
   const best = pickBestCandidate(candidates);
 
   if (best) {
+    logInfo("shop-import.resolved", {
+      sourceUrl: normalizedUrl,
+      domain: parseDomain(normalizedUrl),
+      importMode: best.importMode,
+      status: best.status,
+      usedHtmlFallback: Boolean(html),
+      candidates: candidates.map((candidate) => candidate.importMode).filter(Boolean),
+    });
+
     return {
       ...best,
       sourceUrl: normalizedUrl,
@@ -686,13 +707,18 @@ export async function importShopProductFromUrl(sourceUrl = "") {
   }
 
   if (isMercadoLivre && htmlFetchError) {
-    const error = new Error(
-      "Nao foi possivel importar este produto do Mercado Livre. A pagina bloqueou a consulta publica e nao encontramos dados estruturados suficientes.",
+    throw createHttpError(
+      502,
+      "Não foi possível importar este produto do Mercado Livre. A página bloqueou a consulta pública e não encontramos dados estruturados suficientes.",
+      "SHOP_IMPORT_MERCADOLIVRE_UNAVAILABLE",
     );
-    error.status = 502;
-    error.code = "SHOP_IMPORT_MERCADOLIVRE_UNAVAILABLE";
-    throw error;
   }
+
+  logWarn("shop-import.fallback-manual", {
+    sourceUrl: normalizedUrl,
+    domain: parseDomain(normalizedUrl),
+    candidates: candidates.map((candidate) => candidate.importMode).filter(Boolean),
+  });
 
   return {
     ...createImportResult({ sourceUrl: normalizedUrl }),

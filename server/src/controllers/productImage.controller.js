@@ -5,6 +5,8 @@ import { unlink } from "fs/promises";
 import { Readable } from "stream";
 import { pipeline } from "stream/promises";
 import { ensureUploadsDir, productUploadsDir, uploadsRoot } from "../config/uploads.js";
+import { createHttpError } from "../utils/httpError.js";
+import { getRequestLogContext, logInfo, logWarn } from "../utils/logger.js";
 
 ensureUploadsDir();
 
@@ -15,15 +17,6 @@ const IMAGE_CONTENT_TYPE_EXTENSIONS = {
   "image/gif": ".gif",
   "image/avif": ".avif",
 };
-
-function createHttpError(status, message, code) {
-  const error = new Error(message);
-  error.status = status;
-  if (code) {
-    error.code = code;
-  }
-  return error;
-}
 
 function getBaseUrl(req) {
   return `${req.protocol}://${req.get("host")}`;
@@ -77,15 +70,18 @@ function createProductImageFilename(contentType = "", imageUrl = "") {
 export async function uploadProductImageHandler(req, res, next) {
   try {
     if (!req.file) {
-      const error = new Error("Selecione uma imagem para continuar.");
-      error.status = 400;
-      error.code = "PRODUCT_IMAGE_REQUIRED";
-      throw error;
+      throw createHttpError(400, "Selecione uma imagem para continuar.", "PRODUCT_IMAGE_REQUIRED");
     }
 
     const baseUrl = `${req.protocol}://${req.get("host")}`;
     const relativePath = path.relative(uploadsRoot, req.file.path).replace(/\\/g, "/");
     const url = `${baseUrl}/uploads/${relativePath}`;
+
+    logInfo("product-image.uploaded", {
+      ...getRequestLogContext(req),
+      fileSize: req.file.size,
+      mimeType: req.file.mimetype,
+    });
 
     res.status(201).json({
       ok: true,
@@ -112,10 +108,14 @@ export async function internalizeProductImageFromUrlHandler(req, res, next) {
     }
 
     if (isLocalUploadUrl(req, imageUrl)) {
+      logInfo("product-image.internalize.skipped-local", {
+        ...getRequestLogContext(req),
+        imageUrl,
+      });
       res.status(200).json({
         ok: true,
         url: imageUrl,
-        message: "Imagem ja esta disponivel localmente.",
+        message: "Imagem já está disponível localmente.",
       });
       return;
     }
@@ -135,6 +135,10 @@ export async function internalizeProductImageFromUrlHandler(req, res, next) {
       });
     } catch (error) {
       if (error?.name === "AbortError") {
+        logWarn("product-image.internalize.timeout", {
+          ...getRequestLogContext(req),
+          imageUrl,
+        });
         throw createHttpError(
           504,
           "A imagem demorou demais para responder. Envie o arquivo manualmente.",
@@ -142,9 +146,13 @@ export async function internalizeProductImageFromUrlHandler(req, res, next) {
         );
       }
 
+      logWarn("product-image.internalize.download-failed", {
+        ...getRequestLogContext(req),
+        imageUrl,
+      });
       throw createHttpError(
         502,
-        "Nao foi possivel baixar a imagem informada. Envie o arquivo manualmente.",
+        "Não foi possível baixar a imagem informada. Envie o arquivo manualmente.",
         "PRODUCT_IMAGE_DOWNLOAD_FAILED",
       );
     } finally {
@@ -152,9 +160,14 @@ export async function internalizeProductImageFromUrlHandler(req, res, next) {
     }
 
     if (!response.ok) {
+      logWarn("product-image.internalize.download-status", {
+        ...getRequestLogContext(req),
+        imageUrl,
+        status: response.status,
+      });
       throw createHttpError(
         502,
-        "Nao foi possivel baixar a imagem informada. Envie o arquivo manualmente.",
+        "Não foi possível baixar a imagem informada. Envie o arquivo manualmente.",
         "PRODUCT_IMAGE_DOWNLOAD_FAILED",
       );
     }
@@ -164,7 +177,7 @@ export async function internalizeProductImageFromUrlHandler(req, res, next) {
     if (!contentType.startsWith("image/")) {
       throw createHttpError(
         400,
-        "A URL informada nao retornou uma imagem valida.",
+        "A URL informada não retornou uma imagem válida.",
         "PRODUCT_IMAGE_INVALID_CONTENT_TYPE",
       );
     }
@@ -172,7 +185,7 @@ export async function internalizeProductImageFromUrlHandler(req, res, next) {
     if (!response.body) {
       throw createHttpError(
         502,
-        "Nao foi possivel ler a imagem informada. Envie o arquivo manualmente.",
+        "Não foi possível ler a imagem informada. Envie o arquivo manualmente.",
         "PRODUCT_IMAGE_EMPTY_BODY",
       );
     }
@@ -184,6 +197,12 @@ export async function internalizeProductImageFromUrlHandler(req, res, next) {
       Readable.fromWeb(response.body),
       createWriteStream(filePath),
     );
+
+    logInfo("product-image.internalized", {
+      ...getRequestLogContext(req),
+      imageUrl,
+      contentType,
+    });
 
     res.status(201).json({
       ok: true,

@@ -1,4 +1,4 @@
-import { BarChart3, Compass, Eye, MousePointerClick, ShoppingBag } from "lucide-react";
+﻿import { BarChart3, Compass, Eye, MousePointerClick, ShoppingBag } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { getMyPage, getMyPageAnalytics } from "../app/api.js";
 import SectionCard from "../components/editor/SectionCard.jsx";
@@ -410,3 +410,4 @@ export default function AdminAnalyticsDashboardPage() {
     </EditorShell>
   );
 }
+

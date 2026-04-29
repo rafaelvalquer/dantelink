@@ -1,4 +1,4 @@
-import MyPage from "../models/MyPage.js";
+﻿import MyPage from "../models/MyPage.js";
 import MyPageAnalyticsDaily from "../models/MyPageAnalyticsDaily.js";
 import { normalizeSlug } from "../utils/slug.js";
 
@@ -22,15 +22,6 @@ const RANGE_CONFIG = {
   "28d": 28,
   lifetime: null,
 };
-
-function createHttpError(status, message, code) {
-  const error = new Error(message);
-  error.status = status;
-  if (code) {
-    error.code = code;
-  }
-  return error;
-}
 
 function formatDateKey(date = new Date()) {
   return new Intl.DateTimeFormat("en-CA", {
@@ -196,7 +187,7 @@ async function incrementDailyMetric(page, operations = {}) {
 
 function getPrimaryLinkHref(page, link = {}) {
   if (String(link?.type || "").trim().toLowerCase() === "shop-preview") {
-    return page?.slug ? `/${page.slug}/shop` : "/minha-pagina/shop";
+    return page?.slug ? `/${page.slug}/shop` : "/minha-página/shop";
   }
 
   return String(link?.url || "").trim();
@@ -483,3 +474,4 @@ export async function getLinkAnalyticsInsight(ownerId, linkId, range = "7d") {
     ],
   };
 }
+

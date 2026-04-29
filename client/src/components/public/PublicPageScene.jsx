@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Share2, Sparkles } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
@@ -99,7 +99,7 @@ function HeroAvatar({ page }) {
       <img
         className="public-page__hero-avatar"
         src={page.avatarUrl}
-        alt={page?.title || "Avatar da pagina"}
+        alt={page?.title || "Avatar da página"}
       />
     );
   }
@@ -251,8 +251,8 @@ export default function PublicPageScene({
     }
 
     const shareData = {
-      title: renderTitle(page?.title, "Minha pagina"),
-      text: page?.bio || renderTitle(page?.title, "Minha pagina"),
+      title: renderTitle(page?.title, "Minha página"),
+      text: page?.bio || renderTitle(page?.title, "Minha página"),
       url: publicUrl,
     };
 
@@ -325,7 +325,7 @@ export default function PublicPageScene({
                 style={theme.chromeButtonStyle}
                 onClick={handleShare}
                 disabled={previewMode || !interactive}
-                aria-label="Compartilhar pagina"
+                aria-label="Compartilhar página"
               >
                 <Share2 size={18} />
               </button>
@@ -370,7 +370,7 @@ export default function PublicPageScene({
                       className="public-page__hero-title"
                       style={theme.titleStyle}
                     >
-                      {renderTitle(page?.title, "Minha pagina")}
+                      {renderTitle(page?.title, "Minha página")}
                     </h1>
                     <p className="public-page__hero-bio">
                       {page?.bio ||
@@ -485,7 +485,7 @@ export default function PublicPageScene({
           </motion.section>
 
           <div className="public-page__micro-footer">
-            Pagina publica • Compartilhavel • Responsiva
+            Página pública • Compartilhável • Responsiva
           </div>
         </div>
       </div>
@@ -512,3 +512,4 @@ export default function PublicPageScene({
     </div>
   );
 }
+

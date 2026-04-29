@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Share2, Sparkles } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
@@ -271,8 +271,8 @@ export default function PublicPageSceneView({
     }
 
     const shareData = {
-      title: renderTitle(page?.title, "Minha pagina"),
-      text: page?.bio || renderTitle(page?.title, "Minha pagina"),
+      title: renderTitle(page?.title, "Minha página"),
+      text: page?.bio || renderTitle(page?.title, "Minha página"),
       url: publicUrl,
     };
 
@@ -341,7 +341,7 @@ export default function PublicPageSceneView({
                     style={theme.chromeButtonStyle}
                     onClick={handleShare}
                     disabled={!interactive}
-                    aria-label="Compartilhar pagina"
+                    aria-label="Compartilhar página"
                   >
                     <Share2 size={18} />
                   </button>
@@ -462,7 +462,7 @@ export default function PublicPageSceneView({
           </motion.section>
 
           <div className="public-page__micro-footer">
-            Pagina publica | Compartilhavel | Responsiva
+            Página pública | Compartilhável | Responsiva
           </div>
         </div>
 
@@ -489,3 +489,4 @@ export default function PublicPageSceneView({
     </PublicPageScreen>
   );
 }
+

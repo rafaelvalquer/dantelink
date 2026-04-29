@@ -1,4 +1,4 @@
-import {
+﻿import {
   Link2,
   MapPin,
   ShoppingBag,
@@ -70,7 +70,7 @@ const THEME_PRESET_DEFINITIONS = [
     previewVariant: "airy",
     previewArtwork: "paper",
     previewLabel: "Clean Light",
-    previewTitle: "Minha Pagina",
+    previewTitle: "Minha Página",
     previewCtaLabel: "Ver layout",
     theme: {
       themePreset: "clean_light",
@@ -105,7 +105,7 @@ const THEME_PRESET_DEFINITIONS = [
     previewVariant: "nocturne",
     previewArtwork: "flare",
     previewLabel: "Premium Dark",
-    previewTitle: "Minha Pagina",
+    previewTitle: "Minha Página",
     previewCtaLabel: "Ver layout",
     theme: {
       themePreset: "premium_dark",
@@ -141,7 +141,7 @@ const THEME_PRESET_DEFINITIONS = [
     previewVariant: "noir",
     previewArtwork: "noir",
     previewLabel: "Noir Minimal",
-    previewTitle: "Minha Pagina",
+    previewTitle: "Minha Página",
     previewCtaLabel: "Ver layout",
     theme: {
       themePreset: "braciera_noir",
@@ -178,7 +178,7 @@ const THEME_PRESET_DEFINITIONS = [
     previewVariant: "clinic",
     previewArtwork: "mist",
     previewLabel: "Dental Clinic",
-    previewTitle: "Minha Pagina",
+    previewTitle: "Minha Página",
     previewCtaLabel: "Ver layout",
     theme: {
       themePreset: "dental_clinic",
@@ -213,7 +213,7 @@ const THEME_PRESET_DEFINITIONS = [
     previewVariant: "baroque",
     previewArtwork: "spotlight",
     previewLabel: "Barber Gold",
-    previewTitle: "Minha Pagina",
+    previewTitle: "Minha Página",
     previewCtaLabel: "Ver layout",
     theme: {
       themePreset: "barber_gold",
@@ -244,11 +244,11 @@ const THEME_PRESET_DEFINITIONS = [
   {
     value: "creator_gradient",
     label: "Creator Gradient",
-    description: "Pagina vibrante com energia social.",
+    description: "Página vibrante com energia social.",
     previewVariant: "spectrum",
     previewArtwork: "waves",
     previewLabel: "Creator Gradient",
-    previewTitle: "Minha Pagina",
+    previewTitle: "Minha Página",
     previewCtaLabel: "Ver layout",
     theme: {
       themePreset: "creator_gradient",
@@ -283,7 +283,7 @@ const THEME_PRESET_DEFINITIONS = [
     previewVariant: "market",
     previewArtwork: "grid",
     previewLabel: "Business Storefront",
-    previewTitle: "Minha Pagina",
+    previewTitle: "Minha Página",
     previewCtaLabel: "Ver layout",
     theme: {
       themePreset: "business_storefront",
@@ -318,7 +318,7 @@ const THEME_PRESET_DEFINITIONS = [
     previewVariant: "airy",
     previewArtwork: "mist",
     previewLabel: "Nutri Fresh",
-    previewTitle: "Minha Pagina",
+    previewTitle: "Minha Página",
     previewCtaLabel: "Ver layout",
     theme: {
       themePreset: "nutri_fresh",
@@ -353,7 +353,7 @@ const THEME_PRESET_DEFINITIONS = [
     previewVariant: "airy",
     previewArtwork: "paper",
     previewLabel: "Pastry Atelier",
-    previewTitle: "Minha Pagina",
+    previewTitle: "Minha Página",
     previewCtaLabel: "Ver layout",
     theme: {
       themePreset: "pastry_atelier",
@@ -388,7 +388,7 @@ const THEME_PRESET_DEFINITIONS = [
     previewVariant: "spectrum",
     previewArtwork: "mist",
     previewLabel: "Aesthetic Glow",
-    previewTitle: "Minha Pagina",
+    previewTitle: "Minha Página",
     previewCtaLabel: "Ver layout",
     theme: {
       themePreset: "aesthetic_glow",
@@ -423,7 +423,7 @@ const THEME_PRESET_DEFINITIONS = [
     previewVariant: "nocturne",
     previewArtwork: "paper",
     previewLabel: "Legal Navy",
-    previewTitle: "Minha Pagina",
+    previewTitle: "Minha Página",
     previewCtaLabel: "Ver layout",
     theme: {
       themePreset: "legal_navy",
@@ -458,7 +458,7 @@ const THEME_PRESET_DEFINITIONS = [
     previewVariant: "market",
     previewArtwork: "grid",
     previewLabel: "Fitness Charge",
-    previewTitle: "Minha Pagina",
+    previewTitle: "Minha Página",
     previewCtaLabel: "Ver layout",
     theme: {
       themePreset: "fitness_charge",
@@ -494,7 +494,7 @@ const THEME_PRESET_DEFINITIONS = [
     previewVariant: "baroque",
     previewArtwork: "spotlight",
     previewLabel: "Realty Luxe",
-    previewTitle: "Minha Pagina",
+    previewTitle: "Minha Página",
     previewCtaLabel: "Ver layout",
     theme: {
       themePreset: "realty_luxe",
@@ -525,11 +525,11 @@ const THEME_PRESET_DEFINITIONS = [
   {
     value: "kids_care",
     label: "Kids Care",
-    description: "Infantil acolhedor com tons leves e leitura amigavel.",
+    description: "Infantil acolhedor com tons leves e leitura amigável.",
     previewVariant: "clinic",
     previewArtwork: "waves",
     previewLabel: "Kids Care",
-    previewTitle: "Minha Pagina",
+    previewTitle: "Minha Página",
     previewCtaLabel: "Ver layout",
     theme: {
       themePreset: "kids_care",
@@ -564,7 +564,7 @@ const THEME_PRESET_DEFINITIONS = [
     previewVariant: "baroque",
     previewArtwork: "paper",
     previewLabel: "Editorial Luxury",
-    previewTitle: "Minha Pagina",
+    previewTitle: "Minha Página",
     previewCtaLabel: "Ver layout",
     theme: {
       themePreset: "editorial_luxury",
@@ -599,7 +599,7 @@ const THEME_PRESET_DEFINITIONS = [
     previewVariant: "nocturne",
     previewArtwork: "flare",
     previewLabel: "Twilight",
-    previewTitle: "Minha Pagina",
+    previewTitle: "Minha Página",
     previewCtaLabel: "Ver layout",
     theme: {
       themePreset: "twilight",
@@ -634,7 +634,7 @@ const THEME_PRESET_DEFINITIONS = [
     previewVariant: "spectrum",
     previewArtwork: "flare",
     previewLabel: "Midnight Prism",
-    previewTitle: "Minha Pagina",
+    previewTitle: "Minha Página",
     previewCtaLabel: "Ver layout",
     theme: {
       themePreset: "midnight_prism",
@@ -669,7 +669,7 @@ const THEME_PRESET_DEFINITIONS = [
     previewVariant: "airy",
     previewArtwork: "mist",
     previewLabel: "Air",
-    previewTitle: "Minha Pagina",
+    previewTitle: "Minha Página",
     previewCtaLabel: "Ver layout",
     theme: {
       themePreset: "air",
@@ -704,7 +704,7 @@ const THEME_PRESET_DEFINITIONS = [
     previewVariant: "market",
     previewArtwork: "grid",
     previewLabel: "Agate",
-    previewTitle: "Minha Pagina",
+    previewTitle: "Minha Página",
     previewCtaLabel: "Ver layout",
     theme: {
       themePreset: "agate",
@@ -757,14 +757,14 @@ export const MY_PAGE_BRAND_LAYOUT_OPTIONS = [
 ];
 
 export const MY_PAGE_BACKGROUND_STYLE_OPTIONS = [
-  { value: "fill", label: "Fill", description: "Cor solida na pagina inteira." },
+  { value: "fill", label: "Fill", description: "Cor sólida na página inteira." },
   { value: "gradient", label: "Gradient", description: "Transicao da cor base." },
   { value: "blur", label: "Blur", description: "Blobs e glow macio." },
   { value: "pattern", label: "Pattern", description: "Textura com desenho leve." },
 ];
 
 export const MY_PAGE_BACKGROUND_GRADIENT_DIRECTION_OPTIONS = [
-  { value: "linear_up", label: "Vertical", description: "Luz subindo pela pagina." },
+  { value: "linear_up", label: "Vertical", description: "Luz subindo pela página." },
   { value: "linear_down", label: "Invertido", description: "Luz descendo do topo." },
   { value: "radial", label: "Radial", description: "Foco no topo com abertura central." },
 ];
@@ -776,7 +776,7 @@ export const MY_PAGE_BACKGROUND_PATTERN_VARIANT_OPTIONS = [
 ];
 
 export const MY_PAGE_SURFACE_STYLE_OPTIONS = [
-  { value: "solid", label: "Solido", description: "Container opaco e direto." },
+  { value: "solid", label: "Sólido", description: "Container opaco e direto." },
   { value: "soft", label: "Soft", description: "Camada suave e elegante." },
   { value: "glass", label: "Glass", description: "Translucido com blur e brilho leve." },
   { value: "outline", label: "Outline", description: "Quase transparente com borda forte." },
@@ -821,9 +821,9 @@ export const MY_PAGE_PRIMARY_BUTTON_CONTENT_ALIGN_OPTIONS = [
 ];
 
 export const MY_PAGE_PRIMARY_ICON_LAYOUT_OPTIONS = [
-  { value: "plain", label: "So icone", description: "Mostra apenas o icone, sem envoltorio." },
+  { value: "plain", label: "Só ícone", description: "Mostra apenas o icone, sem envoltorio." },
   { value: "circle_soft", label: "Circulo suave", description: "Circulo leve com leitura mais sutil." },
-  { value: "circle_solid", label: "Circulo solido", description: "Circulo com mais contraste e presenca." },
+  { value: "circle_solid", label: "Círculo sólido", description: "Circulo com mais contraste e presenca." },
   { value: "circle_neutral", label: "Circulo neutro", description: "Badge neutro para temas premium ou escuros." },
   { value: "square_soft", label: "Quadrado suave", description: "Bloco arredondado com visual mais moderno." },
 ];
@@ -835,10 +835,10 @@ export const MY_PAGE_SECONDARY_LINK_STYLE_OPTIONS = [
 ];
 
 export const MY_PAGE_SECONDARY_LINK_ICON_LAYOUT_OPTIONS = [
-  { value: "plain", label: "So icone", description: "Icone simples, sem badge." },
+  { value: "plain", label: "Só ícone", description: "Icone simples, sem badge." },
   { value: "brand_badge", label: "Badge oficial", description: "Usa o badge colorido da rede." },
   { value: "circle_soft", label: "Circulo suave", description: "Circulo leve com foco no icone." },
-  { value: "circle_solid", label: "Circulo solido", description: "Mais contraste e presenca visual." },
+  { value: "circle_solid", label: "Círculo sólido", description: "Mais contraste e presenca visual." },
   { value: "square_soft", label: "Quadrado suave", description: "Badge arredondado com visual moderno." },
 ];
 
@@ -861,7 +861,7 @@ export const MY_PAGE_SECONDARY_LINK_ALIGN_OPTIONS = [
 
 export const MY_PAGE_SECONDARY_LINK_POSITION_OPTIONS = [
   { value: "top", label: "Top", description: "Mostra as redes logo abaixo da bio." },
-  { value: "bottom", label: "Bottom", description: "Mantem as redes no rodape da pagina, como hoje." },
+  { value: "bottom", label: "Bottom", description: "Mantém as redes no rodapé da página, como hoje." },
 ];
 
 export const MY_PAGE_ANIMATION_PRESET_OPTIONS = [
@@ -1218,9 +1218,9 @@ const FALLBACK_PRIMARY_LINKS = [
     id: "preview-whatsapp",
     title: "Falar no WhatsApp",
     type: "whatsapp",
-    url: "https://wa.me/5511999999999?text=Ola%21",
+    url: "https://wa.me/5511999999999?text=Olá%21",
     phone: "5511999999999",
-    message: "Ola!",
+    message: "Olá!",
     isActive: true,
     order: 0,
   },
@@ -1358,7 +1358,7 @@ export function getMyPagePreviewSocialLinks(page = {}, limit = 3) {
 export function createMyPageThemePreviewPage(page = {}, themeOverrides = {}) {
   return {
     ...page,
-    title: page?.title || "Minha Pagina",
+    title: page?.title || "Minha Página",
     bio:
       page?.bio || "Uma bio curta para apresentar links e canais principais.",
     links: page?.links?.length
@@ -2038,3 +2038,4 @@ export function getMyPageMotionPreset(theme, shouldReduceMotion = false) {
     },
   };
 }
+

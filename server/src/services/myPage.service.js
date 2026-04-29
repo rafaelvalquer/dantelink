@@ -1,4 +1,4 @@
-import MyPage from "../models/MyPage.js";
+﻿import MyPage from "../models/MyPage.js";
 import {
   createLinkId,
   createProductId,
@@ -8,6 +8,8 @@ import {
   normalizeOrder,
   sortByOrder,
 } from "../utils/order.js";
+import { createHttpError } from "../utils/httpError.js";
+import { logWarn } from "../utils/logger.js";
 import { importShopProductFromUrl } from "./shopImport.service.js";
 import { normalizeSlug } from "../utils/slug.js";
 
@@ -119,7 +121,7 @@ const SHOP_IMPORT_MODES = new Set([
   "open-graph",
 ]);
 const WHATSAPP_DEFAULT_MESSAGE =
-  "Ola! Vim pela sua pagina publica e gostaria de mais informacoes.";
+  "Olá! Vim pela sua página pública e gostaria de mais informações.";
 const NOMINATIM_BASE_URL = "https://nominatim.openstreetmap.org/search";
 const NOMINATIM_MIN_INTERVAL_MS = 1100;
 let lastNominatimRequestAt = 0;
@@ -188,18 +190,6 @@ function buildDefaultPage(ownerId, overrides = {}) {
       : [],
     shop: normalizeShop(overrides.shop || DEFAULT_PAGE.shop),
   };
-}
-
-function createHttpError(status, message, code, details) {
-  const error = new Error(message);
-  error.status = status;
-  if (code) {
-    error.code = code;
-  }
-  if (details) {
-    error.details = details;
-  }
-  return error;
 }
 
 function toPlainObject(value) {
@@ -719,9 +709,10 @@ function reorderExistingItemsPreservingIdentity(items = [], ids = [], label = "i
   });
 
   if (missingIdItems.length) {
-    console.warn(
-      `[my-page] reorder for ${label} encontrou item sem id estavel; nenhum novo id foi gerado durante a operacao.`,
-    );
+    logWarn("my-page.reorder.missing-stable-id", {
+      label,
+      missingItems: missingIdItems.length,
+    });
   }
 
   const selected = requestedIds
@@ -957,7 +948,7 @@ async function getPageDocumentByOwnerId(ownerId, { createIfMissing = true } = {}
   }
 
   if (!page) {
-    throw createHttpError(404, "Pagina da conta nao encontrada.", "PAGE_NOT_FOUND");
+    throw createHttpError(404, "Página da conta não encontrada.", "PAGE_NOT_FOUND");
   }
 
   return persistNormalizedPage(page);
@@ -1161,7 +1152,7 @@ function sanitizeShopProductPayload(payload = {}) {
 
 function validateShopProductPayload(payload = {}, { requireSourceUrl = true } = {}) {
   if (!payload.title) {
-    throw createHttpError(400, "Informe o titulo do produto.", "SHOP_PRODUCT_TITLE_REQUIRED");
+    throw createHttpError(400, "Informe o título do produto.", "SHOP_PRODUCT_TITLE_REQUIRED");
   }
 
   if (requireSourceUrl && !payload.sourceUrl) {
@@ -1178,7 +1169,7 @@ function ensureSingleShopPreviewLink(page, nextType, excludeId) {
   if (existingShopPreview) {
     throw createHttpError(
       409,
-      "A pagina ja possui uma Previa da loja. Edite o item existente para continuar.",
+      "A página já possui uma Prévia da loja. Edite o item existente para continuar.",
       "SHOP_PREVIEW_ALREADY_EXISTS",
     );
   }
@@ -1257,7 +1248,7 @@ export async function updateLink(ownerId, id, payload = {}) {
   const linkIndex = findLinkIndex(page, id);
 
   if (linkIndex === -1) {
-    throw createHttpError(404, "Link não encontrado.", "LINK_NOT_FOUND");
+    throw createHttpError(404, "Link nÃ£o encontrado.", "LINK_NOT_FOUND");
   }
 
   const currentLink = toPlainObject(page.links[linkIndex]);
@@ -1286,7 +1277,7 @@ export async function deleteLink(ownerId, id) {
   );
 
   if (nextLinks.length === (page.links || []).length) {
-    throw createHttpError(404, "Link não encontrado.", "LINK_NOT_FOUND");
+    throw createHttpError(404, "Link nÃ£o encontrado.", "LINK_NOT_FOUND");
   }
 
   page.links = normalizeLinks(nextLinks.map((link) => toPlainObject(link)));
@@ -1299,7 +1290,7 @@ export async function toggleLink(ownerId, id) {
   const linkIndex = findLinkIndex(page, id);
 
   if (linkIndex === -1) {
-    throw createHttpError(404, "Link não encontrado.", "LINK_NOT_FOUND");
+    throw createHttpError(404, "Link nÃ£o encontrado.", "LINK_NOT_FOUND");
   }
 
   const currentLink = toPlainObject(page.links[linkIndex]);
@@ -1350,7 +1341,7 @@ export async function updateSecondaryLink(ownerId, id, payload = {}) {
   if (linkIndex === -1) {
     throw createHttpError(
       404,
-      "Link secundario nao encontrado.",
+      "Link secundário não encontrado.",
       "SECONDARY_LINK_NOT_FOUND",
     );
   }
@@ -1379,7 +1370,7 @@ export async function deleteSecondaryLink(ownerId, id) {
   if (nextLinks.length === (page.secondaryLinks || []).length) {
     throw createHttpError(
       404,
-      "Link secundario nao encontrado.",
+      "Link secundário não encontrado.",
       "SECONDARY_LINK_NOT_FOUND",
     );
   }
@@ -1398,7 +1389,7 @@ export async function toggleSecondaryLink(ownerId, id) {
   if (linkIndex === -1) {
     throw createHttpError(
       404,
-      "Link secundario nao encontrado.",
+      "Link secundário não encontrado.",
       "SECONDARY_LINK_NOT_FOUND",
     );
   }
@@ -1481,7 +1472,7 @@ export async function updateShopProduct(ownerId, id, payload = {}) {
   const productIndex = findShopProductIndex({ shop: currentShop }, id);
 
   if (productIndex === -1) {
-    throw createHttpError(404, "Produto nao encontrado.", "SHOP_PRODUCT_NOT_FOUND");
+    throw createHttpError(404, "Produto não encontrado.", "SHOP_PRODUCT_NOT_FOUND");
   }
 
   const currentProduct = toPlainObject(currentShop.products[productIndex]);
@@ -1518,7 +1509,7 @@ export async function deleteShopProduct(ownerId, id) {
   );
 
   if (nextProducts.length === currentShop.products.length) {
-    throw createHttpError(404, "Produto nao encontrado.", "SHOP_PRODUCT_NOT_FOUND");
+    throw createHttpError(404, "Produto não encontrado.", "SHOP_PRODUCT_NOT_FOUND");
   }
 
   page.shop = normalizeShop({
@@ -1536,7 +1527,7 @@ export async function toggleShopProduct(ownerId, id) {
   const productIndex = findShopProductIndex({ shop: currentShop }, id);
 
   if (productIndex === -1) {
-    throw createHttpError(404, "Produto nao encontrado.", "SHOP_PRODUCT_NOT_FOUND");
+    throw createHttpError(404, "Produto não encontrado.", "SHOP_PRODUCT_NOT_FOUND");
   }
 
   const nextProducts = currentShop.products.map((product, index) =>
@@ -1602,7 +1593,7 @@ export async function searchLocationSuggestions(query = "") {
   if (!response.ok) {
     throw createHttpError(
       502,
-      "Falha ao consultar o servico de busca de enderecos.",
+      "Falha ao consultar o serviço de busca de endereços.",
       "NOMINATIM_REQUEST_FAILED",
     );
   }
@@ -1657,3 +1648,4 @@ export async function getPublicMyPageBySlug(slug) {
       : null,
   };
 }
+

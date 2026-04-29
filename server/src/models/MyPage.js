@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+﻿import mongoose from "mongoose";
 import { normalizeSlug } from "../utils/slug.js";
 
 const linkSchema = new mongoose.Schema(
@@ -88,7 +88,7 @@ const shopProductSchema = new mongoose.Schema(
     order: { type: Number, default: 0 },
     importMode: {
       type: String,
-      enum: ["manual", "mercadolivre", "json-ld", "open-graph"],
+      enum: ["manual", "mercadolivre-item-api", "mercadolivre-product-api", "mercadolivre", "amazon-json-ld", "amazon-open-graph", "amazon-html", "json-ld", "open-graph"],
       default: "manual",
     },
   },
@@ -188,3 +188,4 @@ myPageSchema.pre("validate", function normalizeMyPageSlug(next) {
 const MyPage = mongoose.models.MyPage || mongoose.model("MyPage", myPageSchema);
 
 export default MyPage;
+

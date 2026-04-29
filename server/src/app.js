@@ -4,6 +4,7 @@ import { env } from "./config/env.js";
 import { ensureUploadsDir, uploadsRoot } from "./config/uploads.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { notFound } from "./middleware/notFound.js";
+import { requestContext } from "./middleware/requestContext.js";
 import authRoutes from "./routes/auth.routes.js";
 import healthRoutes from "./routes/health.routes.js";
 import myPageRoutes from "./routes/myPage.routes.js";
@@ -57,6 +58,7 @@ export function createApp() {
 
   app.use(cors(corsOptions));
   app.options("*", cors(corsOptions));
+  app.use(requestContext);
   app.use(express.json({ limit: "1mb" }));
   app.use("/uploads", express.static(uploadsRoot));
 

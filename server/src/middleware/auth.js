@@ -1,4 +1,5 @@
 import { env } from "../config/env.js";
+import { createHttpError } from "../utils/httpError.js";
 import { verifyJwt } from "../utils/jwt.js";
 
 export function requireAuth(req, _res, next) {
@@ -7,19 +8,13 @@ export function requireAuth(req, _res, next) {
     const match = authorization.match(/^Bearer\s+(.+)$/i);
 
     if (!match) {
-      const error = new Error("Autenticacao obrigatoria.");
-      error.status = 401;
-      error.code = "AUTH_REQUIRED";
-      throw error;
+      throw createHttpError(401, "Autenticação obrigatória.", "AUTH_REQUIRED");
     }
 
     const payload = verifyJwt(match[1], env.authSecret);
 
     if (!payload?.sub) {
-      const error = new Error("Sessao invalida ou expirada.");
-      error.status = 401;
-      error.code = "AUTH_INVALID_TOKEN";
-      throw error;
+      throw createHttpError(401, "Sessão inválida ou expirada.", "AUTH_INVALID_TOKEN");
     }
 
     req.auth = {
