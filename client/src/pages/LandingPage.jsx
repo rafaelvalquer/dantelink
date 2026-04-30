@@ -1,15 +1,16 @@
 import {
-  Apple,
   ArrowRight,
-  Briefcase,
+  BarChart3,
   CheckCircle2,
-  LayoutDashboard,
+  ChevronRight,
+  Layers3,
   Link2,
   Palette,
-  Scale,
-  Scissors,
+  ShoppingBag,
   Sparkles,
   Store,
+  TrendingUp,
+  Users,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import heroHome from "../assets/marketing/hero-home.png";
@@ -20,361 +21,566 @@ import {
   getMyPageTheme,
 } from "../components/public/myPageTheme.js";
 
-const samplePage = {
-  title: "Studio Aurora",
-  slug: "studio-aurora",
-  bio: "Links, produtos e identidade visual em uma pagina pronta para converter.",
-  avatarUrl: "https://placehold.co/160x160/png?text=SA",
-  theme: {
-    themePreset: "clean_light",
-    brandLayout: "classic",
-    backgroundStyle: "gradient",
-    backgroundGradientDirection: "linear_up",
-    backgroundColor: "#d9f99d",
-    surfaceStyle: "soft",
-    surfaceColor: "#ffffff",
-    buttonColor: "#111827",
-    buttonTextColor: "#ffffff",
-    pageTextColor: "#475569",
-    titleTextColor: "#111827",
-    primaryButtonsLayout: "stack",
-    primaryButtonContentAlign: "center",
-    primaryIconLayout: "circle_solid",
-    primaryIconSize: "md",
-    secondaryLinksStyle: "icon_text",
-    secondaryLinksIconLayout: "brand_badge",
-    secondaryLinksPosition: "bottom",
-    buttonStyle: "solid",
-    buttonShadow: "soft",
-    buttonRadius: "pill",
-    fontPreset: "jakarta",
-    animationPreset: "subtle",
-  },
-  links: [
-    { id: "1", title: "Agendar atendimento", type: "link", url: "https://example.com", isActive: true, order: 0 },
-    { id: "2", title: "Conhecer colecao", type: "link", url: "https://example.com", isActive: true, order: 1 },
-    { id: "3", title: "Loja", type: "shop-preview", url: "", isActive: true, order: 2 },
-  ],
-  secondaryLinks: [
-    { id: "s1", platform: "instagram", title: "Instagram", url: "https://instagram.com", isActive: true, order: 0 },
-    { id: "s2", platform: "site", title: "Site", url: "https://example.com", isActive: true, order: 1 },
-    { id: "s3", platform: "email", title: "E-mail", url: "mailto:contato@example.com", isActive: true, order: 2 },
-  ],
-  shop: {
-    isActive: true,
-    title: "Ver loja completa",
-    description: "3 produtos",
-    productsCount: 3,
-    products: [
-      { id: "p1", title: "Kit 01", imageUrl: "https://placehold.co/320x320/png?text=01", isActive: true, order: 0 },
-      { id: "p2", title: "Kit 02", imageUrl: "https://placehold.co/320x320/png?text=02", isActive: true, order: 1 },
-      { id: "p3", title: "Kit 03", imageUrl: "https://placehold.co/320x320/png?text=03", isActive: true, order: 2 },
-    ],
-  },
-};
+function createDemoPage({
+  title,
+  slug,
+  bio,
+  avatar,
+  themePreset,
+  brandLayout = "classic",
+  links,
+  secondaryLinks,
+  shopTitles = [],
+}) {
+  return {
+    title,
+    slug,
+    bio,
+    avatarUrl: avatar,
+    theme: {
+      themePreset,
+      brandLayout,
+    },
+    links: links.map((link, index) => ({
+      id: `${slug}-link-${index}`,
+      type: "link",
+      url: "https://example.com",
+      isActive: true,
+      order: index,
+      ...link,
+    })),
+    secondaryLinks: secondaryLinks.map((link, index) => ({
+      id: `${slug}-social-${index}`,
+      url: link.platform === "email" ? "mailto:contato@example.com" : "https://example.com",
+      isActive: true,
+      order: index,
+      ...link,
+    })),
+    shop: {
+      isActive: Boolean(shopTitles.length),
+      title: "Ver loja completa",
+      description: `${shopTitles.length} produtos`,
+      productsCount: shopTitles.length,
+      products: shopTitles.map((productTitle, index) => ({
+        id: `${slug}-product-${index}`,
+        title: productTitle,
+        isActive: true,
+        order: index,
+      })),
+    },
+  };
+}
 
-const benefitItems = [
-  {
-    icon: LayoutDashboard,
-    title: "Painel único",
-    description: "Links, loja, design e analytics organizados no mesmo ambiente.",
-  },
-  {
-    icon: Store,
-    title: "Loja integrada",
-    description: "Produtos por URL, vitrine pública e cliques rastreados.",
-  },
-  {
-    icon: Palette,
-    title: "Identidade visual",
-    description: "Tema, botões, redes e página pública com preview em tempo real.",
-  },
+function createBrandAvatar({
+  initials,
+  skin = "#d8a47f",
+  hair = "#2f1f1a",
+  outfit = "#7c3aed",
+  background = "#f5eee7",
+  badge = "#11131f",
+}) {
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
+      <defs>
+        <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0%" stop-color="${background}"/>
+          <stop offset="100%" stop-color="#ffffff"/>
+        </linearGradient>
+        <linearGradient id="shine" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity=".72"/>
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <rect width="160" height="160" rx="46" fill="url(#bg)"/>
+      <circle cx="126" cy="30" r="42" fill="url(#shine)"/>
+      <circle cx="80" cy="70" r="34" fill="${skin}"/>
+      <path d="M45 69c4-31 24-45 52-38 18 4 27 18 24 41-16-16-43-20-76-3Z" fill="${hair}"/>
+      <path d="M34 154c5-33 24-51 46-51s41 18 46 51H34Z" fill="${outfit}"/>
+      <path d="M54 121c12 12 39 12 52 0" fill="none" stroke="#fff" stroke-opacity=".44" stroke-width="7" stroke-linecap="round"/>
+      <circle cx="119" cy="119" r="25" fill="${badge}"/>
+      <circle cx="119" cy="119" r="20" fill="none" stroke="#fff" stroke-opacity=".18" stroke-width="2"/>
+      <text x="119" y="126" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="900" fill="#fff">${initials}</text>
+    </svg>
+  `;
+
+  return `data:image/svg+xml,${encodeURIComponent(svg.replace(/\s+/g, " ").trim())}`;
+}
+
+const brandPages = [
+  createDemoPage({
+    title: "Studio Aurora",
+    slug: "studio-aurora",
+    bio: "Agenda, servi\u00e7os e loja em uma p\u00e1gina pronta para converter.",
+    avatar: createBrandAvatar({
+      initials: "SA",
+      skin: "#c98f6b",
+      hair: "#3a241c",
+      outfit: "#8b6f61",
+      background: "#f5eee7",
+      badge: "#8b6f61",
+    }),
+    themePreset: "studio_pearl",
+    links: [
+      { title: "Agendar atendimento" },
+      { title: "Conhecer servi\u00e7os" },
+      { title: "Loja", type: "shop-preview", url: "" },
+    ],
+    secondaryLinks: [
+      { platform: "instagram", title: "Instagram" },
+      { platform: "site", title: "Site" },
+      { platform: "email", title: "E-mail" },
+    ],
+    shopTitles: ["Kit brilho", "Gift card", "Rotina premium"],
+  }),
+  createDemoPage({
+    title: "Noura Clinic",
+    slug: "noura-clinic",
+    bio: "Tratamentos, avalia\u00e7\u00f5es e contato com visual limpo e confi\u00e1vel.",
+    avatar: createBrandAvatar({
+      initials: "NC",
+      skin: "#b98262",
+      hair: "#151821",
+      outfit: "#334155",
+      background: "#eef2f7",
+      badge: "#0e7490",
+    }),
+    themePreset: "clean_light",
+    links: [
+      { title: "Marcar avalia\u00e7\u00e3o" },
+      { title: "Ver tratamentos" },
+      { title: "Falar no WhatsApp", type: "whatsapp" },
+    ],
+    secondaryLinks: [
+      { platform: "instagram", title: "Instagram" },
+      { platform: "site", title: "Site" },
+      { platform: "phone", title: "Telefone", url: "tel:+5511999999999" },
+    ],
+  }),
+  createDemoPage({
+    title: "Graphite Lab",
+    slug: "graphite-lab",
+    bio: "Portf\u00f3lio, cases e propostas com presen\u00e7a executiva.",
+    avatar: createBrandAvatar({
+      initials: "GL",
+      skin: "#9b6d55",
+      hair: "#0b0b0b",
+      outfit: "#e5e7eb",
+      background: "#1f2937",
+      badge: "#111111",
+    }),
+    themePreset: "graphite_mono",
+    brandLayout: "spotlight",
+    links: [
+      { title: "Ver portf\u00f3lio" },
+      { title: "Solicitar proposta" },
+      { title: "Cases recentes" },
+    ],
+    secondaryLinks: [
+      { platform: "linkedin", title: "LinkedIn" },
+      { platform: "site", title: "Site" },
+      { platform: "email", title: "E-mail" },
+    ],
+  }),
+  createDemoPage({
+    title: "Sage Nutri",
+    slug: "sage-nutri",
+    bio: "Consultas, materiais e acompanhamento para pacientes.",
+    avatar: createBrandAvatar({
+      initials: "SN",
+      skin: "#d1a384",
+      hair: "#5a3b2f",
+      outfit: "#63715b",
+      background: "#e8eee0",
+      badge: "#63715b",
+    }),
+    themePreset: "sage_editorial",
+    links: [
+      { title: "Agendar consulta" },
+      { title: "Baixar guia gratuito" },
+      { title: "Loja", type: "shop-preview", url: "" },
+    ],
+    secondaryLinks: [
+      { platform: "instagram", title: "Instagram" },
+      { platform: "youtube", title: "YouTube" },
+      { platform: "site", title: "Site" },
+    ],
+    shopTitles: ["E-book", "Planner", "Receitas"],
+  }),
+  createDemoPage({
+    title: "Copper Haus",
+    slug: "copper-haus",
+    bio: "Produtos autorais, lan\u00e7amentos e atendimento em um s\u00f3 lugar.",
+    avatar: createBrandAvatar({
+      initials: "CH",
+      skin: "#b87557",
+      hair: "#2b1711",
+      outfit: "#a4573a",
+      background: "#f4ded2",
+      badge: "#a4573a",
+    }),
+    themePreset: "copper_luxe",
+    brandLayout: "hero",
+    links: [
+      { title: "Comprar cole\u00e7\u00e3o" },
+      { title: "Falar com consultor" },
+      { title: "Loja", type: "shop-preview", url: "" },
+    ],
+    secondaryLinks: [
+      { platform: "instagram", title: "Instagram" },
+      { platform: "tiktok", title: "TikTok" },
+      { platform: "site", title: "Site" },
+    ],
+    shopTitles: ["Pe\u00e7a 01", "Pe\u00e7a 02", "Pe\u00e7a 03"],
+  }),
+  createDemoPage({
+    title: "Midnight Studio",
+    slug: "midnight-studio",
+    bio: "Conte\u00fado, comunidade e ofertas com est\u00e9tica mais escura.",
+    avatar: createBrandAvatar({
+      initials: "MS",
+      skin: "#a8755e",
+      hair: "#101827",
+      outfit: "#2dd4bf",
+      background: "#0f172a",
+      badge: "#2dd4bf",
+    }),
+    themePreset: "premium_dark",
+    links: [
+      { title: "Entrar na comunidade" },
+      { title: "Ver m\u00eddia kit" },
+      { title: "Curso principal" },
+    ],
+    secondaryLinks: [
+      { platform: "instagram", title: "Instagram" },
+      { platform: "youtube", title: "YouTube" },
+      { platform: "discord", title: "Discord" },
+    ],
+  }),
+  createDemoPage({
+    title: "Casa Brume",
+    slug: "casa-brume",
+    bio: "Experi\u00eancia de marca com imagem em destaque e links de reserva.",
+    avatar: createBrandAvatar({
+      initials: "CB",
+      skin: "#c58d70",
+      hair: "#4a2e25",
+      outfit: "#b9786e",
+      background: "#f8ddd5",
+      badge: "#b9786e",
+    }),
+    themePreset: "aesthetic_glow",
+    brandLayout: "hero",
+    links: [
+      { title: "Reservar hor\u00e1rio" },
+      { title: "Ver tratamentos" },
+      { title: "Falar no WhatsApp", type: "whatsapp" },
+    ],
+    secondaryLinks: [
+      { platform: "instagram", title: "Instagram" },
+      { platform: "site", title: "Site" },
+      { platform: "email", title: "E-mail" },
+    ],
+  }),
+  createDemoPage({
+    title: "Noir Barber",
+    slug: "noir-barber",
+    bio: "Logo em evid\u00eancia, agenda r\u00e1pida e presen\u00e7a premium.",
+    avatar: createBrandAvatar({
+      initials: "NB",
+      skin: "#9a6a55",
+      hair: "#070707",
+      outfit: "#f5f5f5",
+      background: "#111111",
+      badge: "#050505",
+    }),
+    themePreset: "braciera_noir",
+    brandLayout: "spotlight",
+    links: [
+      { title: "Agendar corte" },
+      { title: "Tabela de servi\u00e7os" },
+      { title: "Como chegar" },
+    ],
+    secondaryLinks: [
+      { platform: "instagram", title: "Instagram" },
+      { platform: "site", title: "Site" },
+      { platform: "phone", title: "Telefone", url: "tel:+5511999999999" },
+    ],
+  }),
 ];
 
-const pillarItems = [
+const heroPreviewPages = [brandPages[4], brandPages[2], brandPages[0]];
+const carouselPages = [...brandPages, ...brandPages];
+
+const featureItems = [
   {
     icon: Link2,
-    title: "Links",
-    description: "Priorize CTAs, redes e destinos importantes.",
+    eyebrow: "Links",
+    title: "Nunca troque o link da bio de novo.",
+    description: "Organize campanhas, redes, WhatsApp e conte\u00fado em uma p\u00e1gina que muda junto com a sua rotina.",
   },
   {
     icon: Store,
-    title: "Loja",
-    description: "Monte uma vitrine leve para produtos e ofertas.",
+    eyebrow: "Loja",
+    title: "Transforme cliques em pedidos.",
+    description: "Mostre produtos, cole\u00e7\u00f5es e ofertas sem mandar a audi\u00eancia procurar em outro lugar.",
   },
   {
     icon: Palette,
-    title: "Design",
-    description: "Ajuste a aparência da página sem complicar o fluxo.",
+    eyebrow: "Design",
+    title: "Cada marca com uma presen\u00e7a pr\u00f3pria.",
+    description: "Aplique temas limpos, layouts hero e spotlight, e veja tudo no preview antes de publicar.",
+  },
+  {
+    icon: BarChart3,
+    eyebrow: "Analytics",
+    title: "Entenda o que realmente chama aten\u00e7\u00e3o.",
+    description: "Acompanhe visitas e cliques para decidir o que destacar na sua p\u00e1gina.",
   },
 ];
 
-const themeShowcaseItems = [
+const quickStats = [
+  "Links",
+  "Loja",
+  "Design",
+  "Analytics",
+  "Hero",
+  "Spotlight",
+  "Temas",
+  "Preview",
+];
+
+const howItWorks = [
   {
-    icon: Scissors,
-    title: "Cabeleireiros",
-    subtitle: "Agenda, portfólio e serviços",
-    accent: "#D946EF",
-    surface: "#FFF1FA",
-    text: "#2A102F",
-    tags: ["Agenda", "Antes/depois", "WhatsApp"],
+    title: "Crie sua conta",
+    description: "Defina o nome da marca, foto, bio e slug p\u00fablico.",
   },
   {
-    icon: Apple,
-    title: "Nutricionistas",
-    subtitle: "Consultas, planos e materiais",
-    accent: "#22C55E",
-    surface: "#F0FDF4",
-    text: "#102719",
-    tags: ["Consultas", "E-books", "Bio"],
+    title: "Monte o fluxo",
+    description: "Adicione links, produtos, redes e chamadas principais.",
   },
   {
-    icon: Scale,
-    title: "Advogados",
-    subtitle: "Autoridade, contato e áreas",
-    accent: "#38BDF8",
-    surface: "#EFF6FF",
-    text: "#0B1C2E",
-    tags: ["Contato", "Especialidades", "Perfil"],
-  },
-  {
-    icon: Store,
-    title: "Lojas",
-    subtitle: "Vitrine, ofertas e produtos",
-    accent: "#F97316",
-    surface: "#FFF7ED",
-    text: "#2C1505",
-    tags: ["Produtos", "Ofertas", "Catálogo"],
-  },
-  {
-    icon: Sparkles,
-    title: "Criadores",
-    subtitle: "Conteúdo, comunidade e mídia",
-    accent: "#7C3AED",
-    surface: "#F5F3FF",
-    text: "#1E1236",
-    tags: ["Conteúdo", "Redes", "Cursos"],
-  },
-  {
-    icon: Briefcase,
-    title: "Consultores",
-    subtitle: "Serviços, agenda e prova social",
-    accent: "#0F172A",
-    surface: "#F8FAFC",
-    text: "#0F172A",
-    tags: ["Serviços", "Agenda", "Cases"],
+    title: "Publique e acompanhe",
+    description: "Compartilhe a p\u00e1gina e ajuste a experi\u00eancia pelo painel.",
   },
 ];
 
-export default function LandingPage() {
-  const theme = getMyPageTheme(samplePage);
-  const primaryLinks = getMyPagePreviewPrimaryLinks(samplePage);
-  const socialLinks = getMyPagePreviewSocialLinks(samplePage);
+function BrandPreviewCard({ page, compact = false }) {
+  const previewTheme = getMyPageTheme(page);
+  const previewPrimaryLinks = getMyPagePreviewPrimaryLinks(page, 3);
+  const previewSocialLinks = getMyPagePreviewSocialLinks(page);
 
   return (
-    <div className="marketing-page">
-      <header className="marketing-nav">
-        <Link className="marketing-brand" to="/">
-          <span className="marketing-brand__mark">D</span>
+    <article className={`lt-brand-card${compact ? " lt-brand-card--compact" : ""}`}>
+      <div className="lt-brand-card__meta">
+        <span>{previewTheme.design.themePreset.replaceAll("_", " ")}</span>
+        <strong>{page.title}</strong>
+      </div>
+      <div className="lt-brand-card__preview">
+        <PublicPageMiniPreview
+          page={page}
+          theme={previewTheme}
+          primaryLinks={previewPrimaryLinks}
+          socialLinks={previewSocialLinks}
+          showSocial
+          buttonCount={3}
+        />
+      </div>
+    </article>
+  );
+}
+
+export default function LandingPage() {
+  return (
+    <div className="lt-home">
+      <header className="lt-nav">
+        <Link className="lt-brand" to="/">
+          <span className="lt-brand__mark">D</span>
           <span>DandeLink</span>
         </Link>
 
-        <div className="marketing-nav__actions">
-          <Link className="marketing-link" to="/login">
+        <nav className="lt-nav__links" aria-label={"Navega\u00e7\u00e3o principal"}>
+          <a href="#recursos">Recursos</a>
+          <a href="#painel">Painel</a>
+          <a href="#como-funciona">Como funciona</a>
+        </nav>
+
+        <div className="lt-nav__actions">
+          <Link className="lt-link" to="/login">
             Login
           </Link>
-          <Link className="ui-button ui-button--primary" to="/cadastro">
+          <Link className="lt-button lt-button--dark" to="/cadastro">
             Criar conta
           </Link>
         </div>
       </header>
 
-      <main className="marketing-main">
-        <section className="marketing-hero">
-          <img className="marketing-hero__image" src={heroHome} alt="" aria-hidden="true" />
-          <div className="marketing-hero__shade" aria-hidden="true" />
-
-          <div className="marketing-hero__copy">
-            <span className="marketing-kicker">DandeLink</span>
-            <h1>DandeLink</h1>
+      <main>
+        <section className="lt-hero" aria-labelledby="lt-hero-title">
+          <div className="lt-hero__copy">
+            <span className="lt-eyebrow">Links, loja e marca em um s&oacute; lugar</span>
+            <h1 id="lt-hero-title">Tudo que voc&ecirc; faz, em um link bonito de compartilhar.</h1>
             <p>
-              Conexão que se espalha. Crie uma página viva para organizar links,
-              loja, identidade visual e analytics em um só lugar.
+              Monte uma p&aacute;gina p&uacute;blica com identidade pr&oacute;pria, vitrines, redes e chamadas
+              que levam sua audi&ecirc;ncia para a pr&oacute;xima a&ccedil;&atilde;o.
             </p>
 
-            <div className="marketing-hero__actions">
-              <Link className="ui-button ui-button--primary" to="/cadastro">
-                <span>Criar conta grátis</span>
-                <ArrowRight size={16} />
+            <div className="lt-hero__actions">
+              <Link className="lt-button lt-button--lime" to="/cadastro">
+                <span>Come&ccedil;ar gr&aacute;tis</span>
+                <ArrowRight size={18} />
               </Link>
-              <Link className="ui-button ui-button--ghost" to="/login">
-                Já tenho conta
+              <Link className="lt-button lt-button--light" to="/login">
+                Entrar no painel
               </Link>
             </div>
 
-            <ul className="marketing-proof">
-              <li><CheckCircle2 size={16} /> Publicação em minutos</li>
-              <li><CheckCircle2 size={16} /> Loja e analytics nativos</li>
-              <li><CheckCircle2 size={16} /> Preview em tempo real</li>
-            </ul>
-          </div>
-        </section>
-
-        <section className="marketing-pillars" aria-label="Recursos principais">
-          {pillarItems.map((item) => (
-            <article key={item.title} className="marketing-pillar">
-              <span className="marketing-pillar__icon">
-                <item.icon size={17} />
-              </span>
-              <div>
-                <strong>{item.title}</strong>
-                <p>{item.description}</p>
-              </div>
-            </article>
-          ))}
-        </section>
-
-        <section className="marketing-themes" aria-labelledby="marketing-themes-title">
-          <div className="marketing-themes__header">
-            <div>
-              <span className="marketing-card__eyebrow">Temas customizáveis</span>
-              <h2 id="marketing-themes-title">Páginas prontas para cada tipo de negócio.</h2>
+            <div className="lt-proof" aria-label="Destaques da plataforma">
+              <span><CheckCircle2 size={16} /> Preview em tempo real</span>
+              <span><CheckCircle2 size={16} /> Temas premium</span>
+              <span><CheckCircle2 size={16} /> Sem c&oacute;digo</span>
             </div>
-            <p>
-              Mostre sua marca com layouts que mudam de tom, ritmo e foco para cada nicho.
-            </p>
           </div>
 
-          <div className="marketing-theme-marquee" aria-label="Exemplos de temas">
-            <div className="marketing-theme-track">
-              {[...themeShowcaseItems, ...themeShowcaseItems].map((item, index) => (
-                <article
-                  key={`${item.title}-${index}`}
-                  className="marketing-theme-card"
-                  style={{
-                    "--theme-accent": item.accent,
-                    "--theme-surface": item.surface,
-                    "--theme-text": item.text,
-                  }}
-                >
-                  <div className="marketing-theme-card__top">
-                    <span className="marketing-theme-card__icon">
-                      <item.icon size={18} />
-                    </span>
-                    <div>
-                      <strong>{item.title}</strong>
-                      <span>{item.subtitle}</span>
-                    </div>
-                  </div>
-
-                  <div className="marketing-theme-preview">
-                    <div className="marketing-theme-preview__avatar" />
-                    <strong>{item.title}</strong>
-                    <span>{item.subtitle}</span>
-                    <i />
-                    <i />
-                    <i />
-                  </div>
-
-                  <div className="marketing-theme-tags">
-                    {item.tags.map((tag) => (
-                      <span key={tag}>{tag}</span>
-                    ))}
-                  </div>
-                </article>
+          <div className="lt-hero__visual" aria-label={"Demonstra\u00e7\u00e3o visual de marcas"}>
+            <img className="lt-hero__photo" src={heroHome} alt="" aria-hidden="true" />
+            <div className="lt-hero__stack">
+              {heroPreviewPages.map((page, index) => (
+                <div className={`lt-hero-phone lt-hero-phone--${index + 1}`} key={page.slug}>
+                  <BrandPreviewCard page={page} compact />
+                </div>
               ))}
             </div>
-          </div>
-        </section>
-
-        <section className="marketing-product">
-          <div className="marketing-product__copy">
-            <span className="marketing-card__eyebrow">Produto</span>
-            <h2>Um painel calmo para montar, vender e medir.</h2>
-            <p>
-              O editor separa o que importa: links, produtos, design e performance.
-              Tudo aparece no preview antes de chegar ao público.
-            </p>
-
-            <div className="marketing-product__metrics">
-              <span><strong>4</strong> áreas principais</span>
-              <span><strong>1</strong> página pública</span>
-              <span><strong>0</strong> código para publicar</span>
-            </div>
-          </div>
-
-          <div className="marketing-product__demo">
-            <div className="marketing-hero__editor-card">
-              <div className="marketing-hero__editor-top">
-                <div>
-                  <span className="marketing-card__eyebrow">Painel DandeLink</span>
-                  <strong>Links, loja e design em um fluxo único</strong>
-                </div>
-                <span className="marketing-badge">Ao vivo</span>
-              </div>
-
-              <div className="marketing-hero__editor-grid">
-                <div className="marketing-hero__editor-list">
-                  <div className="marketing-editor-item is-active">
-                    <strong>Links</strong>
-                    <span>CTAs e redes sociais</span>
-                  </div>
-                  <div className="marketing-editor-item">
-                    <strong>Loja</strong>
-                    <span>Produtos e vitrine</span>
-                  </div>
-                  <div className="marketing-editor-item">
-                    <strong>Analytics</strong>
-                    <span>Visitas e cliques</span>
-                  </div>
-                </div>
-
-                <div className="marketing-hero__mini-preview">
-                  <PublicPageMiniPreview
-                    page={samplePage}
-                    theme={theme}
-                    primaryLinks={primaryLinks}
-                    socialLinks={socialLinks}
-                    showSocial
-                    buttonCount={3}
-                  />
-                </div>
-              </div>
+            <div className="lt-live-card">
+              <span>Ao vivo</span>
+              <strong>8 marcas</strong>
+              <small>em temas reais</small>
             </div>
           </div>
         </section>
 
-        <section className="marketing-benefits">
-          {benefitItems.map((item) => (
-            <article key={item.title} className="marketing-benefit-card">
-              <span className="marketing-benefit-card__icon">
-                <item.icon size={18} />
+        <section className="lt-strip" aria-label="Recursos em destaque">
+          <div className="lt-strip__track">
+            {[...quickStats, ...quickStats].map((item, index) => (
+              <span key={`${item}-${index}`}>
+                <Sparkles size={15} />
+                {item}
               </span>
-              <strong>{item.title}</strong>
-              <p>{item.description}</p>
-            </article>
-          ))}
+            ))}
+          </div>
         </section>
 
-        <section className="marketing-cta">
-          <div>
-            <span className="marketing-card__eyebrow">Comece agora</span>
-            <h2>Crie sua primeira página DandeLink em minutos.</h2>
+        <section className="lt-section lt-section--features" id="recursos" aria-labelledby="lt-features-title">
+          <div className="lt-section__intro">
+            <span className="lt-eyebrow">Do link ao cliente</span>
+            <h2 id="lt-features-title">Uma experi&ecirc;ncia simples para quem cria, vende e atende.</h2>
           </div>
-          <div className="marketing-cta__actions">
-            <Link className="ui-button ui-button--primary" to="/cadastro">
+
+          <div className="lt-feature-grid">
+            {featureItems.map((item) => (
+              <article className="lt-feature-card" key={item.title}>
+                <span className="lt-feature-card__icon">
+                  <item.icon size={22} />
+                </span>
+                <small>{item.eyebrow}</small>
+                <h3>{item.title}</h3>
+                <p>{item.description}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="lt-product" id="painel" aria-labelledby="lt-product-title">
+          <div className="lt-product__header">
+            <div>
+              <span className="lt-eyebrow">Painel DandeLink</span>
+              <h2 id="lt-product-title">Marcas diferentes, mesmo fluxo simples.</h2>
+            </div>
+            <p>
+              O carrossel usa os mesmos previews e tokens visuais do editor. Cada mock combina
+              usu&aacute;rio, logo, tema, layout hero ou spotlight e CTAs reais de uma p&aacute;gina p&uacute;blica.
+            </p>
+          </div>
+
+          <div className="lt-dashboard">
+            <aside className="lt-dashboard__side" aria-label={"Areas do painel"}>
+              {[
+                { icon: Link2, title: "Links", text: "CTAs e redes", active: true },
+                { icon: ShoppingBag, title: "Loja", text: "Produtos e ofertas" },
+                { icon: Palette, title: "Design", text: "Temas e layouts" },
+                { icon: TrendingUp, title: "Analytics", text: "Visitas e cliques" },
+              ].map((item) => (
+                <div className={`lt-dashboard-item${item.active ? " is-active" : ""}`} key={item.title}>
+                  <span><item.icon size={17} /></span>
+                  <div>
+                    <strong>{item.title}</strong>
+                    <small>{item.text}</small>
+                  </div>
+                  <ChevronRight size={15} />
+                </div>
+              ))}
+            </aside>
+
+            <div className="lt-dashboard__main">
+              <div className="lt-dashboard__top">
+                <div>
+                  <span className="lt-status-dot" />
+                  Preview ao vivo
+                </div>
+                <strong>Temas aplicados automaticamente</strong>
+              </div>
+
+              <div className="lt-brand-marquee" aria-label="Carrossel de marcas e temas">
+                <div className="lt-brand-marquee__track">
+                  {carouselPages.map((page, index) => (
+                    <BrandPreviewCard page={page} key={`${page.slug}-${index}`} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="lt-section lt-section--steps" id="como-funciona" aria-labelledby="lt-steps-title">
+          <div className="lt-section__intro">
+            <span className="lt-eyebrow">Como funciona</span>
+            <h2 id="lt-steps-title">Da ideia ao link publicado em poucos passos.</h2>
+          </div>
+
+          <div className="lt-step-grid">
+            {howItWorks.map((step, index) => (
+              <article className="lt-step-card" key={step.title}>
+                <span>{index + 1}</span>
+                <h3>{step.title}</h3>
+                <p>{step.description}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="lt-final-cta">
+          <div>
+            <span className="lt-eyebrow">Sua marca no centro</span>
+            <h2>Crie uma p&aacute;gina que parece sua, vende como sua e muda quando voc&ecirc; quiser.</h2>
+          </div>
+          <div className="lt-final-cta__actions">
+            <Link className="lt-button lt-button--lime" to="/cadastro">
               Criar conta
             </Link>
-            <Link className="ui-button ui-button--ghost" to="/login">
-              Entrar
+            <Link className="lt-button lt-button--dark" to="/login">
+              J&aacute; tenho conta
             </Link>
+          </div>
+          <div className="lt-final-cta__badges" aria-label={"Benef\u00edcios"}>
+            <span><Users size={16} /> Para creators e neg&oacute;cios</span>
+            <span><Layers3 size={16} /> Hero e spotlight</span>
+            <span><CheckCircle2 size={16} /> Preview real</span>
           </div>
         </section>
       </main>
 
-      <footer className="marketing-footer">
+      <footer className="lt-footer">
         <span>DandeLink</span>
-        <span>Links, loja e design para sua página pública.</span>
+        <span>Links, loja e design para sua p&aacute;gina p&uacute;blica.</span>
       </footer>
     </div>
   );
