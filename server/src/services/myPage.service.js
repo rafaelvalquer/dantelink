@@ -1248,7 +1248,7 @@ export async function updateLink(ownerId, id, payload = {}) {
   const linkIndex = findLinkIndex(page, id);
 
   if (linkIndex === -1) {
-    throw createHttpError(404, "Link nÃ£o encontrado.", "LINK_NOT_FOUND");
+    throw createHttpError(404, "Link não encontrado.", "LINK_NOT_FOUND");
   }
 
   const currentLink = toPlainObject(page.links[linkIndex]);
@@ -1277,7 +1277,7 @@ export async function deleteLink(ownerId, id) {
   );
 
   if (nextLinks.length === (page.links || []).length) {
-    throw createHttpError(404, "Link nÃ£o encontrado.", "LINK_NOT_FOUND");
+    throw createHttpError(404, "Link não encontrado.", "LINK_NOT_FOUND");
   }
 
   page.links = normalizeLinks(nextLinks.map((link) => toPlainObject(link)));
@@ -1290,7 +1290,7 @@ export async function toggleLink(ownerId, id) {
   const linkIndex = findLinkIndex(page, id);
 
   if (linkIndex === -1) {
-    throw createHttpError(404, "Link nÃ£o encontrado.", "LINK_NOT_FOUND");
+    throw createHttpError(404, "Link não encontrado.", "LINK_NOT_FOUND");
   }
 
   const currentLink = toPlainObject(page.links[linkIndex]);

@@ -322,14 +322,14 @@ function AdminLinksPageLegacy() {
   return (
     <EditorShell
       title="Links"
-      description="Monte os blocos publicos da pagina e acompanhe o preview enquanto edita."
+      description="Monte os blocos públicos da página e acompanhe o preview enquanto edita."
       page={previewPage}
       publishedPage={page}
       notice={notice}
       error={error}
     >
       {loading ? (
-        <div className="loading-state">Carregando editor da pagina...</div>
+        <div className="loading-state">Carregando editor da página...</div>
       ) : (
         <div className="stack">
           <ProfileEditorCard

@@ -1,27 +1,41 @@
-import AdminAnalyticsDashboardPage from "../pages/AdminAnalyticsDashboardPage.jsx";
-import AdminSystemMonitorPage from "../pages/AdminSystemMonitorPage.jsx";
+import { Suspense, lazy } from "react";
 import { createBrowserRouter } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute.jsx";
 import PublicOnlyRoute from "./PublicOnlyRoute.jsx";
-import AdminDesignPage from "../pages/AdminDesignPage.jsx";
-import AdminLinksPage from "../pages/AdminLinksPageV2.jsx";
-import AdminShopProductsPage from "../pages/AdminShopProductsPage.jsx";
-import LandingPage from "../pages/LandingPage.jsx";
-import LoginPage from "../pages/LoginPage.jsx";
-import PublicMyPage from "../pages/PublicMyPage.jsx";
-import PublicShopPage from "../pages/PublicShopPage.jsx";
-import RegisterPage from "../pages/RegisterPage.jsx";
+
+const AdminAnalyticsDashboardPage = lazy(() => import("../pages/AdminAnalyticsDashboardPage.jsx"));
+const AdminDesignPage = lazy(() => import("../pages/AdminDesignPage.jsx"));
+const AdminLinksPage = lazy(() => import("../pages/AdminLinksPageV2.jsx"));
+const AdminShopProductsPage = lazy(() => import("../pages/AdminShopProductsPage.jsx"));
+const AdminSystemMonitorPage = lazy(() => import("../pages/AdminSystemMonitorPage.jsx"));
+const LandingPage = lazy(() => import("../pages/LandingPage.jsx"));
+const LoginPage = lazy(() => import("../pages/LoginPage.jsx"));
+const PublicMyPage = lazy(() => import("../pages/PublicMyPage.jsx"));
+const PublicShopPage = lazy(() => import("../pages/PublicShopPage.jsx"));
+const RegisterPage = lazy(() => import("../pages/RegisterPage.jsx"));
+
+function RouteLoadingFallback() {
+  return (
+    <div className="route-loading" role="status">
+      Carregando...
+    </div>
+  );
+}
+
+function withSuspense(element) {
+  return <Suspense fallback={<RouteLoadingFallback />}>{element}</Suspense>;
+}
 
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: <LandingPage />,
+    element: withSuspense(<LandingPage />),
   },
   {
     path: "/login",
     element: (
       <PublicOnlyRoute>
-        <LoginPage />
+        {withSuspense(<LoginPage />)}
       </PublicOnlyRoute>
     ),
   },
@@ -29,7 +43,7 @@ export const router = createBrowserRouter([
     path: "/cadastro",
     element: (
       <PublicOnlyRoute>
-        <RegisterPage />
+        {withSuspense(<RegisterPage />)}
       </PublicOnlyRoute>
     ),
   },
@@ -37,7 +51,7 @@ export const router = createBrowserRouter([
     path: "/admin/links",
     element: (
       <ProtectedRoute>
-        <AdminLinksPage />
+        {withSuspense(<AdminLinksPage />)}
       </ProtectedRoute>
     ),
   },
@@ -45,7 +59,7 @@ export const router = createBrowserRouter([
     path: "/admin/shop",
     element: (
       <ProtectedRoute>
-        <AdminShopProductsPage />
+        {withSuspense(<AdminShopProductsPage />)}
       </ProtectedRoute>
     ),
   },
@@ -53,7 +67,7 @@ export const router = createBrowserRouter([
     path: "/admin/analytics",
     element: (
       <ProtectedRoute>
-        <AdminAnalyticsDashboardPage />
+        {withSuspense(<AdminAnalyticsDashboardPage />)}
       </ProtectedRoute>
     ),
   },
@@ -61,7 +75,7 @@ export const router = createBrowserRouter([
     path: "/admin/design",
     element: (
       <ProtectedRoute>
-        <AdminDesignPage />
+        {withSuspense(<AdminDesignPage />)}
       </ProtectedRoute>
     ),
   },
@@ -69,16 +83,16 @@ export const router = createBrowserRouter([
     path: "/admin/system-monitor",
     element: (
       <ProtectedRoute requireSystemMonitorAccess>
-        <AdminSystemMonitorPage />
+        {withSuspense(<AdminSystemMonitorPage />)}
       </ProtectedRoute>
     ),
   },
   {
     path: "/:slug/shop",
-    element: <PublicShopPage />,
+    element: withSuspense(<PublicShopPage />),
   },
   {
     path: "/:slug",
-    element: <PublicMyPage />,
+    element: withSuspense(<PublicMyPage />),
   },
 ]);

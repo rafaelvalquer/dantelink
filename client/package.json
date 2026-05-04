@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check:text": "node scripts/check-text.mjs",
+    "check:routes": "node scripts/check-routes.mjs",
+    "check:p0": "npm run check:text && npm run check:routes"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

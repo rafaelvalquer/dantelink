@@ -115,9 +115,9 @@ export default function AdminSystemMonitorPage() {
       },
       {
         key: "pages",
-        label: "Paginas criadas",
+        label: "Páginas criadas",
         value: formatCardValue(overview?.counts?.pagesTotal),
-        note: "Workspaces com pagina ativa",
+        note: "Workspaces com página ativa",
         icon: LayoutDashboard,
         tone: "is-neutral",
       },

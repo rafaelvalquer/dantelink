@@ -276,7 +276,7 @@ function ProductImageCropper({
         setOffset({ x: 0, y: 0 });
         const response = await fetch(imageUrl);
         if (!response.ok) {
-          throw new Error("NÃ£o foi possÃ­vel preparar a imagem para recorte.");
+          throw new Error("Não foi possível preparar a imagem para recorte.");
         }
 
         const blob = await response.blob();
@@ -292,7 +292,7 @@ function ProductImageCropper({
         });
       } catch (cropError) {
         if (!active) return;
-        setError(cropError.message || "NÃ£o foi possÃ­vel preparar a imagem para recorte.");
+        setError(cropError.message || "Não foi possível preparar a imagem para recorte.");
       } finally {
         if (active) {
           setLoading(false);
@@ -390,7 +390,7 @@ function ProductImageCropper({
 
       await onApply(file);
     } catch (cropError) {
-      setError(cropError.message || "NÃ£o foi possÃ­vel aplicar o recorte.");
+      setError(cropError.message || "Não foi possível aplicar o recorte.");
     }
   }
 
@@ -476,7 +476,7 @@ function ProductModal({
   const [draft, setDraft] = useState(createDraft(product));
   const [status, setStatus] = useState({
     kind: "idle",
-    message: "Cole a URL do produto para tentar importar imagem, tÃ­tulo e preço.",
+    message: "Cole a URL do produto para tentar importar imagem, título e preço.",
   });
   const [isImporting, setIsImporting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -506,7 +506,7 @@ function ProductModal({
       kind: product ? "idle" : "hint",
       message: product
         ? "Edite os dados do produto e salve as alterações."
-        : "Cole a URL do produto para tentar importar imagem, tÃ­tulo e preço.",
+        : "Cole a URL do produto para tentar importar imagem, título e preço.",
     });
 
     function handleKeyDown(event) {
@@ -1223,7 +1223,7 @@ export default function ShopProductsEditorCard({
                 <div className="empty-state">
                   {products.length
                     ? "Nenhum produto encontrado com os filtros atuais."
-                    : "Assim que você cadastrar produtos, eles aparecerÃ£o aqui em formato de galeria."}
+                    : "Assim que você cadastrar produtos, eles aparecerão aqui em formato de galeria."}
                 </div>
               )}
             </div>

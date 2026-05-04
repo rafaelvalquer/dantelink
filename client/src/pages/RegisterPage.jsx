@@ -33,7 +33,7 @@ export default function RegisterPage() {
         <div className="auth-card__header">
           <span className="marketing-card__eyebrow">Criar conta</span>
           <h1>Comece seu DandeLink</h1>
-          <p>Crie sua conta para ganhar uma pagina propria e acessar o painel.</p>
+          <p>Crie sua conta para ganhar uma página própria e acessar o painel.</p>
         </div>
 
         <label className="field field--full">

@@ -9,7 +9,7 @@ export default function ProtectedRoute({
   const location = useLocation();
 
   if (loading) {
-    return <div className="auth-screen">Verificando sua sessao...</div>;
+    return <div className="auth-screen">Verificando sua sessão...</div>;
   }
 
   if (!isAuthenticated) {

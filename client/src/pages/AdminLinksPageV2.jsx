@@ -753,7 +753,7 @@ export default function AdminLinksPageV2() {
         ),
       );
       markSaved();
-      setNotice("Visibilidade do link secundÃ¡rio atualizada.");
+      setNotice("Visibilidade do link secundário atualizada.");
     } catch (actionError) {
       if (
         !isLatestItemRequestToken(

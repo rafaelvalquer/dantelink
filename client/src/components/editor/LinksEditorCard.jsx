@@ -350,7 +350,7 @@ export default function LinksEditorCard({
       ) : links.length ? (
           <div className="empty-state">Nenhum link encontrado com os filtros atuais.</div>
         ) : (
-          <div className="empty-state">Crie seu primeiro link para começar a preencher a pÃ¡gina.</div>
+          <div className="empty-state">Crie seu primeiro link para começar a preencher a página.</div>
         )}
     </SectionCard>
   );
