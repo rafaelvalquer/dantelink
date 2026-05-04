@@ -895,9 +895,19 @@ export const MY_PAGE_BRAND_LAYOUT_OPTIONS = [
     description: "Usa o avatar como destaque de capa.",
   },
   {
+    value: "banner",
+    label: "Banner",
+    description: "Imagem em faixa ampla com avatar sobreposto.",
+  },
+  {
     value: "spotlight",
     label: "Spotlight",
     description: "Logo grande e centralizado com clima premium.",
+  },
+  {
+    value: "split",
+    label: "Split",
+    description: "Avatar e textos lado a lado em composição editorial.",
   },
 ];
 
@@ -1687,7 +1697,9 @@ export function getMyPageTheme(page = {}) {
   const primaryButtonStyle = buildPrimaryButtonStyle(design);
   const secondaryButtonStyle = buildSecondaryButtonStyle(design);
   const usesHeroLayout = design.brandLayout === "hero" && Boolean(page?.avatarUrl);
+  const usesBannerLayout = design.brandLayout === "banner" && Boolean(page?.avatarUrl);
   const usesSpotlightLayout = design.brandLayout === "spotlight";
+  const usesSplitLayout = design.brandLayout === "split";
   const darkSurface = isDarkColor(design.surfaceColor);
   const chromeColor = mixColors(
     design.surfaceColor,
@@ -1710,7 +1722,9 @@ export function getMyPageTheme(page = {}) {
     fontFamily,
     headingFontFamily,
     usesHeroLayout,
+    usesBannerLayout,
     usesSpotlightLayout,
+    usesSplitLayout,
     buttonIconRadiusClassName,
     locationIconRadiusClassName: LOCATION_ICON_RADIUS_CLASSNAME,
     locationRouteChipRadiusClassName: LOCATION_ROUTE_CHIP_RADIUS_CLASSNAME,

@@ -425,6 +425,160 @@ function getVisibleInsightRows(rows = []) {
   );
 }
 
+function formatInsightAxisDate(value) {
+  if (!value) {
+    return "";
+  }
+
+  const parsed = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "numeric",
+    month: "short",
+  }).format(parsed);
+}
+
+function getInsightLabelStep(total) {
+  if (total <= 5) {
+    return 1;
+  }
+
+  if (total <= 10) {
+    return 2;
+  }
+
+  return Math.ceil(total / 5);
+}
+
+function getSmoothedClickAverage(items = []) {
+  return items.map((item, index) => {
+    const windowItems = items.slice(Math.max(0, index - 1), Math.min(items.length, index + 2));
+    const total = windowItems.reduce((sum, windowItem) => sum + Number(windowItem?.clicks || 0), 0);
+
+    return {
+      date: item.date,
+      value: windowItems.length ? total / windowItems.length : 0,
+    };
+  });
+}
+
+function buildInsightSmoothPath(points = []) {
+  if (points.length < 2) {
+    return "";
+  }
+
+  return points.reduce((path, point, index) => {
+    if (index === 0) {
+      return `M ${point.x} ${point.y}`;
+    }
+
+    const previous = points[index - 1];
+    const middleX = (previous.x + point.x) / 2;
+    const middleY = (previous.y + point.y) / 2;
+    const softOffset = Math.abs(previous.y - point.y) < 2 ? (index % 2 === 0 ? 8 : -8) : 0;
+
+    return `${path} Q ${middleX} ${middleY + softOffset} ${point.x} ${point.y}`;
+  }, "");
+}
+
+function LinkInsightChart({ items = [] }) {
+  if (!items.length) {
+    return null;
+  }
+
+  const width = 560;
+  const height = 190;
+  const padding = {
+    top: 16,
+    right: 12,
+    bottom: 34,
+    left: 34,
+  };
+  const plotWidth = width - padding.left - padding.right;
+  const plotHeight = height - padding.top - padding.bottom;
+  const slotWidth = plotWidth / items.length;
+  const barWidth = Math.max(8, Math.min(28, slotWidth * 0.34));
+  const averages = getSmoothedClickAverage(items);
+  const rawMax = Math.max(
+    items.reduce((max, item) => Math.max(max, Number(item?.clicks || 0)), 0),
+    averages.reduce((max, item) => Math.max(max, Number(item?.value || 0)), 0),
+  );
+  const maxValue = rawMax <= 4 ? 4 : Math.ceil((rawMax + 1) / 4) * 4;
+  const ticks = Array.from({ length: 3 }, (_, index) => Math.round((maxValue / 2) * index));
+  const labelStep = getInsightLabelStep(items.length);
+  const averagePoints = averages.map((item, index) => ({
+    x: padding.left + slotWidth * index + slotWidth / 2,
+    y: padding.top + plotHeight - (maxValue ? Number(item?.value || 0) / maxValue : 0) * plotHeight,
+  }));
+  const averagePath = buildInsightSmoothPath(averagePoints);
+
+  return (
+    <div className="link-card__insight-chart" aria-label="Gráfico diário deste link">
+      <svg viewBox={`0 0 ${width} ${height}`} role="img">
+        {ticks.map((tickValue, index) => {
+          const y = padding.top + plotHeight - (maxValue ? tickValue / maxValue : 0) * plotHeight;
+
+          return (
+            <g key={tickValue}>
+              <line
+                x1={padding.left}
+                y1={y}
+                x2={width - padding.right}
+                y2={y}
+                className={`link-card__insight-grid-line ${index === 0 ? "is-baseline" : ""}`}
+              />
+              <text x={padding.left - 8} y={y + 4} textAnchor="end">
+                {tickValue}
+              </text>
+            </g>
+          );
+        })}
+
+        {items.map((item, index) => {
+          const value = Number(item?.clicks || 0);
+          const heightRatio = maxValue ? value / maxValue : 0;
+          const barHeight = Math.max(value > 0 ? 8 : 0, heightRatio * plotHeight);
+          const x = padding.left + slotWidth * index + (slotWidth - barWidth) / 2;
+          const y = padding.top + plotHeight - barHeight;
+          const labelX = padding.left + slotWidth * index + slotWidth / 2;
+
+          return (
+            <g key={`${item.date}-${index}`}>
+              <rect
+                x={x}
+                y={y}
+                width={barWidth}
+                height={barHeight}
+                rx="7"
+                className="link-card__insight-bar"
+              />
+              {index % labelStep === 0 || index === items.length - 1 ? (
+                <text x={labelX} y={height - 10} textAnchor="middle">
+                  {formatInsightAxisDate(item.date)}
+                </text>
+              ) : null}
+            </g>
+          );
+        })}
+
+        {averagePath ? (
+          <>
+            <path className="link-card__insight-average-glow" d={averagePath} />
+            <path className="link-card__insight-average-line" d={averagePath} />
+          </>
+        ) : null}
+      </svg>
+      <div className="link-card__insight-chart-legend" aria-hidden="true">
+        <span><i className="is-clicks" /> Cliques</span>
+        <span><i className="is-average" /> Média</span>
+      </div>
+    </div>
+  );
+}
+
 
 export default function LinkItemRowV2({
   link,
@@ -1105,6 +1259,8 @@ export default function LinkItemRowV2({
                 <p className="link-card__insight-highlight">
                   {getInsightHeadline(insightData?.lifetimeTotal)}
                 </p>
+
+                <LinkInsightChart items={insightData?.daily || []} />
 
                 <div className="link-card__insight-table">
                   <div className="link-card__insight-table-header">

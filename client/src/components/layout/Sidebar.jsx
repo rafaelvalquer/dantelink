@@ -31,6 +31,7 @@ function getPageInitial(page) {
 
 export default function Sidebar({ page }) {
   const { user, logout, canAccessSystemMonitor } = useAuth();
+  const avatarUrl = String(page?.avatarUrl || "").trim();
   const renderNavItems = (items) =>
     items.map((item) => (
       <NavLink
@@ -51,9 +52,18 @@ export default function Sidebar({ page }) {
     <aside className="sidebar">
       <div className="sidebar__profile">
         <div className="sidebar__profile-main">
-          <span className="sidebar__brand-mark" aria-hidden="true">
-            {getPageInitial(page)}
-          </span>
+          {avatarUrl ? (
+            <img
+              className="sidebar__brand-mark sidebar__brand-mark--image"
+              src={avatarUrl}
+              alt=""
+              aria-hidden="true"
+            />
+          ) : (
+            <span className="sidebar__brand-mark" aria-hidden="true">
+              {getPageInitial(page)}
+            </span>
+          )}
           <div className="sidebar__profile-copy">
             <span className="sidebar__profile-eyebrow">Workspace</span>
             <strong>{getPageTitle(page)}</strong>

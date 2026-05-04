@@ -50,6 +50,9 @@ const SECONDARY_LINK_PLATFORMS = new Set([
   "discord",
   "email",
   "phone",
+  "ifood",
+  "food99",
+  "keeta",
   "site",
   "calendly",
 ]);

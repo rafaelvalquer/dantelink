@@ -216,16 +216,28 @@ function ColorRow({ label, value, fallback, onChange, disabled = false, hint = "
 function BrandPreview({ page, theme, mode }) {
   return (
     <div className="design-mini-page" style={theme.rootStyle}>
-      {mode === "hero" ? (
+      {mode === "hero" || mode === "banner" ? (
         <div className="design-mini-page__hero-cover" style={theme.heroMediaStyle} />
       ) : null}
       <div className="design-mini-page__surface" style={theme.surfaceStyle}>
-        <div className={cls("design-mini-page__hero", mode === "spotlight" && "is-spotlight")}>
+        <div className={cls(
+          "design-mini-page__hero",
+          mode === "spotlight" && "is-spotlight",
+          mode === "split" && "is-split",
+        )}>
           {mode === "hero" ? null : (
-            <div className={cls("design-mini-page__avatar-shell", mode === "spotlight" && "is-spotlight")}>
+            <div className={cls(
+              "design-mini-page__avatar-shell",
+              mode === "spotlight" && "is-spotlight",
+              mode === "split" && "is-split",
+            )}>
               {page?.avatarUrl ? (
                 <img
-                  className={cls("design-mini-page__avatar", mode === "spotlight" && "is-spotlight")}
+                  className={cls(
+                    "design-mini-page__avatar",
+                    mode === "spotlight" && "is-spotlight",
+                    mode === "split" && "is-split",
+                  )}
                   src={page.avatarUrl}
                   alt={fixCopy(page?.title || "Minha Página")}
                 />
@@ -235,6 +247,7 @@ function BrandPreview({ page, theme, mode }) {
                     "design-mini-page__avatar",
                     "design-mini-page__avatar--placeholder",
                     mode === "spotlight" && "is-spotlight",
+                    mode === "split" && "is-split",
                   )}
                 >
                   {String(page?.title || "M").slice(0, 1)}
@@ -242,15 +255,23 @@ function BrandPreview({ page, theme, mode }) {
               )}
             </div>
           )}
-          <div className={cls("design-mini-page__copy", mode === "spotlight" && "is-spotlight")}>
+          <div className={cls(
+            "design-mini-page__copy",
+            mode === "spotlight" && "is-spotlight",
+            mode === "split" && "is-split",
+          )}>
             <span style={theme.accentTextStyle}>Avatar ou Hero</span>
             <strong style={theme.titleStyle}>{fixCopy(page?.title || "Minha Página")}</strong>
             <small>
               {mode === "hero"
                 ? "Imagem no fundo."
+                : mode === "banner"
+                  ? "Capa com avatar sobreposto."
                 : mode === "spotlight"
                   ? "Logo grande e centralizado."
-                  : "Avatar redondo."}
+                  : mode === "split"
+                    ? "Avatar e textos lado a lado."
+                    : "Avatar redondo."}
             </small>
           </div>
         </div>

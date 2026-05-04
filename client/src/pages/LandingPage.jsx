@@ -1,18 +1,31 @@
 import {
   ArrowRight,
   BarChart3,
+  BookOpen,
   CheckCircle2,
   ChevronRight,
+  Gift,
   Layers3,
   Link2,
+  Package,
   Palette,
+  Shirt,
   ShoppingBag,
   Sparkles,
   Store,
   TrendingUp,
+  Utensils,
   Users,
 } from "lucide-react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import {
+  FaFacebookF,
+  FaGlobe,
+  FaInstagram,
+  FaTiktok,
+  FaWhatsapp,
+} from "react-icons/fa6";
 import heroHome from "../assets/marketing/hero-home.png";
 import { PublicPageMiniPreview } from "../components/public/PublicPageUi.jsx";
 import {
@@ -309,7 +322,85 @@ const brandPages = [
 ];
 
 const heroPreviewPages = [brandPages[4], brandPages[2], brandPages[0]];
-const carouselPages = [...brandPages, ...brandPages];
+const shopDemoPages = brandPages.filter((page) => page.shop?.isActive);
+const designDemoPages = [brandPages[0], brandPages[2], brandPages[3], brandPages[4], brandPages[6], brandPages[7]];
+const catalogProductIcons = [ShoppingBag, Gift, Sparkles, BookOpen, Package, Shirt, Utensils];
+
+const dashboardTabs = [
+  { id: "links", icon: Link2, title: "Links", text: "CTAs e redes" },
+  { id: "shop", icon: ShoppingBag, title: "Loja", text: "Produtos e ofertas" },
+  { id: "design", icon: Palette, title: "Design", text: "Temas e layouts" },
+  { id: "analytics", icon: TrendingUp, title: "Analytics", text: "Visitas e cliques" },
+];
+
+const dashboardCopy = {
+  links: {
+    status: "Preview ao vivo",
+    title: "Links publicados em tempo real",
+  },
+  shop: {
+    status: "Loja ao vivo",
+    title: "Vitrine pronta para vender",
+  },
+  design: {
+    status: "Design ao vivo",
+    title: "Temas pré-configurados",
+  },
+  analytics: {
+    status: "Analytics ao vivo",
+    title: "Gráficos e leitura de cliques",
+  },
+};
+
+const linkDemoButtons = [
+  {
+    id: "site",
+    label: "Site oficial",
+    text: "Landing, blog ou cardápio",
+    Icon: FaGlobe,
+  },
+  {
+    id: "instagram",
+    label: "Instagram",
+    text: "@studioaurora",
+    Icon: FaInstagram,
+  },
+  {
+    id: "facebook",
+    label: "Facebook",
+    text: "Página da marca",
+    Icon: FaFacebookF,
+  },
+  {
+    id: "whatsapp",
+    label: "WhatsApp",
+    text: "Atendimento direto",
+    Icon: FaWhatsapp,
+  },
+  {
+    id: "tiktok",
+    label: "TikTok",
+    text: "Vídeos e bastidores",
+    Icon: FaTiktok,
+  },
+];
+
+const catalogProducts = shopDemoPages
+  .flatMap((page, pageIndex) =>
+    (page.shop?.products || []).map((product, productIndex) => ({
+      id: product.id,
+      brand: page.title,
+      title: product.title,
+      Icon: catalogProductIcons[(pageIndex + productIndex) % catalogProductIcons.length],
+      price: ["R$ 89", "R$ 129", "R$ 59", "R$ 149", "R$ 72", "R$ 210"][
+        (pageIndex + productIndex) % 6
+      ],
+      tag: ["Novo", "Mais vendido", "Digital", "Combo", "Agenda", "Premium"][
+        (pageIndex + productIndex) % 6
+      ],
+    })),
+  )
+  .slice(0, 6);
 
 const featureItems = [
   {
@@ -389,7 +480,168 @@ function BrandPreviewCard({ page, compact = false }) {
   );
 }
 
+function ShopDemoPanel() {
+  return (
+    <div className="lt-catalog-demo" aria-label="Preview do catálogo de produtos">
+      <div className="lt-catalog-demo__header">
+        <div>
+          <span>Catálogo público</span>
+          <strong>Produtos prontos para compra</strong>
+        </div>
+        <small>Vitrine, preço, marca e CTA no mesmo fluxo.</small>
+      </div>
+
+      <div className="lt-catalog-demo__grid">
+        {catalogProducts.map((product) => (
+          <article className="lt-catalog-product" key={product.id}>
+            <div className="lt-catalog-product__media">
+              <span>{product.tag}</span>
+              <div className="lt-catalog-product__icon" aria-hidden="true">
+                <product.Icon size={42} strokeWidth={1.9} />
+              </div>
+            </div>
+            <div className="lt-catalog-product__body">
+              <small>{product.brand}</small>
+              <strong>{product.title}</strong>
+              <div>
+                <span>{product.price}</span>
+                <Link to="/cadastro">Comprar</Link>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LinksDemoPanel() {
+  const featuredPage = brandPages[0];
+
+  return (
+    <div className="lt-links-demo" aria-label="Preview de botões de links">
+      <aside className="lt-links-demo__profile">
+        <img src={featuredPage.avatarUrl} alt="" aria-hidden="true" />
+        <span>Studio Aurora</span>
+        <strong>Links essenciais em destaque</strong>
+        <p>Site, redes sociais e atendimento com botões claros para cada ação.</p>
+      </aside>
+
+      <div className="lt-links-demo__buttons">
+        {linkDemoButtons.map((button) => (
+          <Link
+            className={`lt-links-demo__button lt-links-demo__button--${button.id}`}
+            key={button.id}
+            to="/cadastro"
+          >
+            <span>
+              <button.Icon size={18} />
+            </span>
+            <div>
+              <strong>{button.label}</strong>
+              <small>{button.text}</small>
+            </div>
+            <ChevronRight size={16} />
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DesignDemoPanel() {
+  return (
+    <div className="lt-brand-marquee" aria-label="Temas pr&eacute;-configurados">
+      <div className="lt-brand-marquee__track lt-brand-marquee__track--design">
+        {[...designDemoPages, ...designDemoPages].map((page, index) => (
+          <BrandPreviewCard page={page} key={`${page.slug}-design-${index}`} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AnalyticsDemoPanel() {
+  const chartBars = [38, 58, 42, 78, 64, 92, 72];
+
+  return (
+    <div className="lt-analytics-demo" aria-label="Preview de analytics">
+      <div className="lt-analytics-demo__grid">
+        <article>
+          <span>Visitas</span>
+          <strong>1.284</strong>
+          <small>+18% na semana</small>
+        </article>
+        <article>
+          <span>Cliques em links</span>
+          <strong>436</strong>
+          <small>CTAs principais</small>
+        </article>
+        <article>
+          <span>Produtos</span>
+          <strong>89</strong>
+          <small>Cliques de loja</small>
+        </article>
+      </div>
+
+      <div className="lt-analytics-demo__chart">
+        <svg viewBox="0 0 720 260" role="img" aria-label="Gr&aacute;fico de an&aacute;lise do link">
+          {[0, 1, 2, 3].map((line) => (
+            <line
+              key={line}
+              x1="36"
+              x2="700"
+              y1={40 + line * 52}
+              y2={40 + line * 52}
+              className="lt-analytics-demo__grid-line"
+            />
+          ))}
+          {chartBars.map((height, index) => {
+            const x = 70 + index * 86;
+            const y = 214 - height * 1.55;
+
+            return (
+              <rect
+                key={index}
+                x={x}
+                y={y}
+                width="28"
+                height={height * 1.55}
+                rx="14"
+                className="lt-analytics-demo__bar"
+              />
+            );
+          })}
+          <path
+            className="lt-analytics-demo__line"
+            d="M 84 155 Q 170 118 256 142 Q 342 165 428 96 Q 514 68 600 88"
+          />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+function DashboardPreviewContent({ activePanel }) {
+  if (activePanel === "shop") {
+    return <ShopDemoPanel />;
+  }
+
+  if (activePanel === "design") {
+    return <DesignDemoPanel />;
+  }
+
+  if (activePanel === "analytics") {
+    return <AnalyticsDemoPanel />;
+  }
+
+  return <LinksDemoPanel />;
+}
+
 export default function LandingPage() {
+  const [activePanel, setActivePanel] = useState("links");
+  const activePanelCopy = dashboardCopy[activePanel] || dashboardCopy.links;
+
   return (
     <div className="lt-home">
       <header className="lt-nav">
@@ -503,20 +755,21 @@ export default function LandingPage() {
 
           <div className="lt-dashboard">
             <aside className="lt-dashboard__side" aria-label={"Areas do painel"}>
-              {[
-                { icon: Link2, title: "Links", text: "CTAs e redes", active: true },
-                { icon: ShoppingBag, title: "Loja", text: "Produtos e ofertas" },
-                { icon: Palette, title: "Design", text: "Temas e layouts" },
-                { icon: TrendingUp, title: "Analytics", text: "Visitas e cliques" },
-              ].map((item) => (
-                <div className={`lt-dashboard-item${item.active ? " is-active" : ""}`} key={item.title}>
+              {dashboardTabs.map((item) => (
+                <button
+                  type="button"
+                  className={`lt-dashboard-item${activePanel === item.id ? " is-active" : ""}`}
+                  key={item.id}
+                  onClick={() => setActivePanel(item.id)}
+                  aria-pressed={activePanel === item.id}
+                >
                   <span><item.icon size={17} /></span>
                   <div>
                     <strong>{item.title}</strong>
                     <small>{item.text}</small>
                   </div>
                   <ChevronRight size={15} />
-                </div>
+                </button>
               ))}
             </aside>
 
@@ -524,18 +777,12 @@ export default function LandingPage() {
               <div className="lt-dashboard__top">
                 <div>
                   <span className="lt-status-dot" />
-                  Preview ao vivo
+                  {activePanelCopy.status}
                 </div>
-                <strong>Temas aplicados automaticamente</strong>
+                <strong>{activePanelCopy.title}</strong>
               </div>
 
-              <div className="lt-brand-marquee" aria-label="Carrossel de marcas e temas">
-                <div className="lt-brand-marquee__track">
-                  {carouselPages.map((page, index) => (
-                    <BrandPreviewCard page={page} key={`${page.slug}-${index}`} />
-                  ))}
-                </div>
-              </div>
+              <DashboardPreviewContent activePanel={activePanel} />
             </div>
           </div>
         </section>

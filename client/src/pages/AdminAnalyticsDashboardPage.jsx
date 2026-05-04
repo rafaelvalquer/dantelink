@@ -24,10 +24,6 @@ function getRangeLabel(range = "7d") {
   return RANGE_OPTIONS.find((option) => option.value === range)?.label || "Últimos 7 dias";
 }
 
-function getTopOriginLabel(origins = []) {
-  return origins.find((item) => Number(item.total || 0) > 0)?.label || "Direto";
-}
-
 function formatAxisDate(value) {
   if (!value) {
     return "";
@@ -44,7 +40,27 @@ function formatAxisDate(value) {
   }).format(parsed);
 }
 
-function getChartModel(items = []) {
+function getDailyActivityTotal(item = {}) {
+  return (
+    Number(item?.pageViews || 0)
+    + Number(item?.linkClicks || 0)
+    + Number(item?.productClicks || 0)
+  );
+}
+
+function getSmoothedAverageItems(items = []) {
+  return items.map((item, index) => {
+    const windowItems = items.slice(Math.max(0, index - 1), Math.min(items.length, index + 2));
+    const windowTotal = windowItems.reduce((sum, windowItem) => sum + getDailyActivityTotal(windowItem), 0);
+
+    return {
+      date: item.date,
+      value: windowItems.length ? windowTotal / windowItems.length : 0,
+    };
+  });
+}
+
+function getChartModel(items = [], averageItems = []) {
   const maxValue = items.reduce((max, item) => {
     return Math.max(
       max,
@@ -53,8 +69,13 @@ function getChartModel(items = []) {
       Number(item?.productClicks || 0),
     );
   }, 0);
+  const averageMaxValue = averageItems.reduce(
+    (max, item) => Math.max(max, Number(item?.value || 0)),
+    0,
+  );
+  const chartMaxValue = Math.max(maxValue, averageMaxValue);
 
-  const safeMax = maxValue <= 4 ? 4 : Math.ceil((maxValue + 1) / 4) * 4;
+  const safeMax = chartMaxValue <= 4 ? 4 : Math.ceil((chartMaxValue + 1) / 4) * 4;
   const ticks = Array.from({ length: 5 }, (_, index) => Math.round((safeMax / 4) * index));
 
   return {
@@ -79,6 +100,25 @@ function getVisibleLabelStep(total) {
   return Math.ceil(total / 6);
 }
 
+function buildSmoothPath(points = []) {
+  if (points.length < 2) {
+    return "";
+  }
+
+  return points.reduce((path, point, index) => {
+    if (index === 0) {
+      return `M ${point.x} ${point.y}`;
+    }
+
+    const previous = points[index - 1];
+    const middleX = (previous.x + point.x) / 2;
+    const middleY = (previous.y + point.y) / 2;
+    const softOffset = Math.abs(previous.y - point.y) < 2 ? (index % 2 === 0 ? 10 : -10) : 0;
+
+    return `${path} Q ${middleX} ${middleY + softOffset} ${point.x} ${point.y}`;
+  }, "");
+}
+
 function AnalyticsChart({ items = [] }) {
   if (!items.length) {
     return <div className="empty-state">Ainda não há dados suficientes para este período.</div>;
@@ -99,7 +139,18 @@ function AnalyticsChart({ items = [] }) {
   const gap = 4;
   const barWidth = Math.max(6, (groupWidth - gap * 2) / CHART_SERIES.length);
   const labelStep = getVisibleLabelStep(items.length);
-  const { maxValue, ticks } = getChartModel(items);
+  const averageItems = getSmoothedAverageItems(items);
+  const { maxValue, ticks } = getChartModel(items, averageItems);
+  const averagePoints = averageItems.map((item, itemIndex) => {
+    const value = Number(item?.value || 0);
+    const heightRatio = maxValue ? value / maxValue : 0;
+
+    return {
+      x: padding.left + slotWidth * itemIndex + slotWidth / 2,
+      y: padding.top + plotHeight - heightRatio * plotHeight,
+    };
+  });
+  const averagePath = buildSmoothPath(averagePoints);
 
   return (
     <div className="analytics-chart-shell">
@@ -174,6 +225,22 @@ function AnalyticsChart({ items = [] }) {
               </g>
             );
           })}
+
+          {averagePath ? (
+            <>
+              <path className="analytics-chart__average-glow" d={averagePath} />
+              <path className="analytics-chart__average-line" d={averagePath} />
+              {averagePoints.map((point, index) => (
+                <circle
+                  key={`average-${index}`}
+                  cx={point.x}
+                  cy={point.y}
+                  r="3.5"
+                  className="analytics-chart__average-dot"
+                />
+              ))}
+            </>
+          ) : null}
         </svg>
       </div>
 
@@ -184,6 +251,10 @@ function AnalyticsChart({ items = [] }) {
             {series.label}
           </span>
         ))}
+        <span className="analytics-chart__legend-item">
+          <i className="analytics-chart__legend-swatch is-average" />
+          Média
+        </span>
       </div>
     </div>
   );
@@ -258,15 +329,8 @@ export default function AdminAnalyticsDashboardPage() {
         note: getRangeLabel(range),
         icon: ShoppingBag,
       },
-      {
-        key: "origin",
-        label: "Origem principal",
-        value: analytics?.summary?.primaryOrigin || getTopOriginLabel(analytics?.origins),
-        note: "Entrada mais recorrente",
-        icon: Compass,
-      },
     ],
-    [analytics?.origins, analytics?.summary, range],
+    [analytics?.summary, range],
   );
 
   return (
@@ -312,7 +376,7 @@ export default function AdminAnalyticsDashboardPage() {
                     <Icon size={19} strokeWidth={2.1} />
                   </div>
                   <div className="analytics-kpi-card__body">
-                    <strong>{item.key === "origin" ? item.value : formatCardValue(item.value)}</strong>
+                    <strong>{formatCardValue(item.value)}</strong>
                     <span>{item.label}</span>
                     <small>{item.note}</small>
                   </div>

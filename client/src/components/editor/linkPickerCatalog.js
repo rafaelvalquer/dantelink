@@ -23,7 +23,71 @@ import {
   FaXTwitter,
   FaYoutube,
 } from "react-icons/fa6";
-import { SiCalendly } from "react-icons/si";
+import { createElement } from "react";
+import { SiCalendly, SiIfood } from "react-icons/si";
+
+function Food99Icon({ size = 20, ...props }) {
+  return createElement(
+    "svg",
+    {
+      viewBox: "0 0 24 24",
+      width: size,
+      height: size,
+      fill: "none",
+      "aria-hidden": "true",
+      focusable: "false",
+      ...props,
+    },
+    createElement("rect", {
+      x: "2",
+      y: "3",
+      width: "20",
+      height: "18",
+      rx: "7",
+      fill: "currentColor",
+      opacity: "0.16",
+    }),
+    createElement(
+      "text",
+      {
+        x: "12",
+        y: "15.5",
+        textAnchor: "middle",
+        fill: "currentColor",
+        fontFamily: "Inter, Arial, sans-serif",
+        fontSize: "8.5",
+        fontWeight: "900",
+      },
+      "99",
+    ),
+  );
+}
+
+function KeetaIcon({ size = 20, ...props }) {
+  return createElement(
+    "svg",
+    {
+      viewBox: "0 0 24 24",
+      width: size,
+      height: size,
+      fill: "none",
+      "aria-hidden": "true",
+      focusable: "false",
+      ...props,
+    },
+    createElement("circle", {
+      cx: "12",
+      cy: "12",
+      r: "9",
+      fill: "currentColor",
+      opacity: "0.16",
+    }),
+    createElement("path", {
+      d: "M8 16V8h2.2v3.1L13.5 8h2.8l-3.7 3.5 4 4.5h-2.9l-2.6-3.1-.9.9V16H8Z",
+      fill: "currentColor",
+    }),
+  );
+}
 
 export const LINK_PICKER_CATEGORY_META = {
   essentials: {
@@ -267,6 +331,48 @@ export const SECONDARY_PLATFORM_META = {
     badgeStyle: {
       background: "linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)",
       color: "#15803d",
+    },
+  },
+  ifood: {
+    label: "iFood",
+    Icon: SiIfood,
+    category: "shop",
+    primaryFieldLabel: "URL",
+    primaryPlaceholder: "https://www.ifood.com.br/...",
+    modalDescription: "Leve para seu cardapio, restaurante ou loja no iFood.",
+    keywords: ["ifood", "delivery", "comida", "restaurante", "cardapio"],
+    inputMode: "url",
+    badgeStyle: {
+      background: "linear-gradient(135deg, #ff7a70 0%, #ea1d2c 100%)",
+      color: "#ffffff",
+    },
+  },
+  food99: {
+    label: "99Food",
+    Icon: Food99Icon,
+    category: "shop",
+    primaryFieldLabel: "URL",
+    primaryPlaceholder: "https://...",
+    modalDescription: "Direcione para seu perfil, loja ou cardapio no 99Food.",
+    keywords: ["99food", "99", "delivery", "comida", "restaurante"],
+    inputMode: "url",
+    badgeStyle: {
+      background: "linear-gradient(135deg, #ffe66d 0%, #ffb703 100%)",
+      color: "#2b2100",
+    },
+  },
+  keeta: {
+    label: "Keeta",
+    Icon: KeetaIcon,
+    category: "shop",
+    primaryFieldLabel: "URL",
+    primaryPlaceholder: "https://...",
+    modalDescription: "Leve para seu cardapio, vitrine ou loja no Keeta.",
+    keywords: ["keeta", "delivery", "comida", "restaurante", "cardapio"],
+    inputMode: "url",
+    badgeStyle: {
+      background: "linear-gradient(135deg, #b8f56a 0%, #19b85a 100%)",
+      color: "#073b1b",
     },
   },
   site: {

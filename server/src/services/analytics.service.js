@@ -314,6 +314,17 @@ function buildDailySeries(documents = []) {
   });
 }
 
+function buildLinkDailySeries(documents = [], linkId = "") {
+  return documents.map((doc) => {
+    const metric = sumMetricBucket(toMetricMap(doc.linkClicksByLinkId), linkId);
+
+    return {
+      date: doc.dateKey,
+      clicks: Number(metric.total || 0),
+    };
+  });
+}
+
 export async function getAnalyticsOverview(ownerId, range = "7d") {
   const page = await getPageByOwnerId(ownerId);
   const normalizedRange = normalizeRange(range);
@@ -460,6 +471,7 @@ export async function getLinkAnalyticsInsight(ownerId, linkId, range = "7d") {
     range: normalizedRange,
     lifetimeTotal,
     rangeTotal,
+    daily: buildLinkDailySeries(rangeDocuments, linkId),
     rows: [
       {
         label: "Total",

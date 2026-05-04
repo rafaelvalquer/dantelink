@@ -136,6 +136,7 @@ export function PublicPageAvatar({
       className={cls(
         "public-page__hero-avatar-wrap",
         theme?.usesSpotlightLayout && "is-spotlight",
+        theme?.usesSplitLayout && "is-split",
         compact && "is-compact",
       )}
       style={theme.chromeButtonStyle}
@@ -147,6 +148,7 @@ export function PublicPageAvatar({
           className={cls(
             "public-page__hero-avatar",
             theme?.usesSpotlightLayout && "is-spotlight",
+            theme?.usesSplitLayout && "is-split",
             compact && "is-compact",
           )}
         />
@@ -156,6 +158,7 @@ export function PublicPageAvatar({
             "public-page__hero-avatar",
             "public-page__hero-avatar--placeholder",
             theme?.usesSpotlightLayout && "is-spotlight",
+            theme?.usesSplitLayout && "is-split",
             compact && "is-compact",
           )}
           style={theme.primaryButtonStyle}
@@ -185,11 +188,13 @@ export function PublicPageHero({
       className={cls(
         "public-page__hero-shell",
         theme?.usesHeroLayout && "is-hero-layout",
+        theme?.usesBannerLayout && "is-banner-layout",
         theme?.usesSpotlightLayout && "is-spotlight",
+        theme?.usesSplitLayout && "is-split",
         compact && "is-compact",
       )}
     >
-      {theme?.usesHeroLayout ? (
+      {theme?.usesHeroLayout || theme?.usesBannerLayout ? (
         <div className="public-page__hero-media" style={theme.heroMediaStyle} />
       ) : null}
 
@@ -197,6 +202,7 @@ export function PublicPageHero({
         className={cls(
           "public-page__hero",
           theme?.usesSpotlightLayout && "is-spotlight",
+          theme?.usesSplitLayout && "is-split",
           compact && "is-compact",
         )}
       >
@@ -206,6 +212,7 @@ export function PublicPageHero({
           className={cls(
             "public-page__hero-copy",
             theme?.usesSpotlightLayout && "is-spotlight",
+            theme?.usesSplitLayout && "is-split",
             compact && "is-compact",
           )}
         >
