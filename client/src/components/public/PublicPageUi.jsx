@@ -137,6 +137,9 @@ export function PublicPageAvatar({
         "public-page__hero-avatar-wrap",
         theme?.usesSpotlightLayout && "is-spotlight",
         theme?.usesSplitLayout && "is-split",
+        theme?.usesEditorialLayout && "is-editorial",
+        theme?.usesCatalogLayout && "is-catalog",
+        theme?.usesCampaignLayout && "is-campaign",
         compact && "is-compact",
       )}
       style={theme.chromeButtonStyle}
@@ -149,6 +152,9 @@ export function PublicPageAvatar({
             "public-page__hero-avatar",
             theme?.usesSpotlightLayout && "is-spotlight",
             theme?.usesSplitLayout && "is-split",
+            theme?.usesEditorialLayout && "is-editorial",
+            theme?.usesCatalogLayout && "is-catalog",
+            theme?.usesCampaignLayout && "is-campaign",
             compact && "is-compact",
           )}
         />
@@ -159,6 +165,9 @@ export function PublicPageAvatar({
             "public-page__hero-avatar--placeholder",
             theme?.usesSpotlightLayout && "is-spotlight",
             theme?.usesSplitLayout && "is-split",
+            theme?.usesEditorialLayout && "is-editorial",
+            theme?.usesCatalogLayout && "is-catalog",
+            theme?.usesCampaignLayout && "is-campaign",
             compact && "is-compact",
           )}
           style={theme.primaryButtonStyle}
@@ -191,6 +200,9 @@ export function PublicPageHero({
         theme?.usesBannerLayout && "is-banner-layout",
         theme?.usesSpotlightLayout && "is-spotlight",
         theme?.usesSplitLayout && "is-split",
+        theme?.usesEditorialLayout && "is-editorial",
+        theme?.usesCatalogLayout && "is-catalog",
+        theme?.usesCampaignLayout && "is-campaign",
         compact && "is-compact",
       )}
     >
@@ -203,6 +215,9 @@ export function PublicPageHero({
           "public-page__hero",
           theme?.usesSpotlightLayout && "is-spotlight",
           theme?.usesSplitLayout && "is-split",
+          theme?.usesEditorialLayout && "is-editorial",
+          theme?.usesCatalogLayout && "is-catalog",
+          theme?.usesCampaignLayout && "is-campaign",
           compact && "is-compact",
         )}
       >
@@ -213,6 +228,9 @@ export function PublicPageHero({
             "public-page__hero-copy",
             theme?.usesSpotlightLayout && "is-spotlight",
             theme?.usesSplitLayout && "is-split",
+            theme?.usesEditorialLayout && "is-editorial",
+            theme?.usesCatalogLayout && "is-catalog",
+            theme?.usesCampaignLayout && "is-campaign",
             compact && "is-compact",
           )}
         >

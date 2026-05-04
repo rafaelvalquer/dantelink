@@ -909,7 +909,26 @@ export const MY_PAGE_BRAND_LAYOUT_OPTIONS = [
     label: "Split",
     description: "Avatar e textos lado a lado em composição editorial.",
   },
+  {
+    value: "editorial",
+    label: "Editorial",
+    description: "Tipografia refinada com marca em composição editorial.",
+  },
+  {
+    value: "catalog",
+    label: "Catálogo",
+    description: "Marca compacta com leitura de vitrine premium.",
+  },
+  {
+    value: "campaign",
+    label: "Campanha",
+    description: "Marca em destaque para ação, lançamento ou oferta.",
+  },
 ];
+
+const VALID_BRAND_LAYOUTS = new Set(
+  MY_PAGE_BRAND_LAYOUT_OPTIONS.map((option) => option.value),
+);
 
 export const MY_PAGE_BACKGROUND_STYLE_OPTIONS = [
   { value: "fill", label: "Fill", description: "Cor sólida na página inteira." },
@@ -1493,9 +1512,15 @@ export function normalizeMyPageTheme(rawTheme = {}) {
     secondaryLinksIconBadgeColor: normalizeOptionalHexColor(rawTheme.secondaryLinksIconBadgeColor),
     secondaryLinksIconColor: normalizeOptionalHexColor(rawTheme.secondaryLinksIconColor),
   };
+  const normalizedBrandLayout = VALID_BRAND_LAYOUTS.has(rawTheme.brandLayout)
+    ? rawTheme.brandLayout
+    : VALID_BRAND_LAYOUTS.has(presetTheme.brandLayout)
+      ? presetTheme.brandLayout
+      : MY_PAGE_THEME_DEFAULTS.brandLayout;
 
   return {
     ...next,
+    brandLayout: normalizedBrandLayout,
     cardColor: next.surfaceColor,
     textColor: next.pageTextColor,
   };
@@ -1700,6 +1725,9 @@ export function getMyPageTheme(page = {}) {
   const usesBannerLayout = design.brandLayout === "banner" && Boolean(page?.avatarUrl);
   const usesSpotlightLayout = design.brandLayout === "spotlight";
   const usesSplitLayout = design.brandLayout === "split";
+  const usesEditorialLayout = design.brandLayout === "editorial";
+  const usesCatalogLayout = design.brandLayout === "catalog";
+  const usesCampaignLayout = design.brandLayout === "campaign";
   const darkSurface = isDarkColor(design.surfaceColor);
   const chromeColor = mixColors(
     design.surfaceColor,
@@ -1725,6 +1753,9 @@ export function getMyPageTheme(page = {}) {
     usesBannerLayout,
     usesSpotlightLayout,
     usesSplitLayout,
+    usesEditorialLayout,
+    usesCatalogLayout,
+    usesCampaignLayout,
     buttonIconRadiusClassName,
     locationIconRadiusClassName: LOCATION_ICON_RADIUS_CLASSNAME,
     locationRouteChipRadiusClassName: LOCATION_ROUTE_CHIP_RADIUS_CLASSNAME,

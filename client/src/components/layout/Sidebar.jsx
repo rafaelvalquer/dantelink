@@ -1,4 +1,12 @@
-import { BarChart3, Link2, Palette, Shield, Store } from "lucide-react";
+import {
+  BarChart3,
+  Link2,
+  Palette,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Shield,
+  Store,
+} from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../app/AuthContext.jsx";
 
@@ -17,7 +25,7 @@ const systemItems = [
 ];
 
 function getPageTitle(page) {
-  return String(page?.title || page?.slug || "Minha pagina").trim();
+  return String(page?.title || page?.slug || "Minha página").trim();
 }
 
 function getPageHandle(page) {
@@ -29,14 +37,17 @@ function getPageInitial(page) {
   return getPageTitle(page).charAt(0).toUpperCase() || "D";
 }
 
-export default function Sidebar({ page }) {
+export default function Sidebar({ page, collapsed = false, onToggleCollapsed }) {
   const { user, logout, canAccessSystemMonitor } = useAuth();
   const avatarUrl = String(page?.avatarUrl || "").trim();
+  const ToggleIcon = collapsed ? PanelLeftOpen : PanelLeftClose;
   const renderNavItems = (items) =>
     items.map((item) => (
       <NavLink
         key={item.to}
         to={item.to}
+        title={collapsed ? item.label : undefined}
+        aria-label={collapsed ? item.label : undefined}
         className={({ isActive }) =>
           `sidebar__link ${isActive ? "is-active" : ""}`
         }
@@ -49,7 +60,7 @@ export default function Sidebar({ page }) {
     ));
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${collapsed ? "is-collapsed" : ""}`.trim()}>
       <div className="sidebar__profile">
         <div className="sidebar__profile-main">
           {avatarUrl ? (
@@ -70,12 +81,21 @@ export default function Sidebar({ page }) {
             <span className="sidebar__profile-handle">{getPageHandle(page)}</span>
           </div>
         </div>
+        <button
+          type="button"
+          className="sidebar__collapse-button"
+          onClick={onToggleCollapsed}
+          aria-label={collapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
+          title={collapsed ? "Expandir menu" : "Recolher menu"}
+        >
+          <ToggleIcon size={17} strokeWidth={2.1} />
+        </button>
       </div>
 
       <div className="sidebar__section">
         <span className="sidebar__section-label">Editar</span>
 
-        <nav className="sidebar__nav" aria-label="Navegacao do editor">
+        <nav className="sidebar__nav" aria-label="Navegação do editor">
           {renderNavItems(editorItems)}
         </nav>
       </div>
@@ -83,7 +103,7 @@ export default function Sidebar({ page }) {
       <div className="sidebar__section">
         <span className="sidebar__section-label">Insights</span>
 
-        <nav className="sidebar__nav" aria-label="Navegacao de insights">
+        <nav className="sidebar__nav" aria-label="Navegação de insights">
           {renderNavItems(insightItems)}
         </nav>
       </div>
@@ -92,7 +112,7 @@ export default function Sidebar({ page }) {
         <div className="sidebar__section">
           <span className="sidebar__section-label">Sistema</span>
 
-          <nav className="sidebar__nav" aria-label="Navegacao do sistema">
+          <nav className="sidebar__nav" aria-label="Navegação do sistema">
             {renderNavItems(systemItems)}
           </nav>
         </div>
@@ -102,7 +122,7 @@ export default function Sidebar({ page }) {
         <span className="sidebar__section-label">Conta</span>
         <div className="sidebar__account-card">
           <strong>{user?.displayName || user?.email || "Conta"}</strong>
-          <span>{user?.email || "Sessao ativa"}</span>
+          <span>{user?.email || "Sessão ativa"}</span>
           <button type="button" className="sidebar__logout" onClick={logout}>
             Sair
           </button>
